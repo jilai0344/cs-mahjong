@@ -79,51 +79,66 @@ console.log('=== 测试 1: 起手胡 (小胡) 检测 ===');
   const res4 = checkStartingHu(handLiuLiu, { startingHu: { liuLiuShun: true } });
   assert(res4.some(h => h.type === 'liuLiuShun'), '拥有两组3张相同牌应触发【六六顺】');
 
-  // E. 一个五测试 (有且仅有一个五)
+  // E. 一个五测试 (某一门起手只有一张且为五)
   const handOneFive = [
-    { id: 1, suit: SUITS.WAN, value: 5, name: '五万' },
+    { id: 1, suit: SUITS.WAN, value: 5, name: '五万' }, // 万字门仅此一张5
     { id: 2, suit: SUITS.TIAO, value: 1, name: '一条' },
-    { id: 3, suit: SUITS.TONG, value: 9, name: '九筒' }
+    { id: 3, suit: SUITS.TIAO, value: 2, name: '二条' },
+    { id: 4, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 5, suit: SUITS.TONG, value: 9, name: '九筒' }
   ];
   const resOneFive = checkStartingHu(handOneFive, { startingHu: { yiGeWu: true } });
-  assert(resOneFive.some(h => h.type === 'yiGeWu'), '全手牌有且仅有一个五应触发【一个五】');
+  assert(resOneFive.some(h => h.type === 'yiGeWu' && h.name === '一个五'), '万字门仅有一张五万应触发【一个五】');
 
-  const handTwoFives = [
+  const handTwoWanTiles = [
     { id: 1, suit: SUITS.WAN, value: 5, name: '五万' },
-    { id: 2, suit: SUITS.TIAO, value: 5, name: '五条' }
+    { id: 2, suit: SUITS.WAN, value: 6, name: '六万' }, // 万字门有两张，不满足起手只有一张五
+    { id: 3, suit: SUITS.TIAO, value: 1, name: '一条' }
   ];
-  const resTwoFives = checkStartingHu(handTwoFives, { startingHu: { yiGeWu: true } });
-  assert(!resTwoFives.some(h => h.type === 'yiGeWu'), '手牌拥有两个五时不应触发【一个五】');
+  const resTwoWan = checkStartingHu(handTwoWanTiles, { startingHu: { yiGeWu: true } });
+  assert(!resTwoWan.some(h => h.type === 'yiGeWu'), '同一门有其它牌(5万+6万)不应触发【一个五】');
 
-  const handNoFives = [
-    { id: 1, suit: SUITS.WAN, value: 1, name: '一万' },
-    { id: 2, suit: SUITS.TIAO, value: 2, name: '二条' }
+  const handOneSeven = [
+    { id: 1, suit: SUITS.WAN, value: 7, name: '七万' }, // 仅有一张但不是五
+    { id: 2, suit: SUITS.TIAO, value: 1, name: '一条' },
+    { id: 3, suit: SUITS.TIAO, value: 2, name: '二条' }
   ];
-  const resNoFives = checkStartingHu(handNoFives, { startingHu: { yiGeWu: true } });
-  assert(!resNoFives.some(h => h.type === 'yiGeWu'), '手牌无五时不应触发【一个五】');
+  const resOneSeven = checkStartingHu(handOneSeven, { startingHu: { yiGeWu: true } });
+  assert(!resOneSeven.some(h => h.type === 'yiGeWu'), '起手独张不是五(七万)不应触发【一个五】');
 
-  // F. 三五三八测试 (三个五筒，三个八筒)
-  const handSanWuSanBa = [
+  // F. 三个五三个八测试 (3个五筒胡1把，3个八筒胡1把，如果都有胡3把含六六顺)
+  const handOnly35 = [
+    { id: 1, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 2, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 3, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 4, suit: SUITS.WAN, value: 1, name: '一万' }
+  ];
+  const resOnly35 = checkStartingHu(handOnly35, { startingHu: { sanWuSanBa: true, liuLiuShun: true } });
+  assert(resOnly35.some(h => h.name === '三个五'), '起手有3个五筒应触发【三个五】');
+
+  const handOnly38 = [
+    { id: 1, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 2, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 3, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 4, suit: SUITS.WAN, value: 1, name: '一万' }
+  ];
+  const resOnly38 = checkStartingHu(handOnly38, { startingHu: { sanWuSanBa: true, liuLiuShun: true } });
+  assert(resOnly38.some(h => h.name === '三个八'), '起手有3个八筒应触发【三个八】');
+
+  const handBoth3538 = [
     { id: 1, suit: SUITS.TONG, value: 5, name: '五筒' },
     { id: 2, suit: SUITS.TONG, value: 5, name: '五筒' },
     { id: 3, suit: SUITS.TONG, value: 5, name: '五筒' },
     { id: 4, suit: SUITS.TONG, value: 8, name: '八筒' },
     { id: 5, suit: SUITS.TONG, value: 8, name: '八筒' },
     { id: 6, suit: SUITS.TONG, value: 8, name: '八筒' },
-    { id: 7, suit: SUITS.WAN, value: 1, name: '一万' }
+    { id: 7, suit: SUITS.WAN, value: 2, name: '二万' }
   ];
-  const res3538 = checkStartingHu(handSanWuSanBa, { startingHu: { sanWuSanBa: true } });
-  assert(res3538.some(h => h.type === 'sanWuSanBa'), '拥有三个五筒和三个八筒应触发【三五三八】');
-
-  const hand3528 = [
-    { id: 1, suit: SUITS.TONG, value: 5, name: '五筒' },
-    { id: 2, suit: SUITS.TONG, value: 5, name: '五筒' },
-    { id: 3, suit: SUITS.TONG, value: 5, name: '五筒' },
-    { id: 4, suit: SUITS.TONG, value: 8, name: '八筒' },
-    { id: 5, suit: SUITS.TONG, value: 8, name: '八筒' }
-  ];
-  const res3528 = checkStartingHu(hand3528, { startingHu: { sanWuSanBa: true } });
-  assert(!res3528.some(h => h.type === 'sanWuSanBa'), '仅有两个八筒时不应触发【三五三八】');
+  const resBoth3538 = checkStartingHu(handBoth3538, { startingHu: { sanWuSanBa: true, liuLiuShun: true } });
+  const has35 = resBoth3538.some(h => h.name === '三个五');
+  const has38 = resBoth3538.some(h => h.name === '三个八');
+  const hasLiuLiu = resBoth3538.some(h => h.type === 'liuLiuShun');
+  assert(has35 && has38 && hasLiuLiu && resBoth3538.length === 3, '同时有3个五筒和3个八筒应胡3把(三个五+三个八+六六顺叠加)');
 
   // G. 三连对测试 (同门三副连续的对子)
   const handSanLianDui = [

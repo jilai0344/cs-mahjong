@@ -105,29 +105,40 @@ export function checkStartingHu(handTiles, config) {
     }
   }
 
-  // E. 一个五：筒子、条子、万子中，有且只有一个五
+  // E. 一个五：某一门花色（筒/条/万）起手有且仅有1张牌，且该张牌必须为五
   if (ruleConfig.yiGeWu) {
-    const fives = handTiles.filter(t => t.value === 5);
-    if (fives.length === 1) {
-      result.push({
-        type: 'yiGeWu',
-        name: '一个五',
-        desc: `起手手牌有且仅有一张五【${fives[0].name}】`,
-        tiles: fives
-      });
-    }
+    const suits = [SUITS.WAN, SUITS.TIAO, SUITS.TONG];
+    suits.forEach(suit => {
+      const suitTiles = handTiles.filter(t => t.suit === suit);
+      if (suitTiles.length === 1 && suitTiles[0].value === 5) {
+        result.push({
+          type: 'yiGeWu',
+          name: '一个五',
+          desc: `起手【${SUIT_NAMES[suit]}】门仅有一张牌且为五【${suitTiles[0].name}】`,
+          tiles: suitTiles
+        });
+      }
+    });
   }
 
-  // F. 三五三八：起手拥有三个五筒和三个八筒
+  // F. 三个五三个八：起手有3个五筒或者3个八筒 (可独立胡牌并与六六顺叠加)
   if (ruleConfig.sanWuSanBa) {
     const tong5 = handTiles.filter(t => t.suit === SUITS.TONG && t.value === 5);
     const tong8 = handTiles.filter(t => t.suit === SUITS.TONG && t.value === 8);
-    if (tong5.length >= 3 && tong8.length >= 3) {
+    if (tong5.length >= 3) {
       result.push({
         type: 'sanWuSanBa',
-        name: '三五三八',
-        desc: `起手拥有三个五筒与三个八筒（【五筒】×${tong5.length}，【八筒】×${tong8.length}）`,
-        tiles: [...tong5, ...tong8]
+        name: '三个五',
+        desc: `起手拥有3个五筒【五筒】×${tong5.length}`,
+        tiles: tong5.slice(0, 3)
+      });
+    }
+    if (tong8.length >= 3) {
+      result.push({
+        type: 'sanWuSanBa',
+        name: '三个八',
+        desc: `起手拥有3个八筒【八筒】×${tong8.length}`,
+        tiles: tong8.slice(0, 3)
       });
     }
   }

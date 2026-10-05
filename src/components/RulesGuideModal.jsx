@@ -81,10 +81,10 @@ export default function RulesGuideModal({ isOpen, onClose }) {
                 <span className="text-amber-300 font-bold">六六顺：</span>起手手牌包含两组刻子(各有3张相同牌)。
               </div>
               <div className="p-2 rounded bg-black/30">
-                <span className="text-amber-300 font-bold">一个五：</span>筒条万全手牌有且仅有一张五。
+                <span className="text-amber-300 font-bold">一个五：</span>筒条万某一门起手只有一张牌且为五。
               </div>
               <div className="p-2 rounded bg-black/30">
-                <span className="text-amber-300 font-bold">三五三八：</span>起手拥有3个五筒与3个八筒。
+                <span className="text-amber-300 font-bold">三个五三个八：</span>起手有3个五筒或3个八筒各胡一次；若同时拥有则与六六顺叠加胡3次。
               </div>
               <div className="p-2 rounded bg-black/30">
                 <span className="text-amber-300 font-bold">三连对：</span>同门三副连续的对子(如223344)。
