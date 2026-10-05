@@ -46,11 +46,11 @@ export default function PlayerHand({
     <div className="flex flex-col items-center justify-end w-full px-2 select-none">
       {/* 听牌详情提示气泡 */}
       {selectedTileId && tingMap.has(selectedTileId) && (
-        <div className="mb-2 px-4 py-2 rounded-xl bg-slate-900/95 border-2 border-amber-400/60 shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-xs text-amber-200 animate-fade-in">
-          <span className="font-black text-amber-400 text-sm">听牌待胡：</span>
+        <div className="mb-2 px-5 py-2.5 rounded-2xl bg-slate-900/95 border-2 border-amber-400/60 shadow-2xl backdrop-blur-md flex items-center gap-3 text-sm sm:text-base text-amber-200 animate-fade-in">
+          <span className="font-black text-amber-400 text-base sm:text-lg">听牌待胡：</span>
           <div className="flex items-center gap-2 flex-wrap">
             {tingMap.get(selectedTileId).map((w, idx) => (
-              <span key={idx} className="bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-400/40 text-emerald-300 font-bold">
+              <span key={idx} className="bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-400/40 text-emerald-300 font-bold text-sm sm:text-base">
                 {w.tile.name} ({w.remaining}张)
               </span>
             ))}
@@ -73,7 +73,7 @@ export default function PlayerHand({
                     isBack={meld.type === 'an_gang' && tIdx > 0 && tIdx < 3}
                   />
                 ))}
-                <span className="text-xs text-emerald-300 font-black ml-1 self-center bg-emerald-900/60 px-1 py-0.5 rounded">
+                <span className="text-xs sm:text-sm text-emerald-300 font-black ml-1 self-center bg-emerald-900/60 px-1.5 py-0.5 rounded">
                   {meld.type === 'chi' ? '吃' : meld.type === 'peng' ? '碰' : '杠'}
                 </span>
               </div>
@@ -127,7 +127,7 @@ export default function PlayerHand({
 
       {/* 出牌提示条 */}
       {isMyTurn && (
-        <div className="text-xs text-emerald-200/90 font-bold mt-1 animate-pulse">
+        <div className="text-sm sm:text-base text-emerald-200/90 font-bold mt-1.5 animate-pulse">
           {selectedTileId ? '✦ 再次点击打出选中的牌' : '✦ 点击选择一张牌打出'}
         </div>
       )}

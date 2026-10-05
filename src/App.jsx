@@ -1134,19 +1134,19 @@ export default function App() {
   return (
     <div className="relative w-screen h-screen overflow-hidden flex flex-col bg-[#03140e] text-slate-100 select-none mahjong-table">
       {/* 顶部现代水晶 HUD 导航栏 */}
-      <header className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-emerald-500/20 bg-slate-950/70 backdrop-blur-md z-30 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center font-black text-slate-950 shadow-md">
+      <header className="h-16 px-4 sm:px-6 flex items-center justify-between border-b border-emerald-500/20 bg-slate-950/70 backdrop-blur-md z-30 shrink-0">
+        <div className="flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center font-black text-slate-950 text-lg shadow-md">
             麻
           </div>
           <div>
-            <h1 className="text-base font-black tracking-wide text-white flex items-center gap-2">
+            <h1 className="text-lg font-black tracking-wide text-white flex items-center gap-2">
               <span>长沙麻将</span>
-              <span className="text-[10px] bg-emerald-900/60 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-400/30">
+              <span className="text-xs bg-emerald-900/60 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-400/30">
                 现代清澈版
               </span>
             </h1>
-            <div className="text-[11px] text-emerald-300/80 flex items-center gap-2">
+            <div className="text-xs text-emerald-300/80 flex items-center gap-2 mt-0.5">
               <span>开杠摸 {config.kongDrawCount} 只</span>
               <span>·</span>
               <span>{config.kongRequiresJiang ? '开杠需将' : '开杠免将'}</span>
@@ -1157,29 +1157,29 @@ export default function App() {
         </div>
 
         {/* 顶部中央：对局模式与房间状态 */}
-        <div className="hidden lg:flex items-center gap-3 bg-black/50 px-4 py-1.5 rounded-full border border-emerald-500/30 text-xs">
+        <div className="hidden lg:flex items-center gap-3 bg-black/50 px-5 py-2 rounded-full border border-emerald-500/30 text-sm">
           {multiplayerState.isMultiplayer ? (
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
               <span className="font-bold text-amber-300">房间: {multiplayerState.roomCode}</span>
               <span className="text-emerald-300/70">
                 ({multiplayerState.isHost ? '我是房主' : '已连入'})
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-slate-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" />
+            <div className="flex items-center gap-2 text-slate-300 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500/70" />
               <span>单机练习模式 (电脑AI对局)</span>
             </div>
           )}
         </div>
 
         {/* 右侧工具按钮 */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {/* 多人实时联机按钮 */}
           <button
             onClick={() => setIsMultiplayerOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-600 hover:to-emerald-600 text-white text-xs font-bold border border-emerald-400/40 shadow-md transition-all active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-600 hover:to-emerald-600 text-white text-sm font-bold border border-emerald-400/40 shadow-md transition-all active:scale-95"
           >
             <Users className="w-4 h-4 text-emerald-300" />
             <span>{multiplayerState.isMultiplayer ? `房间 ${multiplayerState.roomCode}` : '多人联机'}</span>
@@ -1188,7 +1188,7 @@ export default function App() {
           {/* 音效开关 */}
           <button
             onClick={() => handleUpdateConfig({ ...config, soundEnabled: !config.soundEnabled })}
-            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
             title="音效开关"
           >
             {config.soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
@@ -1197,7 +1197,7 @@ export default function App() {
           {/* 规则指南 */}
           <button
             onClick={() => setIsRulesOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold border border-slate-700 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-bold border border-slate-700 transition-colors"
           >
             <BookOpen className="w-4 h-4 text-emerald-400" />
             <span>玩法规则</span>
@@ -1206,7 +1206,7 @@ export default function App() {
           {/* 规则设置 */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black shadow-md transition-transform active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-black shadow-md transition-transform active:scale-95"
           >
             <Settings className="w-4 h-4" />
             <span>设置</span>
@@ -1215,7 +1215,7 @@ export default function App() {
       </header>
 
       {/* 牌桌主体核心区 */}
-      <main className="relative flex-1 w-full h-[calc(100vh-3.5rem)] flex flex-col justify-between items-center p-2 overflow-hidden">
+      <main className="relative flex-1 w-full h-[calc(100vh-4rem)] flex flex-col justify-between items-center p-2 overflow-hidden">
         {/* 对家 (西/顶) */}
         <OpponentHand
           player={currentSeatPlayers[2]}
@@ -1248,7 +1248,7 @@ export default function App() {
         />
 
         {/* 牌桌中心核心区域：左侧一行12张的弃牌池 + 右侧方位轮盘与倒计时 */}
-        <div className="relative my-auto flex items-center justify-between w-[720px] max-w-[96vw] h-[330px] rounded-3xl bg-emerald-950/50 border-2 border-emerald-500/30 shadow-2xl p-3 sm:p-4 gap-3">
+        <div className="relative my-auto flex items-center justify-between w-[820px] max-w-[96vw] h-[370px] rounded-3xl bg-emerald-950/50 border-2 border-emerald-500/30 shadow-2xl p-3 sm:p-4 gap-3">
           {/* 左侧区域：四位玩家各自一行12张的弃牌行 */}
           <div className="flex-1 h-full flex flex-col justify-center overflow-hidden">
             <DiscardPool

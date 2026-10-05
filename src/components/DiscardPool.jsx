@@ -19,7 +19,7 @@ export default function DiscardPool({
   ];
 
   return (
-    <div className="w-full h-full flex flex-col justify-between py-2 px-3 select-none">
+    <div className="w-full h-full flex flex-col justify-between py-1 px-2 select-none">
       {playerRows.map((pRow) => {
         const discards = discardsByPlayer[pRow.id] || [];
         const isCurrentActive = lastDiscard && lastDiscard.fromPlayer === pRow.id;
@@ -27,28 +27,28 @@ export default function DiscardPool({
         return (
           <div
             key={pRow.id}
-            className={`flex items-center gap-2 p-1 rounded-xl transition-all ${
-              pRow.id === 0 ? 'bg-emerald-950/40 border border-emerald-500/20' : 'bg-black/20'
+            className={`flex items-center gap-2.5 p-1.5 rounded-2xl transition-all ${
+              pRow.id === 0 ? 'bg-emerald-950/60 border-2 border-emerald-400/40 shadow-md' : 'bg-black/25'
             }`}
           >
-            {/* 玩家出牌行标签 */}
-            <div className="flex items-center gap-1 min-w-[58px] shrink-0">
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                pRow.id === 0 ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 text-emerald-300'
+            {/* 玩家出牌行标签 (大号醒目字体翻倍) */}
+            <div className="flex items-center gap-1.5 min-w-[70px] shrink-0">
+              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shadow-sm ${
+                pRow.id === 0 ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-emerald-300 border border-emerald-500/30'
               }`}>
                 {pRow.wind}
               </span>
-              <span className={`text-[11px] font-bold truncate ${
-                pRow.id === 0 ? 'text-amber-300' : 'text-slate-300'
+              <span className={`text-sm sm:text-base font-black truncate ${
+                pRow.id === 0 ? 'text-amber-300' : 'text-slate-200'
               }`}>
                 {pRow.label}
               </span>
             </div>
 
-            {/* 一行12张的弃牌阵列 (严格12列排布，超出自动换行) */}
-            <div className="flex-1 grid grid-cols-12 gap-0.5 sm:gap-1 max-w-[420px] min-h-[40px] items-center">
+            {/* 一行12张的大号弃牌阵列 (严格12列排布) */}
+            <div className="flex-1 grid grid-cols-12 gap-1 max-w-[520px] min-h-[46px] items-center">
               {discards.length === 0 ? (
-                <div className="col-span-12 text-[10px] text-emerald-200/20 italic py-1">
+                <div className="col-span-12 text-xs sm:text-sm text-emerald-200/30 font-semibold italic py-1">
                   暂无弃牌
                 </div>
               ) : (
@@ -66,8 +66,8 @@ export default function DiscardPool({
                       />
                       {/* 最新出牌指示标 */}
                       {isLatest && (
-                        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 pointer-events-none z-20 flex items-center justify-center">
-                          <span className="w-2 h-2 rounded-full bg-amber-400 shadow-md animate-ping" />
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 pointer-events-none z-20 flex items-center justify-center">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-md animate-ping" />
                         </div>
                       )}
                     </div>

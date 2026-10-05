@@ -26,28 +26,28 @@ export default function OpponentHand({
           : 'right-2 top-1/2 -translate-y-1/2 flex-row-reverse'
       }`}
     >
-      {/* 玩家信息牌 (现代微晶玻璃质感芯片) */}
-      <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 shadow-xl backdrop-blur-md min-w-[85px] m-1 relative shrink-0">
-        {/* 操作/思考气泡 */}
+      {/* 玩家信息牌 (字体翻倍，清晰震撼) */}
+      <div className="flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-slate-900/95 border-2 border-emerald-500/40 shadow-2xl backdrop-blur-md min-w-[105px] m-1 relative shrink-0">
+        {/* 操作/思考气泡 (大号) */}
         {actionBubble && (
-          <div className="absolute -top-6 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-xs px-2.5 py-0.5 rounded-full shadow-xl animate-bounce z-30 border border-amber-500">
+          <div className="absolute -top-8 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-sm px-3.5 py-1 rounded-full shadow-2xl animate-bounce z-30 border-2 border-amber-500">
             {actionBubble}
           </div>
         )}
 
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-bold text-white tracking-wide">{name}</span>
+          <span className="text-sm sm:text-base font-black text-white tracking-wide">{name}</span>
           {isDealer && (
-            <span className="bg-red-600 text-white text-[9px] px-1 py-0.2 rounded font-black shadow-xs">庄</span>
+            <span className="bg-red-600 text-white text-xs px-1.5 py-0.5 rounded font-black shadow-md">庄</span>
           )}
         </div>
 
-        <span className="text-xs font-mono text-amber-300 font-black mt-0.5">
+        <span className="text-sm sm:text-base font-mono text-amber-300 font-black mt-0.5">
           {score} 分
         </span>
 
         {isCurrentTurn && (
-          <span className="text-[10px] text-emerald-400 font-bold mt-0.5 animate-pulse">
+          <span className="text-xs text-emerald-400 font-black mt-0.5 animate-pulse">
             思考中...
           </span>
         )}
@@ -64,7 +64,7 @@ export default function OpponentHand({
         {/* 副露面子 */}
         {melds.length > 0 && (
           <div
-            className={`flex gap-1.5 p-1 rounded-lg bg-black/40 border border-emerald-500/20 shrink-0 ${
+            className={`flex gap-1.5 p-1.5 rounded-xl bg-black/40 border border-emerald-500/30 shrink-0 ${
               isTop ? 'flex-row' : 'flex-col'
             }`}
           >
