@@ -1,0 +1,133 @@
+/* 长沙麻将现代清澈界面全局样式表 */
+
+@layer base {
+  body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    background-color: #03140e;
+    color: #f1f5f9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+}
+
+/* 现代清澈牌桌材质背景：深邃典雅的翡翠琉璃毛毡桌面 */
+.mahjong-table {
+  background: radial-gradient(circle at 50% 45%, #0f4332 0%, #08291e 55%, #03140e 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 牌桌经纬暗纹与微光聚焦点 */
+.mahjong-table::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(rgba(52, 211, 153, 0.05) 1px, transparent 1px),
+    radial-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* 桌布中心环形氛围微光 */
+.mahjong-table::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 75vmin;
+  height: 75vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.08) 0%, rgba(5, 150, 105, 0.02) 60%, transparent 80%);
+  pointer-events: none;
+}
+
+/* 麻将牌 3D 骨牌与琉璃玉背质感 */
+.mahjong-tile {
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.4),
+    0 2px 4px -2px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  transform-origin: bottom center;
+}
+
+.mahjong-tile:hover {
+  transform: translateY(-8px);
+}
+
+.mahjong-tile .tile-face {
+  background: linear-gradient(180deg, #ffffff 0%, #faf8f2 85%, #f2efe4 100%);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    0 -1px 1px rgba(255, 255, 255, 0.8) inset;
+}
+
+/* 牌背翡翠玉石立体光泽 */
+.mahjong-tile-back {
+  box-shadow: 
+    0 3px 6px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 关键帧微动效 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 自定义纤细滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.5);
+}
