@@ -1714,7 +1714,7 @@ export default function App() {
           </div>
 
           {/* 7. 底部：我的操作控制栏与立手牌 (巨幅超清，布满下方屏幕的三分之二) */}
-          <div className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center w-full max-w-[1400px] px-2 pointer-events-none">
+          <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center w-full max-w-[1400px] px-2 pointer-events-none" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             {/* 人类操作按钮栏 (胡/四喜/杠/碰/吃/过) - 允许交互 */}
             <div className="pointer-events-auto mb-1">
               <ActionControls
