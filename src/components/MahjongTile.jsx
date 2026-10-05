@@ -421,23 +421,25 @@ export default function MahjongTile({
 }) {
   const isJiang = tile ? isJiangTile(tile) : false;
 
-  // 牌张物理尺寸巨幅升级：手牌布满下方屏幕三分之二，其它三家对应大幅同步增加
+  // 牌张物理尺寸精确适配：手牌布满下方屏幕三分之二，对局空间开阔不遮挡
   const sizeMap = {
     // 玩家手牌 (巨幅超清，布满下方屏幕的三分之二)
-    hand: 'w-[52px] h-[72px] sm:w-[68px] sm:h-[94px] md:w-[80px] md:h-[110px] lg:w-[92px] lg:h-[126px] xl:w-[98px] xl:h-[134px] 2xl:w-[106px] 2xl:h-[144px]',
+    hand: 'w-[48px] h-[66px] sm:w-[60px] sm:h-[82px] md:w-[70px] md:h-[96px] lg:w-[80px] lg:h-[110px] xl:w-[88px] xl:h-[120px] 2xl:w-[94px] 2xl:h-[128px]',
     // 碰吃杠面子牌 (对应同步大号化)
-    meld: 'w-[44px] h-[60px] sm:w-[56px] sm:h-[78px] md:w-[66px] md:h-[90px] lg:w-[74px] lg:h-[102px]',
-    // 弃牌池牌张 (大号桌面牌，一眼看清)
-    discard: 'w-[38px] h-[52px] sm:w-[46px] sm:h-[64px] md:w-[54px] md:h-[76px] lg:w-[62px] lg:h-[86px] xl:w-[68px] xl:h-[94px]',
-    // 对家手牌背面 (大幅增加尺寸)
-    'opp-top': 'w-[42px] h-[58px] sm:w-[50px] sm:h-[68px] lg:w-[56px] lg:h-[76px]',
-    // 侧边手牌背面 (上家与下家，大幅增加尺寸)
-    'opp-side': 'w-[28px] h-[42px] sm:w-[34px] sm:h-[50px] lg:w-[40px] lg:h-[58px]',
+    meld: 'w-[38px] h-[52px] sm:w-[46px] sm:h-[64px] md:w-[54px] md:h-[74px] lg:w-[60px] lg:h-[82px]',
+    // 弃牌池牌张 (对家与自己出牌，一行12张)
+    discard: 'w-[32px] h-[44px] sm:w-[38px] sm:h-[52px] md:w-[44px] md:h-[60px] lg:w-[48px] lg:h-[66px] xl:w-[52px] xl:h-[72px]',
+    // 侧边出牌 (用于上家与下家竖排纵向成列出牌)
+    'discard-side': 'w-[28px] h-[38px] sm:w-[32px] sm:h-[44px]',
+    // 对家手牌背面
+    'opp-top': 'w-[34px] h-[46px] sm:w-[40px] sm:h-[54px] lg:w-[44px] lg:h-[60px]',
+    // 侧边手牌背面 (上家与下家，紧凑叠放避免撑爆屏幕高度)
+    'opp-side': 'w-[24px] h-[32px] sm:w-[26px] sm:h-[34px] lg:w-[28px] lg:h-[36px]',
     // 兼容原尺寸代码
-    lg: 'w-[92px] h-[126px]',
-    md: 'w-[64px] h-[88px]',
-    sm: 'w-[48px] h-[66px]',
-    mini: 'w-[36px] h-[50px]'
+    lg: 'w-[80px] h-[110px]',
+    md: 'w-[60px] h-[82px]',
+    sm: 'w-[40px] h-[56px]',
+    mini: 'w-[30px] h-[42px]'
   };
 
   const currentSizeClass = sizeMap[size] || sizeMap.md;
@@ -527,37 +529,37 @@ export default function MahjongTile({
           </radialGradient>
         </defs>
 
-        <rect x="2" y="8" width="68" height="86" rx="8" fill="url(#tileBaseGrad)" />
-        <rect
-          x="2"
-          y="2"
-          width="68"
-          height="86"
-          rx="7"
-          fill="url(#ivoryGrad)"
-          stroke="#d1ccba"
-          strokeWidth="1.2"
-        />
-        <rect
-          x="4"
-          y="4"
-          width="64"
-          height="82"
-          rx="5"
-          fill="none"
-          stroke="rgba(255,255,255,0.85)"
-          strokeWidth="1"
-        />
-
         <g transform={rotation ? `rotate(${rotation}, 36, 48)` : undefined}>
+          <rect x="2" y="8" width="68" height="86" rx="8" fill="url(#tileBaseGrad)" />
+          <rect
+            x="2"
+            y="2"
+            width="68"
+            height="86"
+            rx="7"
+            fill="url(#ivoryGrad)"
+            stroke="#d1ccba"
+            strokeWidth="1.2"
+          />
+          <rect
+            x="4"
+            y="4"
+            width="64"
+            height="82"
+            rx="5"
+            fill="none"
+            stroke="rgba(255,255,255,0.85)"
+            strokeWidth="1"
+          />
+
           {tile.suit === SUITS.WAN && <SvgWan value={tile.value} />}
           {tile.suit === SUITS.TIAO && <SvgTiao value={tile.value} />}
           {tile.suit === SUITS.TONG && <SvgTong value={tile.value} />}
-        </g>
 
-        {showJiangBadge && isJiang && (
-          <circle cx="12" cy="12" r="5" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.2" />
-        )}
+          {showJiangBadge && isJiang && (
+            <circle cx="12" cy="12" r="5" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.2" />
+          )}
+        </g>
       </svg>
 
       {/* 听牌大号显目勋章角标 */}

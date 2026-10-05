@@ -1288,10 +1288,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* 牌桌主体核心区 */}
-      <main className="relative flex-1 w-full h-[calc(100vh-4rem)] flex flex-col justify-between items-center p-2 overflow-hidden">
-        {/* 顶部：对家区域 (手牌在上，出牌紧置于手牌前方的下方，顺次排列，绝无重合) */}
-        <div className="w-full flex flex-col items-center gap-1.5 z-10 shrink-0 mt-0.5">
+      {/* 牌桌主体核心区 (全景开阔，四方绝对布局基准，下牌与我的手牌100%可见，永不溢出截断) */}
+      <main className="relative flex-1 w-full h-[calc(100vh-4rem)] overflow-hidden">
+        {/* 1. 顶部：对家区域 (手牌在上，出牌置于其下方，横向一行12张面对对家) */}
+        <div className="absolute top-1 sm:top-2 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 w-full max-w-[1100px] px-2">
           <OpponentHand
             player={currentSeatPlayers[2]}
             handCount={playerHands[2].length}
@@ -1312,90 +1312,87 @@ export default function App() {
           />
         </div>
 
-        {/* 中间核心行：上家 (手牌+前方面前出牌) + 正中央罗盘 + 下家 (前方面前出牌+手牌) */}
-        <div className="w-full max-w-[1600px] flex items-center justify-between px-2 sm:px-6 my-auto gap-2 z-10">
-          {/* 左侧：上家完整门前区域 (手牌在左，出牌紧紧贴在手牌正前方，对着上家自身成行) */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <OpponentHand
-              player={currentSeatPlayers[3]}
-              handCount={playerHands[3].length}
-              melds={playerMelds[3]}
-              isCurrentTurn={currentTurn === 3}
-              actionBubble={actionBubbles[3]}
-              score={playerScores[3]}
-              isDealer={dealerId === 3}
-            />
-            <PlayerDiscardTray
-              playerId={3}
-              label="上家"
-              wind="北"
-              discards={playerDiscards[3]}
-              lastDiscard={lastDiscard}
-              hoveredTile={hoveredTile}
-              position="left"
-            />
-          </div>
-
-          {/* 正中央：罗盘、倒计时与洗牌开局区 */}
-          <div className="shrink-0 relative flex items-center justify-center mx-2">
-            <TableCenter
-              currentTurn={currentTurn}
-              dealerId={dealerId}
-              wallRemaining={wall.length}
-              turnTimer={turnTimer}
-              diceValues={diceValues}
-              isRollingDice={isRollingDice}
-              statusText={gameState === 'PLAYING' ? (currentTurn === 0 ? '轮到你出牌' : '思考中') : ''}
-            />
-
-            {/* 开局按钮 (未开局时居中展示) */}
-            {gameState === 'IDLE' && (
-              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs rounded-3xl gap-2.5 p-2">
-                <button
-                  onClick={startNewRound}
-                  className="flex items-center gap-2 px-7 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all"
-                >
-                  <Play className="w-5 h-5 fill-current" />
-                  <span>开始对局</span>
-                </button>
-
-                <button
-                  onClick={() => setIsMultiplayerOpen(true)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-300 font-bold text-xs border border-emerald-500/30 transition-all hover:scale-105"
-                >
-                  <Users className="w-4 h-4" />
-                  <span>多人联机</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* 右侧：下家完整门前区域 (出牌紧紧贴在手牌正前方，对着下家自身成行，手牌在右) */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <PlayerDiscardTray
-              playerId={1}
-              label="下家"
-              wind="南"
-              discards={playerDiscards[1]}
-              lastDiscard={lastDiscard}
-              hoveredTile={hoveredTile}
-              position="right"
-            />
-            <OpponentHand
-              player={currentSeatPlayers[1]}
-              handCount={playerHands[1].length}
-              melds={playerMelds[1]}
-              isCurrentTurn={currentTurn === 1}
-              actionBubble={actionBubbles[1]}
-              score={playerScores[1]}
-              isDealer={dealerId === 1}
-            />
-          </div>
+        {/* 2. 左侧：上家区域 (紧贴屏幕最左侧边，上家出牌竖向成列对着他自己) */}
+        <div className="absolute left-1 sm:left-2 lg:left-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1.5 sm:gap-2">
+          <OpponentHand
+            player={currentSeatPlayers[3]}
+            handCount={playerHands[3].length}
+            melds={playerMelds[3]}
+            isCurrentTurn={currentTurn === 3}
+            actionBubble={actionBubbles[3]}
+            score={playerScores[3]}
+            isDealer={dealerId === 3}
+          />
+          <PlayerDiscardTray
+            playerId={3}
+            label="上家"
+            wind="北"
+            discards={playerDiscards[3]}
+            lastDiscard={lastDiscard}
+            hoveredTile={hoveredTile}
+            position="left"
+          />
         </div>
 
-        {/* 底部：我区域 (手牌正前方的出牌池 + 操作栏 + 我的手牌) */}
-        <div className="w-full flex flex-col items-center z-20 pb-1.5 shrink-0 gap-1">
-          {/* 我的出牌池 (严格置于手牌正前方) */}
+        {/* 3. 正中央：罗盘、倒计时与洗牌开局区 */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
+          <TableCenter
+            currentTurn={currentTurn}
+            dealerId={dealerId}
+            wallRemaining={wall.length}
+            turnTimer={turnTimer}
+            diceValues={diceValues}
+            isRollingDice={isRollingDice}
+            statusText={gameState === 'PLAYING' ? (currentTurn === 0 ? '轮到你出牌' : '思考中') : ''}
+          />
+
+          {/* 开局按钮 (未开局时居中展示) */}
+          {gameState === 'IDLE' && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs rounded-3xl gap-2.5 p-2">
+              <button
+                onClick={startNewRound}
+                className="flex items-center gap-2 px-7 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all"
+              >
+                <Play className="w-5 h-5 fill-current" />
+                <span>开始对局</span>
+              </button>
+
+              <button
+                onClick={() => setIsMultiplayerOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-300 font-bold text-xs border border-emerald-500/30 transition-all hover:scale-105"
+              >
+                <Users className="w-4 h-4" />
+                <span>多人联机</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 4. 右侧：下家区域 (紧贴屏幕最右侧边，下家出牌竖向成列对着他自己) */}
+        <div className="absolute right-1 sm:right-2 lg:right-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1.5 sm:gap-2">
+          <PlayerDiscardTray
+            playerId={1}
+            label="下家"
+            wind="南"
+            discards={playerDiscards[1]}
+            lastDiscard={lastDiscard}
+            hoveredTile={hoveredTile}
+            position="right"
+          />
+          <OpponentHand
+            player={currentSeatPlayers[1]}
+            handCount={playerHands[1].length}
+            melds={playerMelds[1]}
+            isCurrentTurn={currentTurn === 1}
+            actionBubble={actionBubbles[1]}
+            score={playerScores[1]}
+            isDealer={dealerId === 1}
+          />
+        </div>
+
+        {/* 5. 底部：我区域 (手牌正前方的出牌池 + 操作栏 + 我的立手牌，居中开阔，100%全显) */}
+        <div className="absolute bottom-1.5 sm:bottom-3 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 sm:gap-2 w-full max-w-[1400px] px-2">
+          {/* 我的出牌池 (严格置于手牌正前方，面对自己) */}
           <PlayerDiscardTray
             playerId={0}
             label="我"
@@ -1419,7 +1416,7 @@ export default function App() {
             onPass={handleHumanPass}
           />
 
-          {/* 我的立手牌 (布满下方屏幕的三分之二) */}
+          {/* 我的立手牌 (居中展示，布满屏幕下方三分之二，永远完全可见) */}
           <PlayerHand
             handTiles={playerHands[0]}
             melds={playerMelds[0]}
