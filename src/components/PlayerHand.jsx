@@ -71,6 +71,7 @@ export default function PlayerHand({
                     size="meld"
                     showJiangBadge={showJiangBadge}
                     isBack={meld.type === 'an_gang' && tIdx > 0 && tIdx < 3}
+                    className={meld.type === 'chi' && tIdx === 1 ? 'ring-2 ring-amber-400 rounded-md shadow-md' : ''}
                   />
                 ))}
                 <span className="text-xs sm:text-sm text-emerald-300 font-black ml-1 self-center bg-emerald-900/60 px-1.5 py-0.5 rounded">

@@ -22,39 +22,39 @@ export function PlayerDiscardTray({
   const isLeft = position === 'left';
   const isRight = position === 'right';
 
-  // 1. 顶部 (对家) 与 底部 (我) 的横向出牌池 (一行12张)
+  // 1. 顶部 (对家) 与 底部 (我) 的横向出牌池 (紧密贴合摆放，一行12张)
   if (isTopOrBottom) {
     return (
       <div
-        className={`flex flex-col select-none transition-all duration-200 rounded-2xl px-3 py-1.5 sm:py-2 shadow-xl backdrop-blur-xs items-center ${
+        className={`flex flex-col select-none transition-all duration-200 rounded-xl px-2 sm:px-3 py-1 sm:py-1.5 shadow-xl backdrop-blur-xs items-center w-fit max-w-[96vw] ${
           isMe
-            ? 'bg-emerald-950/85 border-2 border-emerald-400/60 shadow-emerald-950/60 max-w-[760px] md:max-w-[860px] lg:max-w-[980px] xl:max-w-[1080px] w-full'
-            : 'bg-black/55 border border-emerald-500/40 max-w-[760px] md:max-w-[860px] lg:max-w-[980px] xl:max-w-[1080px] w-full'
+            ? 'bg-emerald-950/90 border-2 border-emerald-400/60 shadow-emerald-950/60'
+            : 'bg-black/60 border border-emerald-500/40'
         }`}
       >
         {/* 标题 */}
-        <div className="flex items-center gap-2 mb-1 px-1">
+        <div className="flex items-center gap-1.5 mb-1 px-1">
           <span
-            className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shadow-sm ${
+            className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-black shadow-sm ${
               isMe
-                ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300/80'
+                ? 'bg-amber-400 text-slate-950 ring-1 ring-amber-300/80'
                 : 'bg-slate-800 text-emerald-300 border border-emerald-500/40'
             }`}
           >
             {wind}
           </span>
-          <span className={`text-xs sm:text-sm font-black ${isMe ? 'text-amber-300' : 'text-slate-200'}`}>
+          <span className={`text-[11px] sm:text-xs font-black ${isMe ? 'text-amber-300' : 'text-slate-200'}`}>
             {label}出牌
           </span>
-          <span className="text-xs font-mono font-bold text-emerald-300/80">
+          <span className="text-[11px] font-mono font-bold text-emerald-300/80">
             ({discards.length}张)
           </span>
         </div>
 
-        {/* 牌张阵列：正前方一行12张 */}
-        <div className="grid grid-cols-12 gap-1 sm:gap-1.5 min-h-[46px] items-center justify-items-center w-full max-w-[740px] md:max-w-[840px] lg:max-w-[960px] xl:max-w-[1060px]">
+        {/* 牌张紧密阵列：正前方一行12张，牌与牌之间紧密相贴 */}
+        <div className="inline-grid grid-cols-12 gap-[1.5px] sm:gap-[2px] md:gap-1 items-center justify-center w-fit">
           {discards.length === 0 ? (
-            <div className="col-span-12 text-center text-xs text-emerald-200/30 font-semibold italic py-1.5">
+            <div className="col-span-12 text-center text-[11px] sm:text-xs text-emerald-200/30 font-semibold italic py-1 px-6">
               门前暂无出牌
             </div>
           ) : (
@@ -65,7 +65,7 @@ export function PlayerDiscardTray({
               const tileRotation = position === 'top' ? 180 : 0;
 
               return (
-                <div key={tile.id || idx} className="relative flex justify-center items-center">
+                <div key={tile.id || idx} className="relative flex justify-center items-center shrink-0">
                   <MahjongTile
                     tile={tile}
                     size="discard"

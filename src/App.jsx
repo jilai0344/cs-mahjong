@@ -757,12 +757,27 @@ export default function App() {
     });
 
     stateRef.current.playerHands[playerId] = curHand;
-    setPlayerHands([...stateRef.current.playerHands]);
+    // 用户需求：吃牌要把吃的牌放中间！
+    // 两个手牌按点数排序分别置于两侧，被吃的牌（discardedTile）严格置于中间（索引为1）
+    let foundTarget = false;
+    const otherTiles = [];
+    sequenceTiles.forEach(t => {
+      const isTarget = t.id ? t.id === discardedTile.id : (t.suit === discardedTile.suit && t.value === discardedTile.value);
+      if (isTarget && !foundTarget) {
+        foundTarget = true;
+      } else {
+        otherTiles.push(t);
+      }
+    });
+    otherTiles.sort((a, b) => a.value - b.value);
+    const orderedChiTiles = otherTiles.length === 2 
+      ? [otherTiles[0], discardedTile, otherTiles[1]]
+      : sequenceTiles;
 
     const meldGroup = {
       type: 'chi',
       tile: discardedTile,
-      tiles: sequenceTiles
+      tiles: orderedChiTiles
     };
     stateRef.current.playerMelds[playerId] = [
       ...stateRef.current.playerMelds[playerId],

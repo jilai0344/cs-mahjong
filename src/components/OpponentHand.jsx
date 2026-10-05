@@ -55,27 +55,58 @@ export default function OpponentHand({
           isTop ? 'flex-row' : 'flex-col justify-center'
         }`}
       >
-        {/* 副露面子 (暗杠全盖，副露紧凑排布) */}
+        {/* 副露面子 (暗杠全盖，吃牌放中间且对着各家朝向摆放) */}
         {melds.length > 0 && (
           <div
-            className={`flex gap-1 p-1 rounded-xl bg-black/50 border border-emerald-500/30 shrink-0 ${
-              isTop ? 'flex-row' : 'flex-col items-center'
+            className={`flex gap-1.5 p-1 rounded-xl bg-black/60 border border-emerald-500/30 shrink-0 ${
+              isTop ? 'flex-row' : 'flex-row items-center justify-center'
             }`}
           >
             {melds.map((meld, mIdx) => (
               <div
                 key={mIdx}
-                className="flex gap-0.5 items-center flex-row"
+                className={`flex rounded-lg p-1 bg-black/40 border border-emerald-500/20 shadow-xs ${
+                  isTop ? 'flex-row gap-0.5 items-center' : 'flex-col gap-0.5 items-center'
+                }`}
               >
-                {meld.tiles.map((tile, tIdx) => (
-                  <MahjongTile
-                    key={tIdx}
-                    tile={tile}
-                    size={isTop ? 'meld' : 'sm'}
-                    rotation={isTop ? 180 : isLeft ? 90 : 270}
-                    isBack={meld.type === 'an_gang'}
-                  />
-                ))}
+                {meld.tiles.map((tile, tIdx) => {
+                  const isEatenTile = meld.type === 'chi' && tIdx === 1;
+
+                  if (isTop) {
+                    return (
+                      <div
+                        key={tIdx}
+                        className={`relative flex items-center justify-center shrink-0 ${
+                          isEatenTile ? 'ring-1 ring-amber-400 rounded-sm' : ''
+                        }`}
+                      >
+                        <MahjongTile
+                          tile={tile}
+                          size="meld"
+                          rotation={180}
+                          isBack={meld.type === 'an_gang'}
+                        />
+                      </div>
+                    );
+                  }
+
+                  // 上家 (left, 90°) 与 下家 (right, 270°)：纵向成列，横卧牌面对着他们自己，吃的牌放中间
+                  return (
+                    <div
+                      key={tIdx}
+                      className={`w-[36px] h-[26px] sm:w-[42px] sm:h-[30px] flex items-center justify-center relative shrink-0 ${
+                        isEatenTile ? 'ring-1 ring-amber-400 rounded-xs' : ''
+                      }`}
+                    >
+                      <MahjongTile
+                        tile={tile}
+                        size="discard-side"
+                        rotation={isLeft ? 90 : 270}
+                        isBack={meld.type === 'an_gang'}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
