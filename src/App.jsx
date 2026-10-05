@@ -614,11 +614,16 @@ export default function App() {
   }, [gameState, mySeatId]);
 
   const handleTimeoutAutoDiscard = () => {
-    const curHand = stateRef.current.playerHands[mySeatId] || playerHands[mySeatId];
-    if (curHand && curHand.length > 0) {
-      const tileToDiscard = drawnTile || curHand[curHand.length - 1];
-      executeDiscard(mySeatId, tileToDiscard);
-    }
+    // Use stateRef for current game state, not stale closure variables
+    const curHand = stateRef.current.playerHands[mySeatId];
+    if (!curHand || curHand.length === 0) return;
+
+    // If we're not actually the current turn, bail (multiplayer race condition)
+    if (stateRef.current.currentTurn !== mySeatId) return;
+
+    // Pick the last tile in hand (if we just drew, it's at the end)
+    const tileToDiscard = curHand[curHand.length - 1];
+    executeDiscard(mySeatId, tileToDiscard);
   };
 
   // -------------------------------------------------------------------------
