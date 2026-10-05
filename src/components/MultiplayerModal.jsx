@@ -131,7 +131,7 @@ export default function MultiplayerModal({
                 长沙麻将 · 多人实时联机
               </h2>
               <p className="text-[11px] text-emerald-300/70">
-                P2P 实时直连 · 免服务器零延迟 · 手机电脑均可加入
+                全国极速通道 · 免服务器秒连 · 手机电脑好友一键加入
               </p>
             </div>
           </div>
