@@ -74,12 +74,22 @@ export function PlayerDiscardTray({
           discards.map((tile, idx) => {
             const isLatest = lastDiscard && lastDiscard.tile?.id === tile.id;
             const isMatchHover = hoveredKey && getTileKey(tile) === hoveredKey;
+            // 其它三家下牌对着他自己，不是对着我
+            const tileRotation =
+              position === 'top'
+                ? 180
+                : position === 'left'
+                ? 90
+                : position === 'right'
+                ? 270
+                : 0;
 
             return (
               <div key={tile.id || idx} className="relative flex justify-center items-center">
                 <MahjongTile
                   tile={tile}
                   size="discard"
+                  rotation={tileRotation}
                   highlight={isMatchHover}
                   className={isLatest ? 'ring-2 ring-amber-400 scale-105 z-10 shadow-md' : ''}
                 />

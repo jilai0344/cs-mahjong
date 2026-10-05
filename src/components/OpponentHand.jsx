@@ -77,7 +77,8 @@ export default function OpponentHand({
                   <MahjongTile
                     key={tIdx}
                     tile={tile}
-                    size={isTop ? 'meld' : 'discard'}
+                    size="meld"
+                    rotation={isTop ? 180 : isLeft ? 90 : 270}
                     isBack={meld.type === 'an_gang' && tIdx > 0 && tIdx < 3}
                   />
                 ))}
