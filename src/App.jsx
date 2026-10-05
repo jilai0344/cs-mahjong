@@ -1216,143 +1216,135 @@ export default function App() {
 
       {/* 牌桌主体核心区 */}
       <main className="relative flex-1 w-full h-[calc(100vh-4rem)] flex flex-col justify-between items-center p-2 overflow-hidden">
-        {/* 对家 (西/顶) */}
-        <OpponentHand
-          player={currentSeatPlayers[2]}
-          handCount={playerHands[2].length}
-          melds={playerMelds[2]}
-          isCurrentTurn={currentTurn === 2}
-          actionBubble={actionBubbles[2]}
-          score={playerScores[2]}
-          isDealer={dealerId === 2}
-        />
+        {/* 顶部：对家区域 (手牌在上，出牌紧置于手牌前方的下方，顺次排列，绝无重合) */}
+        <div className="w-full flex flex-col items-center gap-1.5 z-10 shrink-0 mt-0.5">
+          <OpponentHand
+            player={currentSeatPlayers[2]}
+            handCount={playerHands[2].length}
+            melds={playerMelds[2]}
+            isCurrentTurn={currentTurn === 2}
+            actionBubble={actionBubbles[2]}
+            score={playerScores[2]}
+            isDealer={dealerId === 2}
+          />
+          <PlayerDiscardTray
+            playerId={2}
+            label="对家"
+            wind="西"
+            discards={playerDiscards[2]}
+            lastDiscard={lastDiscard}
+            hoveredTile={hoveredTile}
+            position="top"
+          />
+        </div>
 
-        {/* 上家 (北/左) 与 下家 (南/右) */}
-        <OpponentHand
-          player={currentSeatPlayers[3]}
-          handCount={playerHands[3].length}
-          melds={playerMelds[3]}
-          isCurrentTurn={currentTurn === 3}
-          actionBubble={actionBubbles[3]}
-          score={playerScores[3]}
-          isDealer={dealerId === 3}
-        />
-        <OpponentHand
-          player={currentSeatPlayers[1]}
-          handCount={playerHands[1].length}
-          melds={playerMelds[1]}
-          isCurrentTurn={currentTurn === 1}
-          actionBubble={actionBubbles[1]}
-          score={playerScores[1]}
-          isDealer={dealerId === 1}
-        />
-
-        {/* 牌桌中央牌局区：四方牌池各自置于玩家手牌正前方 + 正中央罗盘 */}
-        <div className="relative my-auto w-full max-w-[1500px] flex-1 flex flex-col items-center justify-between py-1 z-10">
-          {/* 1. 对家出牌区 (严格置于对家手牌正前方) */}
-          <div className="w-full flex justify-center mt-0.5">
+        {/* 中间核心行：上家 (手牌+前方面前出牌) + 正中央罗盘 + 下家 (前方面前出牌+手牌) */}
+        <div className="w-full max-w-[1600px] flex items-center justify-between px-2 sm:px-6 my-auto gap-2 z-10">
+          {/* 左侧：上家完整门前区域 (手牌在左，出牌紧紧贴在手牌正前方，对着上家自身成行) */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <OpponentHand
+              player={currentSeatPlayers[3]}
+              handCount={playerHands[3].length}
+              melds={playerMelds[3]}
+              isCurrentTurn={currentTurn === 3}
+              actionBubble={actionBubbles[3]}
+              score={playerScores[3]}
+              isDealer={dealerId === 3}
+            />
             <PlayerDiscardTray
-              playerId={2}
-              label="对家"
-              wind="西"
-              discards={playerDiscards[2]}
+              playerId={3}
+              label="上家"
+              wind="北"
+              discards={playerDiscards[3]}
               lastDiscard={lastDiscard}
               hoveredTile={hoveredTile}
-              position="top"
+              position="left"
             />
           </div>
 
-          {/* 2. 中间行：上家出牌区 (左侧门前) + 中央罗盘/倒计时 + 下家出牌区 (右侧门前) */}
-          <div className="w-full flex items-center justify-between px-2 sm:px-6 my-auto gap-2">
-            {/* 上家出牌区 (严格置于上家手牌正前方) */}
-            <div className="flex-1 flex justify-start pl-24 sm:pl-32 md:pl-40">
-              <PlayerDiscardTray
-                playerId={3}
-                label="上家"
-                wind="北"
-                discards={playerDiscards[3]}
-                lastDiscard={lastDiscard}
-                hoveredTile={hoveredTile}
-                position="left"
-              />
-            </div>
+          {/* 正中央：罗盘、倒计时与洗牌开局区 */}
+          <div className="shrink-0 relative flex items-center justify-center mx-2">
+            <TableCenter
+              currentTurn={currentTurn}
+              dealerId={dealerId}
+              wallRemaining={wall.length}
+              turnTimer={turnTimer}
+              diceValues={diceValues}
+              isRollingDice={isRollingDice}
+              statusText={gameState === 'PLAYING' ? (currentTurn === 0 ? '轮到你出牌' : '思考中') : ''}
+            />
 
-            {/* 正中央：罗盘、倒计时与洗牌开局区 */}
-            <div className="shrink-0 relative flex items-center justify-center mx-2">
-              <TableCenter
-                currentTurn={currentTurn}
-                dealerId={dealerId}
-                wallRemaining={wall.length}
-                turnTimer={turnTimer}
-                diceValues={diceValues}
-                isRollingDice={isRollingDice}
-                statusText={gameState === 'PLAYING' ? (currentTurn === 0 ? '轮到你出牌' : '思考中') : ''}
-              />
+            {/* 开局按钮 (未开局时居中展示) */}
+            {gameState === 'IDLE' && (
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs rounded-3xl gap-2.5 p-2">
+                <button
+                  onClick={startNewRound}
+                  className="flex items-center gap-2 px-7 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all"
+                >
+                  <Play className="w-5 h-5 fill-current" />
+                  <span>开始对局</span>
+                </button>
 
-              {/* 开局按钮 (未开局时居中展示) */}
-              {gameState === 'IDLE' && (
-                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs rounded-3xl gap-2.5 p-2">
-                  <button
-                    onClick={startNewRound}
-                    className="flex items-center gap-2 px-7 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all"
-                  >
-                    <Play className="w-5 h-5 fill-current" />
-                    <span>开始对局</span>
-                  </button>
-
-                  <button
-                    onClick={() => setIsMultiplayerOpen(true)}
-                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-300 font-bold text-xs border border-emerald-500/30 transition-all hover:scale-105"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span>多人联机</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 下家出牌区 (严格置于下家手牌正前方) */}
-            <div className="flex-1 flex justify-end pr-24 sm:pr-32 md:pr-40">
-              <PlayerDiscardTray
-                playerId={1}
-                label="下家"
-                wind="南"
-                discards={playerDiscards[1]}
-                lastDiscard={lastDiscard}
-                hoveredTile={hoveredTile}
-                position="right"
-              />
-            </div>
+                <button
+                  onClick={() => setIsMultiplayerOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-300 font-bold text-xs border border-emerald-500/30 transition-all hover:scale-105"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>多人联机</span>
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* 3. 我的出牌区 (严格置于我的手牌正前方) */}
-          <div className="w-full flex justify-center mb-0.5">
+          {/* 右侧：下家完整门前区域 (出牌紧紧贴在手牌正前方，对着下家自身成行，手牌在右) */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <PlayerDiscardTray
-              playerId={0}
-              label="我"
-              wind="东"
-              discards={playerDiscards[0]}
+              playerId={1}
+              label="下家"
+              wind="南"
+              discards={playerDiscards[1]}
               lastDiscard={lastDiscard}
               hoveredTile={hoveredTile}
-              position="bottom"
+              position="right"
+            />
+            <OpponentHand
+              player={currentSeatPlayers[1]}
+              handCount={playerHands[1].length}
+              melds={playerMelds[1]}
+              isCurrentTurn={currentTurn === 1}
+              actionBubble={actionBubbles[1]}
+              score={playerScores[1]}
+              isDealer={dealerId === 1}
             />
           </div>
         </div>
 
-        {/* 人类操作按钮栏 (胡/杠/碰/吃/过) */}
-        <ActionControls
-          availableActions={availableActions}
-          chiOptions={chiOptions}
-          kongOptions={kongOptions}
-          onHu={handleHumanHu}
-          onGang={handleHumanGang}
-          onPeng={handleHumanPeng}
-          onChi={handleHumanChi}
-          onPass={handleHumanPass}
-        />
+        {/* 底部：我区域 (手牌正前方的出牌池 + 操作栏 + 我的手牌) */}
+        <div className="w-full flex flex-col items-center z-20 pb-1.5 shrink-0 gap-1">
+          {/* 我的出牌池 (严格置于手牌正前方) */}
+          <PlayerDiscardTray
+            playerId={0}
+            label="我"
+            wind="东"
+            discards={playerDiscards[0]}
+            lastDiscard={lastDiscard}
+            hoveredTile={hoveredTile}
+            position="bottom"
+          />
 
-        {/* 底部：人类手牌 */}
-        <div className="w-full flex flex-col items-center z-20 pb-2 shrink-0">
+          {/* 人类操作按钮栏 (胡/杠/碰/吃/过) */}
+          <ActionControls
+            availableActions={availableActions}
+            chiOptions={chiOptions}
+            kongOptions={kongOptions}
+            onHu={handleHumanHu}
+            onGang={handleHumanGang}
+            onPeng={handleHumanPeng}
+            onChi={handleHumanChi}
+            onPass={handleHumanPass}
+          />
+
+          {/* 我的立手牌 (布满下方屏幕的三分之二) */}
           <PlayerHand
             handTiles={playerHands[0]}
             melds={playerMelds[0]}

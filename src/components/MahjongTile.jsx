@@ -442,13 +442,11 @@ export default function MahjongTile({
 
   const currentSizeClass = sizeMap[size] || sizeMap.md;
 
-  const rotateClass = rotation === 180 ? 'rotate-180' : rotation === 90 ? 'rotate-90' : rotation === 270 ? '-rotate-90' : '';
-
   // 牌背渲染 (纯翠玉微晶质感)
   if (isBack || !tile) {
     return (
       <div
-        className={`relative inline-block select-none cursor-default shrink-0 transition-transform ${currentSizeClass} ${rotateClass} ${className}`}
+        className={`relative inline-block select-none cursor-default shrink-0 transition-transform ${currentSizeClass} ${className}`}
         style={style}
       >
         <svg viewBox="0 0 72 96" className="w-full h-full drop-shadow-md">
@@ -474,7 +472,7 @@ export default function MahjongTile({
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`relative inline-block select-none cursor-pointer shrink-0 transition-all duration-150 ${currentSizeClass} ${rotateClass} ${
+      className={`relative inline-block select-none cursor-pointer shrink-0 transition-all duration-150 ${currentSizeClass} ${
         selected ? '-translate-y-6 filter drop-shadow-2xl ring-4 ring-amber-400 rounded-xl' : ''
       } ${
         highlight ? 'filter drop-shadow-xl ring-2 ring-emerald-400 brightness-110 rounded-lg' : ''
@@ -551,9 +549,11 @@ export default function MahjongTile({
           strokeWidth="1"
         />
 
-        {tile.suit === SUITS.WAN && <SvgWan value={tile.value} />}
-        {tile.suit === SUITS.TIAO && <SvgTiao value={tile.value} />}
-        {tile.suit === SUITS.TONG && <SvgTong value={tile.value} />}
+        <g transform={rotation ? `rotate(${rotation}, 36, 48)` : undefined}>
+          {tile.suit === SUITS.WAN && <SvgWan value={tile.value} />}
+          {tile.suit === SUITS.TIAO && <SvgTiao value={tile.value} />}
+          {tile.suit === SUITS.TONG && <SvgTong value={tile.value} />}
+        </g>
 
         {showJiangBadge && isJiang && (
           <circle cx="12" cy="12" r="5" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.2" />
