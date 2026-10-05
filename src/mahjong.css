@@ -13,38 +13,38 @@
   }
 }
 
-/* 现代清澈牌桌材质背景：深邃典雅的翡翠琉璃毛毡桌面 */
+/* 黄金岛经典皇家红丝绒牌桌材质背景 */
 .mahjong-table {
-  background: radial-gradient(circle at 50% 45%, #0f4332 0%, #08291e 55%, #03140e 100%);
+  background: radial-gradient(circle at 50% 48%, #a01c22 0%, #821318 45%, #560a0d 80%, #280406 100%);
   position: relative;
   overflow: hidden;
 }
 
-/* 牌桌经纬暗纹与微光聚焦点 */
+/* 牌桌经纬红绒细纹与微光聚焦点 */
 .mahjong-table::before {
   content: '';
   position: absolute;
   inset: 0;
   background-image: 
-    radial-gradient(rgba(52, 211, 153, 0.05) 1px, transparent 1px),
-    radial-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px);
+    radial-gradient(rgba(245, 158, 11, 0.05) 1px, transparent 1px),
+    radial-gradient(rgba(220, 38, 38, 0.06) 1px, transparent 1px);
   background-size: 32px 32px;
   background-position: 0 0, 16px 16px;
   pointer-events: none;
   opacity: 0.8;
 }
 
-/* 桌布中心环形氛围微光 */
+/* 桌布中心金光氛围微光 */
 .mahjong-table::after {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 75vmin;
-  height: 75vmin;
+  width: 85vmin;
+  height: 85vmin;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(52, 211, 153, 0.08) 0%, rgba(5, 150, 105, 0.02) 60%, transparent 80%);
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.09) 0%, rgba(185, 28, 28, 0.03) 60%, transparent 80%);
   pointer-events: none;
 }
 

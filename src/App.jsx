@@ -31,6 +31,7 @@ import PlayerHand from './components/PlayerHand.jsx';
 import OpponentHand from './components/OpponentHand.jsx';
 import DiscardPool, { PlayerDiscardTray } from './components/DiscardPool.jsx';
 import ActionControls from './components/ActionControls.jsx';
+import TileWall from './components/TileWall.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import StartingHuModal from './components/StartingHuModal.jsx';
 import KongDrawModal from './components/KongDrawModal.jsx';
@@ -1221,24 +1222,24 @@ export default function App() {
   }, [multiplayerState]);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden flex flex-col bg-[#03140e] text-slate-100 select-none mahjong-table">
-      {/* 顶部现代水晶 HUD 导航栏 */}
-      <header className="h-16 px-4 sm:px-6 flex items-center justify-between border-b border-emerald-500/20 bg-slate-950/70 backdrop-blur-md z-30 shrink-0">
-        <div className="flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center font-black text-slate-950 text-lg shadow-md">
-            麻
+    <div className="relative w-screen h-screen overflow-hidden flex flex-col bg-[#1f0604] text-slate-100 select-none">
+      {/* 顶部黄金岛经典 HUD 导航栏 (红木描金古典风) */}
+      <header className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-amber-500/30 bg-gradient-to-r from-[#3b0e08] via-[#240804] to-[#3b0e08] shadow-lg z-30 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-700 flex items-center justify-center font-black text-slate-950 text-base shadow-md border border-amber-300">
+            岛
           </div>
           <div>
-            <h1 className="text-lg font-black tracking-wide text-white flex items-center gap-2">
-              <span>长沙麻将</span>
-              <span className="text-xs bg-emerald-900/60 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-400/30">
-                现代清澈版
+            <h1 className="text-base sm:text-lg font-black tracking-wide text-amber-200 flex items-center gap-2 drop-shadow">
+              <span>黄金岛 · 长沙麻将</span>
+              <span className="text-[10px] sm:text-xs bg-amber-950/80 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/40">
+                经典正版复刻
               </span>
             </h1>
-            <div className="text-xs text-emerald-300/80 flex items-center gap-2 mt-0.5">
+            <div className="text-[11px] text-amber-300/70 flex items-center gap-1.5 mt-0.2">
               <span>开杠摸 {config.kongDrawCount} 只</span>
               <span>·</span>
-              <span>{config.kongRequiresJiang ? '开杠需将' : '开杠免将'}</span>
+              <span>{config.kongRequiresJiang ? '需将' : '免将'}</span>
               <span>·</span>
               <span>{config.birdCount > 0 ? `抓 ${config.birdCount} 鸟` : '不抓鸟'}</span>
             </div>
@@ -1246,204 +1247,253 @@ export default function App() {
         </div>
 
         {/* 顶部中央：对局模式与房间状态 */}
-        <div className="hidden lg:flex items-center gap-3 bg-black/50 px-5 py-2 rounded-full border border-emerald-500/30 text-sm">
+        <div className="hidden lg:flex items-center gap-3 bg-black/60 px-5 py-1.5 rounded-full border border-amber-500/30 text-xs sm:text-sm">
           {multiplayerState.isMultiplayer ? (
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-              <span className="font-bold text-amber-300">房间: {multiplayerState.roomCode}</span>
-              <span className="text-emerald-300/70">
-                ({multiplayerState.isHost ? '我是房主' : '已连入'})
+              <span className="font-bold text-amber-300">房号: {multiplayerState.roomCode}</span>
+              <span className="text-amber-200/70">
+                ({multiplayerState.isHost ? '房主' : '已入座'})
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-slate-300 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500/70" />
-              <span>单机练习模式 (电脑AI对局)</span>
+            <div className="flex items-center gap-2 text-amber-200 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span>标准单机练习 (AI电脑对战)</span>
             </div>
           )}
         </div>
 
-        {/* 右侧工具按钮 */}
-        <div className="flex items-center gap-2.5">
-          {/* 多人实时联机按钮 */}
+        {/* 右侧工具按钮 (黄金岛金质圆形快捷功能组) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* 多人联机 */}
           <button
             onClick={() => setIsMultiplayerOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-600 hover:to-emerald-600 text-white text-sm font-bold border border-emerald-400/40 shadow-md transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-700 via-yellow-600 to-amber-700 hover:from-amber-600 hover:to-yellow-500 text-slate-950 text-xs font-black border border-amber-300 shadow-md transition-all active:scale-95"
           >
-            <Users className="w-4 h-4 text-emerald-300" />
-            <span>{multiplayerState.isMultiplayer ? `房间 ${multiplayerState.roomCode}` : '多人联机'}</span>
+            <Users className="w-3.5 h-3.5" />
+            <span>{multiplayerState.isMultiplayer ? `房间 ${multiplayerState.roomCode}` : '多人对战'}</span>
           </button>
 
           {/* 音效开关 */}
           <button
             onClick={() => handleUpdateConfig({ ...config, soundEnabled: !config.soundEnabled })}
-            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+            className="w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm"
             title="音效开关"
           >
-            {config.soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+            {config.soundEnabled ? <Volume2 className="w-4 h-4 text-amber-300" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
           </button>
 
           {/* 规则指南 */}
           <button
             onClick={() => setIsRulesOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-bold border border-slate-700 transition-colors"
+            className="w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm"
+            title="玩法规则"
           >
-            <BookOpen className="w-4 h-4 text-emerald-400" />
-            <span>玩法规则</span>
+            <BookOpen className="w-4 h-4 text-amber-300" />
           </button>
 
           {/* 规则设置 */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-black shadow-md transition-transform active:scale-95"
+            className="w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm"
+            title="规则设置"
           >
-            <Settings className="w-4 h-4" />
-            <span>设置</span>
+            <Settings className="w-4 h-4 text-amber-300" />
           </button>
         </div>
       </header>
 
-      {/* 牌桌主体核心区 (全景开阔，四方绝对布局基准，下牌与我的手牌100%可见，永不溢出截断) */}
-      <main className="relative flex-1 w-full h-[calc(100vh-4rem)] overflow-hidden">
-        {/* 1. 顶部：对家区域 (手牌在上，出牌置于其下方，横向一行12张面对对家) */}
-        <div className="absolute top-1 sm:top-2 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 w-full max-w-[1100px] px-2">
-          <OpponentHand
-            player={currentSeatPlayers[2]}
-            handCount={playerHands[2].length}
-            melds={playerMelds[2]}
-            isCurrentTurn={currentTurn === 2}
-            actionBubble={actionBubbles[2]}
-            score={playerScores[2]}
-            isDealer={dealerId === 2}
-          />
-          <PlayerDiscardTray
-            playerId={2}
-            label="对家"
-            wind="西"
-            discards={playerDiscards[2]}
-            lastDiscard={lastDiscard}
-            hoveredTile={hoveredTile}
-            position="top"
-          />
-        </div>
+      {/* 牌桌主体核心区 (红木包边 + 金色内嵌线 + 皇家红丝绒桌面) */}
+      <div className="relative flex-1 w-full h-[calc(100vh-3.5rem)] p-2 sm:p-3 bg-gradient-to-b from-[#380e08] via-[#240804] to-[#140302] overflow-hidden flex flex-col">
+        {/* 皇家红丝绒圆角牌桌主面板 */}
+        <main className="relative flex-1 w-full h-full rounded-2xl sm:rounded-3xl border-2 sm:border-[3px] border-amber-400/80 shadow-[inset_0_0_60px_rgba(0,0,0,0.85),0_10px_35px_rgba(0,0,0,0.9)] mahjong-table overflow-hidden">
+          {/* 1. 顶部：对家区域 (手牌在上，副露在右) */}
+          <div className="absolute top-1.5 sm:top-2.5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
+            <OpponentHand
+              player={currentSeatPlayers[2]}
+              handCount={playerHands[2].length}
+              melds={playerMelds[2]}
+              isCurrentTurn={currentTurn === 2}
+              actionBubble={actionBubbles[2]}
+              score={playerScores[2]}
+              isDealer={dealerId === 2}
+            />
+          </div>
 
-        {/* 2. 左侧：上家区域 (紧贴屏幕最左侧边，上家出牌竖向成列对着他自己) */}
-        <div className="absolute left-1 sm:left-2 lg:left-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1.5 sm:gap-2">
-          <OpponentHand
-            player={currentSeatPlayers[3]}
-            handCount={playerHands[3].length}
-            melds={playerMelds[3]}
-            isCurrentTurn={currentTurn === 3}
-            actionBubble={actionBubbles[3]}
-            score={playerScores[3]}
-            isDealer={dealerId === 3}
-          />
-          <PlayerDiscardTray
-            playerId={3}
-            label="上家"
-            wind="北"
-            discards={playerDiscards[3]}
-            lastDiscard={lastDiscard}
-            hoveredTile={hoveredTile}
-            position="left"
-          />
-        </div>
+          {/* 2. 左侧：上家区域 (紧靠左侧桌面边框，副露在上方) */}
+          <div className="absolute left-1.5 sm:left-3 top-1/2 -translate-y-1/2 z-20 flex items-center">
+            <OpponentHand
+              player={currentSeatPlayers[3]}
+              handCount={playerHands[3].length}
+              melds={playerMelds[3]}
+              isCurrentTurn={currentTurn === 3}
+              actionBubble={actionBubbles[3]}
+              score={playerScores[3]}
+              isDealer={dealerId === 3}
+            />
+          </div>
 
-        {/* 3. 正中央：罗盘、倒计时与洗牌开局区 */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
-          <TableCenter
-            currentTurn={currentTurn}
-            dealerId={dealerId}
-            wallRemaining={wall.length}
-            turnTimer={turnTimer}
-            diceValues={diceValues}
-            isRollingDice={isRollingDice}
-            statusText={gameState === 'PLAYING' ? (currentTurn === 0 ? '轮到你出牌' : '思考中') : ''}
-          />
+          {/* 3. 右侧：下家区域 (紧靠右侧桌面边框，副露在右侧) */}
+          <div className="absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 z-20 flex items-center">
+            <OpponentHand
+              player={currentSeatPlayers[1]}
+              handCount={playerHands[1].length}
+              melds={playerMelds[1]}
+              isCurrentTurn={currentTurn === 1}
+              actionBubble={actionBubbles[1]}
+              score={playerScores[1]}
+              isDealer={dealerId === 1}
+            />
+          </div>
 
-          {/* 开局按钮 (未开局时居中展示) */}
-          {gameState === 'IDLE' && (
-            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs rounded-3xl gap-2.5 p-2">
-              <button
-                onClick={startNewRound}
-                className="flex items-center gap-2 px-7 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all"
-              >
-                <Play className="w-5 h-5 fill-current" />
-                <span>开始对局</span>
-              </button>
+          {/* 4. 黄金岛标志性四方 3D 双层黄金牌墙 (环绕中央对局出牌区) */}
+          {/* 上牌墙 */}
+          <div className="absolute top-[20%] sm:top-[22%] left-1/2 -translate-x-1/2 z-0 pointer-events-none opacity-90">
+            <TileWall position="top" count={12} />
+          </div>
+          {/* 下牌墙 */}
+          <div className="absolute bottom-[28%] sm:bottom-[31%] left-1/2 -translate-x-1/2 z-0 pointer-events-none opacity-90">
+            <TileWall position="bottom" count={12} />
+          </div>
+          {/* 左牌墙 */}
+          <div className="absolute left-[16%] sm:left-[19%] lg:left-[22%] top-1/2 -translate-y-1/2 z-0 pointer-events-none opacity-90">
+            <TileWall position="left" count={10} />
+          </div>
+          {/* 右牌墙 */}
+          <div className="absolute right-[16%] sm:right-[19%] lg:right-[22%] top-1/2 -translate-y-1/2 z-0 pointer-events-none opacity-90">
+            <TileWall position="right" count={10} />
+          </div>
 
-              <button
-                onClick={() => setIsMultiplayerOpen(true)}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-300 font-bold text-xs border border-emerald-500/30 transition-all hover:scale-105"
-              >
-                <Users className="w-4 h-4" />
-                <span>多人联机</span>
-              </button>
+          {/* 5. 正中央核心对局区：四方紧凑出牌池围绕中央八角紫金罗盘 (高度复刻黄金岛原版) */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center">
+            {/* 对家出牌 (罗盘正上方：6张一行横排面对对家) */}
+            <div className="mb-0.5 sm:mb-1">
+              <PlayerDiscardTray
+                playerId={2}
+                discards={playerDiscards[2]}
+                lastDiscard={lastDiscard}
+                hoveredTile={hoveredTile}
+                position="top"
+              />
             </div>
-          )}
-        </div>
 
-        {/* 4. 右侧：下家区域 (紧贴屏幕最右侧边，下家出牌竖向成列对着他自己) */}
-        <div className="absolute right-1 sm:right-2 lg:right-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1.5 sm:gap-2">
-          <PlayerDiscardTray
-            playerId={1}
-            label="下家"
-            wind="南"
-            discards={playerDiscards[1]}
-            lastDiscard={lastDiscard}
-            hoveredTile={hoveredTile}
-            position="right"
-          />
-          <OpponentHand
-            player={currentSeatPlayers[1]}
-            handCount={playerHands[1].length}
-            melds={playerMelds[1]}
-            isCurrentTurn={currentTurn === 1}
-            actionBubble={actionBubbles[1]}
-            score={playerScores[1]}
-            isDealer={dealerId === 1}
-          />
-        </div>
+            {/* 中层：上家出牌 + 八角紫金罗盘 + 下家出牌 */}
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2.5">
+              {/* 上家出牌 (罗盘正左方：6张一列竖排面对上家) */}
+              <PlayerDiscardTray
+                playerId={3}
+                discards={playerDiscards[3]}
+                lastDiscard={lastDiscard}
+                hoveredTile={hoveredTile}
+                position="left"
+              />
 
-        {/* 5. 底部：我区域 (手牌正前方的出牌池 + 操作栏 + 我的立手牌，居中开阔，100%全显) */}
-        <div className="absolute bottom-1.5 sm:bottom-3 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 sm:gap-2 w-full max-w-[1400px] px-2">
-          {/* 我的出牌池 (严格置于手牌正前方，面对自己) */}
-          <PlayerDiscardTray
-            playerId={0}
-            label="我"
-            wind="东"
-            discards={playerDiscards[0]}
-            lastDiscard={lastDiscard}
-            hoveredTile={hoveredTile}
-            position="bottom"
-          />
+              {/* 中央罗盘与桌面金印横幅 */}
+              <TableCenter
+                currentTurn={currentTurn}
+                dealerId={dealerId}
+                wallRemaining={wall.length}
+                turnTimer={turnTimer}
+                diceValues={diceValues}
+                isRollingDice={isRollingDice}
+              />
 
-          {/* 人类操作按钮栏 (胡/四喜/杠/碰/吃/过) */}
-          <ActionControls
-            availableActions={availableActions}
-            chiOptions={chiOptions}
-            kongOptions={kongOptions}
-            onHu={handleHumanHu}
-            onSiXi={handleHumanSiXi}
-            onGang={handleHumanGang}
-            onPeng={handleHumanPeng}
-            onChi={handleHumanChi}
-            onPass={handleHumanPass}
-          />
+              {/* 下家出牌 (罗盘正右方：6张一列竖排面对下家) */}
+              <PlayerDiscardTray
+                playerId={1}
+                discards={playerDiscards[1]}
+                lastDiscard={lastDiscard}
+                hoveredTile={hoveredTile}
+                position="right"
+              />
+            </div>
 
-          {/* 我的立手牌 (居中展示，布满屏幕下方三分之二，永远完全可见) */}
-          <PlayerHand
-            handTiles={playerHands[0]}
-            melds={playerMelds[0]}
-            drawnTile={currentTurn === 0 ? drawnTile : null}
-            isMyTurn={currentTurn === 0 && gameState === 'PLAYING'}
-            tingMap={tingMap}
-            onDiscard={(tile) => executeDiscard(0, tile)}
-            onHoverTile={setHoveredTile}
-            showJiangBadge={config.kongRequiresJiang}
-          />
-        </div>
-      </main>
+            {/* 我家出牌 (罗盘正下方：6张一行横排面对我) */}
+            <div className="mt-0.5 sm:mt-1">
+              <PlayerDiscardTray
+                playerId={0}
+                discards={playerDiscards[0]}
+                lastDiscard={lastDiscard}
+                hoveredTile={hoveredTile}
+                position="bottom"
+              />
+            </div>
+
+            {/* 未开局时的居中开始对局按钮 */}
+            {gameState === 'IDLE' && (
+              <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/70 backdrop-blur-xs rounded-3xl gap-2.5 p-3">
+                <button
+                  onClick={startNewRound}
+                  className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all border-2 border-amber-200"
+                >
+                  <Play className="w-5 h-5 fill-current" />
+                  <span>开始对局</span>
+                </button>
+
+                <button
+                  onClick={() => setIsMultiplayerOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-amber-950/80 hover:bg-amber-900 text-amber-300 font-bold text-xs border border-amber-500/40 transition-all hover:scale-105"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>多人联机对战</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 6. 左下角：我方玩家黄金岛专属信息胶囊牌 (复刻原图 djdodkj / 39482) */}
+          <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-4 z-40 flex items-center gap-1.5 bg-gradient-to-b from-[#4a180e] via-[#2b0c07] to-[#140503] border-[1.5px] border-amber-400/90 rounded-full px-3 py-1 shadow-2xl">
+            {dealerId === 0 && (
+              <span className="w-4 h-4 rounded-full bg-gradient-to-tr from-red-700 to-red-500 border border-amber-300 text-white text-[10px] font-black flex items-center justify-center shadow-md">
+                庄
+              </span>
+            )}
+            <div className="flex items-center gap-1 text-red-500">
+              <span className="text-xs">♥</span>
+              <span className="text-xs font-mono font-black text-yellow-300 tracking-tight">39482</span>
+            </div>
+            <span className="text-xs font-black text-amber-100 ml-1">
+              {multiplayerState.isMultiplayer ? (multiplayerState.seats[0]?.name || '我') : 'djdodkj'}
+            </span>
+            <span className="text-[10px] font-black italic text-amber-300 bg-amber-950/80 px-1 py-0.2 rounded border border-amber-500/40">
+              V8
+            </span>
+          </div>
+
+          {/* 7. 底部：我的操作控制栏与立手牌 (巨幅超清，布满下方屏幕的三分之二) */}
+          <div className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center w-full max-w-[1400px] px-2 pointer-events-none">
+            {/* 人类操作按钮栏 (胡/四喜/杠/碰/吃/过) - 允许交互 */}
+            <div className="pointer-events-auto mb-1">
+              <ActionControls
+                availableActions={availableActions}
+                chiOptions={chiOptions}
+                kongOptions={kongOptions}
+                onHu={handleHumanHu}
+                onSiXi={handleHumanSiXi}
+                onGang={handleHumanGang}
+                onPeng={handleHumanPeng}
+                onChi={handleHumanChi}
+                onPass={handleHumanPass}
+              />
+            </div>
+
+            {/* 我的手牌 (副露居左，立牌居右，允许交互) */}
+            <div className="pointer-events-auto w-full">
+              <PlayerHand
+                handTiles={playerHands[0]}
+                melds={playerMelds[0]}
+                drawnTile={currentTurn === 0 ? drawnTile : null}
+                isMyTurn={currentTurn === 0 && gameState === 'PLAYING'}
+                tingMap={tingMap}
+                onDiscard={(tile) => executeDiscard(0, tile)}
+                onHoverTile={setHoveredTile}
+                showJiangBadge={config.kongRequiresJiang}
+              />
+            </div>
+          </div>
+        </main>
+      </div>
 
       {/* 弹窗 1: 多人实时联机房间大厅 */}
       <MultiplayerModal

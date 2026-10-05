@@ -2,44 +2,41 @@ import React from 'react';
 import { SUITS, NUMBER_NAMES, isJiangTile } from '../types/mahjong.js';
 
 // -------------------------------------------------------------
-// 1. 万字牌纯矢量 SVG 渲染 (一万 ~ 九万) - 黄金岛APP经典特粗高对比书法字
+// 1. 万字牌纯矢量 SVG 渲染 (一万 ~ 九万) - 黄金岛经典：宝蓝楷书数字 + 朱砂红楷书“万”
 // -------------------------------------------------------------
 function SvgWan({ value }) {
   const numChar = NUMBER_NAMES[value];
-  const isRedTop = value === 1 || value === 5 || value === 7 || value === 9;
-
-  // 黄金岛标准书法楷黑字库栈
-  const hjdFont = '"STKaiti", "KaiTi", "SimSun", "Microsoft YaHei", "PingFang SC", sans-serif';
+  const hjdFont = '"STKaiti", "KaiTi", "SimKai", "KaiTi_GB2312", "Microsoft YaHei", serif';
 
   return (
     <g transform="translate(0, 0)">
-      {/* 上方数字 (黄金岛特粗书法大字，1/5/7/9红，2/3/4/6/8深黑) */}
+      {/* 上方数字：黄金岛正统宝蓝色楷体大字 */}
       <text
         x="36"
-        y="39"
+        y="37"
         textAnchor="middle"
         dominantBaseline="central"
-        fill={isRedTop ? '#dc2626' : '#18181b'}
-        fontSize="38"
-        fontWeight="900"
+        fill="#1e40af"
+        fontSize="37"
+        fontWeight="bold"
         fontFamily={hjdFont}
         style={{ letterSpacing: '0px' }}
       >
         {numChar}
       </text>
 
-      {/* 下方“萬”字 (黄金岛经典繁体大红萬字，方正遒劲) */}
+      {/* 下方“万”字：黄金岛正统朱砂红简体楷书“万”字 */}
       <text
         x="36"
-        y="75"
+        y="73"
         textAnchor="middle"
         dominantBaseline="central"
-        fill="#b91c1c"
-        fontSize="34"
-        fontWeight="900"
+        fill="#dc2626"
+        fontSize="36"
+        fontWeight="bold"
         fontFamily={hjdFont}
       >
-        萬
+        万
       </text>
     </g>
   );
@@ -224,19 +221,31 @@ function SvgTiao({ value }) {
           <SvgBamboo x={52} y={67} width={10.5} height={21} color={green} />
         </g>
       );
-    // 8条：黄金岛经典八条八节 (4顶对斜绿 + 4底对斜蓝，精准8根)
+    // 8条：黄金岛正统八条 (上下两组对称绿M节 + 居中红竖轴)
     case 8:
       return (
         <g>
-          <SvgBamboo x={24} y={15} width={10} height={27} color={green} isAngled={18} />
-          <SvgBamboo x={34} y={15} width={10} height={27} color={green} isAngled={-18} />
-          <SvgBamboo x={38} y={15} width={10} height={27} color={green} isAngled={18} />
-          <SvgBamboo x={48} y={15} width={10} height={27} color={green} isAngled={-18} />
-          
-          <SvgBamboo x={24} y={53} width={10} height={27} color={blue} isAngled={-18} />
-          <SvgBamboo x={34} y={53} width={10} height={27} color={blue} isAngled={18} />
-          <SvgBamboo x={38} y={53} width={10} height={27} color={blue} isAngled={-18} />
-          <SvgBamboo x={48} y={53} width={10} height={27} color={blue} isAngled={18} />
+          {/* 上半部分 M形竹节 (4根绿斜竹) */}
+          <path
+            d="M 18 38 L 27 15 L 36 29 L 45 15 L 54 38"
+            stroke="url(#bambooGreenGrad)"
+            strokeWidth="5.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          {/* 下半部分 W形竹节 (4根绿斜竹) */}
+          <path
+            d="M 18 81 L 27 58 L 36 72 L 45 58 L 54 81"
+            stroke="url(#bambooGreenGrad)"
+            strokeWidth="5.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          {/* 中轴朱红竖线 */}
+          <line x1="36" y1="28" x2="36" y2="72" stroke="#dc2626" strokeWidth="3" strokeLinecap="round" />
+          <circle cx="36" cy="50" r="3" fill="#dc2626" stroke="#991b1b" strokeWidth="0.8" />
         </g>
       );
     // 9条：3排3列 (上3红，中3蓝，下3绿)
@@ -444,7 +453,7 @@ export default function MahjongTile({
 
   const currentSizeClass = sizeMap[size] || sizeMap.md;
 
-  // 牌背渲染 (纯翠玉微晶质感)
+  // 牌背渲染 (黄金岛标志性琥珀流金微晶质感)
   if (isBack || !tile) {
     return (
       <div
@@ -453,16 +462,23 @@ export default function MahjongTile({
       >
         <svg viewBox="0 0 72 96" className="w-full h-full drop-shadow-md">
           <defs>
-            <linearGradient id="jadeGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#059669" />
-              <stop offset="50%" stopColor="#047857" />
-              <stop offset="100%" stopColor="#064e3b" />
+            <linearGradient id="goldBackGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#fef08a" />
+              <stop offset="25%" stopColor="#f59e0b" />
+              <stop offset="70%" stopColor="#d97706" />
+              <stop offset="100%" stopColor="#78350f" />
+            </linearGradient>
+            <linearGradient id="goldEdgeGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#78350f" />
+              <stop offset="100%" stopColor="#451a03" />
             </linearGradient>
           </defs>
-          <rect x="2" y="8" width="68" height="86" rx="8" fill="#022c22" />
-          <rect x="2" y="2" width="68" height="86" rx="8" fill="url(#jadeGrad)" stroke="#34d399" strokeWidth="1.2" strokeOpacity="0.4" />
-          <rect x="9" y="9" width="54" height="72" rx="5" fill="none" stroke="#6ee7b7" strokeWidth="1" strokeOpacity="0.35" />
-          <polygon points="36,36 44,48 36,60 28,48" fill="#34d399" fillOpacity="0.3" />
+          {/* 3D牌身厚底边 */}
+          <rect x="2" y="8" width="68" height="86" rx="8" fill="url(#goldEdgeGrad)" />
+          {/* 牌背流金主面板 */}
+          <rect x="2" y="2" width="68" height="86" rx="8" fill="url(#goldBackGrad)" stroke="#fef08a" strokeWidth="1.2" strokeOpacity="0.8" />
+          <rect x="8" y="8" width="56" height="74" rx="6" fill="none" stroke="#fef08a" strokeWidth="1" strokeOpacity="0.45" />
+          <polygon points="36,36 44,48 36,60 28,48" fill="#ffffff" fillOpacity="0.3" />
         </svg>
       </div>
     );
@@ -489,8 +505,8 @@ export default function MahjongTile({
             <stop offset="100%" stopColor="#f3efe4" />
           </linearGradient>
           <linearGradient id="tileBaseGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#047857" />
-            <stop offset="100%" stopColor="#065f46" />
+            <stop offset="0%" stopColor="#d97706" />
+            <stop offset="100%" stopColor="#78350f" />
           </linearGradient>
 
           <linearGradient id="bambooGreenGrad" x1="0" y1="0" x2="1" y2="0">
