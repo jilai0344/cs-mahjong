@@ -1471,6 +1471,22 @@ export default function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden flex flex-col bg-[#1f0604] text-slate-100 select-none">
+      {/* 竖屏提示遮罩 (仅在竖屏时显示) */}
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-[100] flex flex-col items-center justify-center p-8 portrait:flex landscape:hidden">
+        <div className="w-24 h-24 mb-8 rounded-full bg-amber-500/20 flex items-center justify-center animate-pulse">
+          <svg className="w-16 h-16 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </div>
+        <h2 className="text-3xl font-black text-amber-300 mb-4 text-center">请横置手机</h2>
+        <p className="text-lg text-slate-300 text-center mb-6 max-w-sm leading-relaxed">
+          长沙麻将需要横屏显示才能获得最佳游戏体验
+        </p>
+        <div className="text-sm text-slate-400 text-center">
+          旋转手机后即可开始游戏
+        </div>
+      </div>
+
       {/* 顶部黄金岛经典 HUD 导航栏 (红木描金古典风) */}
       <header className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-amber-500/30 bg-gradient-to-r from-[#3b0e08] via-[#240804] to-[#3b0e08] shadow-lg z-30 shrink-0">
         <div className="flex items-center gap-3">
