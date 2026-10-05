@@ -8,7 +8,9 @@ export default function RoundResultModal({
   isOpen,
   result, // { isHuangZhuang, winner, loser, huTypes, score, birdsResult, handTiles, melds, winningTile, isSelfDrawn, scoreChanges }
   players = [],
-  onNextRound
+  onNextRound,
+  isMultiplayer = false,
+  isHost = true
 }) {
   useEffect(() => {
     if (isOpen && result && !result.isHuangZhuang) {
@@ -148,13 +150,20 @@ export default function RoundResultModal({
         </div>
 
         {/* 再来一局按钮 */}
-        <button
-          onClick={onNextRound}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-95"
-        >
-          <RotateCcw className="w-4 h-4" />
-          <span>开始新一局</span>
-        </button>
+        {isMultiplayer && !isHost ? (
+          <div className="w-full py-3 rounded-xl bg-slate-800/80 border border-emerald-500/30 text-amber-300 font-bold text-sm shadow-xl flex items-center justify-center gap-2 animate-pulse">
+            <RotateCcw className="w-4 h-4 animate-spin text-amber-400" />
+            <span>等待房主开启新一局...</span>
+          </div>
+        ) : (
+          <button
+            onClick={onNextRound}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-95"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>开始新一局</span>
+          </button>
+        )}
       </div>
     </div>
   );

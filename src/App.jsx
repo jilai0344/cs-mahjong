@@ -75,6 +75,15 @@ export default function App() {
     mySeatId: 0,
     seats: PLAYERS
   });
+  const multiplayerRef = useRef(multiplayerState);
+  multiplayerRef.current = multiplayerState;
+
+  // 相对本地视角的座位编号计算 (以我的视角为基准，我永远在底部)
+  const mySeatId = multiplayerState.isMultiplayer ? multiplayerState.mySeatId : 0;
+  const bottomSeatId = mySeatId;
+  const rightSeatId = (mySeatId + 1) % 4;
+  const topSeatId = (mySeatId + 2) % 4;
+  const leftSeatId = (mySeatId + 3) % 4;
 
   // 2. 牌局展示状态 (UI 驱动)
   const [gameState, setGameState] = useState('IDLE'); // 'IDLE' | 'DEALING' | 'STARTING_HU' | 'PLAYING' | 'KONG_DRAW' | 'ROUND_OVER'
@@ -159,11 +168,11 @@ export default function App() {
 
   // 听牌分析计算 (我当前手牌)
   const tingMap = useMemo(() => {
-    if (!config.showHints || currentTurn !== 0 || gameState !== 'PLAYING') {
+    if (!config.showHints || currentTurn !== mySeatId || gameState !== 'PLAYING') {
       return new Map();
     }
-    const myHand = playerHands[0];
-    const myMelds = playerMelds[0];
+    const myHand = playerHands[mySeatId];
+    const myMelds = playerMelds[mySeatId];
     if (!myHand || myHand.length % 3 !== 2) return new Map();
 
     const allKnown = [
@@ -172,7 +181,7 @@ export default function App() {
       ...playerDiscards.flat()
     ];
     return analyzeTingCards(myHand, myMelds, config, allKnown);
-  }, [playerHands, playerMelds, playerDiscards, currentTurn, gameState, config]);
+  }, [playerHands, playerMelds, playerDiscards, currentTurn, gameState, config, mySeatId]);
 
   // 检测 URL 是否有 ?room=XXXX 邀请链接，有则自动弹起联机窗
   useEffect(() => {
@@ -195,78 +204,203 @@ export default function App() {
           executeDiscard(data.fromSeatId, data.tile);
         } else if (data.type === 'RESPOND_ACTION') {
           handleGuestActionResponse(data.fromSeatId, data.action, data.payload);
+        } else if (data.type === 'ACK_STARTING_HU') {
+          handleAcknowledgeStartingHu();
         }
       } else {
         // 访客接收房主广播的游戏状态
         if (data.type === 'GAME_STARTED') {
+          const nextMp = {
+            isMultiplayer: true,
+            isHost: false,
+            roomCode: network.roomCode,
+            mySeatId: network.mySeatId,
+            seats: data.seats || network.seats
+          };
+          multiplayerRef.current = nextMp;
+          setMultiplayerState(nextMp);
+          setIsMultiplayerOpen(false);
           setGameState('DEALING');
           setIsRollingDice(true);
           sound.playDice();
         } else if (data.type === 'DEAL_HAND') {
           setIsRollingDice(false);
           setGameState('PLAYING');
+          stateRef.current.gameState = 'PLAYING';
           setDealerId(data.dealerId);
+          stateRef.current.dealerId = data.dealerId;
           setWall(new Array(data.wallRemaining).fill({}));
-          setPlayerHands(prev => {
-            const next = [...prev];
-            next[0] = data.myHand; // 访客本地视角永远置于下方 (座位 0)
+          setPlayerDiscards([[], [], [], []]);
+          setPlayerMelds([[], [], [], []]);
+
+          const mySeat = network.mySeatId;
+          setPlayerHands(() => {
+            const next = [[], [], [], []];
+            for (let i = 0; i < 4; i++) {
+              if (i === mySeat) {
+                next[i] = data.myHand;
+              } else {
+                const count = i === data.dealerId ? 14 : 13;
+                next[i] = new Array(count).fill({ isBack: true });
+              }
+            }
             return next;
           });
         } else if (data.type === 'TILE_DISCARDED') {
           sound.playDiscard();
           setLastDiscard({ tile: data.tile, fromPlayer: data.playerId, isKongDiscard: data.isKongDiscard });
+          stateRef.current.lastDiscard = { tile: data.tile, fromPlayer: data.playerId, isKongDiscard: data.isKongDiscard };
           // 更新弃牌池
           setPlayerDiscards(prev => {
             const next = [...prev];
-            next[data.playerId] = [...next[data.playerId], data.tile];
+            next[data.playerId] = [...(next[data.playerId] || []), data.tile];
             return next;
           });
+          // 减少该对手的手牌数
+          if (data.playerId !== network.mySeatId) {
+            setPlayerHands(prev => {
+              const next = [...prev];
+              const cur = [...(next[data.playerId] || [])];
+              if (cur.length > 0) cur.pop();
+              next[data.playerId] = cur;
+              return next;
+            });
+          }
         } else if (data.type === 'PROMPT_ACTION') {
           setAvailableActions(data.availableActions);
           setChiOptions(data.chiOptions || []);
           setKongOptions(data.kongOptions || []);
         } else if (data.type === 'TURN_UPDATE') {
           setCurrentTurn(data.currentTurn);
+          stateRef.current.currentTurn = data.currentTurn;
           setTurnTimer(data.turnTimer || 15);
-          if (data.drawnTile && data.currentTurn === 0) {
-            setDrawnTile(data.drawnTile);
-            sound.playTileTouch();
+          const mySeat = network.mySeatId;
+          if (data.currentTurn === mySeat) {
+            if (data.drawnTile) {
+              setDrawnTile(data.drawnTile);
+              sound.playTileTouch();
+              setPlayerHands(prev => {
+                const next = [...prev];
+                const cur = [...(next[mySeat] || [])];
+                if (!cur.some(t => t.id === data.drawnTile.id)) {
+                  next[mySeat] = [...cur, data.drawnTile];
+                }
+                return next;
+              });
+
+              // 访客摸牌后，本地自动扫描是否能自摸/暗杠/中途四喜
+              setPlayerHands(currentHands => {
+                const myH = currentHands[mySeat] || [];
+                const myM = playerMelds[mySeat] || [];
+                const huRes = checkHu(myH, myM, null, true, {});
+                const kOptions = getKongOptions(myH, myM, null, config);
+                const siXiList = checkMidGameSiXi(myH, config, declaredSiXiRef.current[mySeat]);
+
+                setAvailableActions({
+                  hu: huRes.canHu,
+                  siXi: siXiList.length > 0,
+                  gang: kOptions.length > 0,
+                  peng: false,
+                  chi: false,
+                  pass: huRes.canHu || kOptions.length > 0 || siXiList.length > 0
+                });
+                setKongOptions(kOptions);
+                setMidGameSiXiOptions(siXiList);
+                return currentHands;
+              });
+            }
           } else {
             setDrawnTile(null);
+            // 对手摸牌，其手牌增加一张暗牌
+            setPlayerHands(prev => {
+              const next = [...prev];
+              const cur = [...(next[data.currentTurn] || [])];
+              if (cur.length < 14) {
+                next[data.currentTurn] = [...cur, { isBack: true }];
+              }
+              return next;
+            });
           }
         } else if (data.type === 'MELD_BROADCAST') {
           sound.playMeld(data.meldType);
           showBubble(data.playerId, data.meldType === 'chi' ? '吃！' : data.meldType === 'peng' ? '碰！' : '杠！');
           setPlayerMelds(prev => {
             const next = [...prev];
-            next[data.playerId] = [...next[data.playerId], data.meldGroup];
+            next[data.playerId] = [...(next[data.playerId] || []), data.meldGroup];
             return next;
           });
+          // 吃碰杠从弃牌池拿牌
+          if (lastDiscard && lastDiscard.fromPlayer !== undefined) {
+            setPlayerDiscards(prev => {
+              const next = [...prev];
+              const cur = [...(next[lastDiscard.fromPlayer] || [])];
+              if (cur.length > 0) cur.pop();
+              next[lastDiscard.fromPlayer] = cur;
+              return next;
+            });
+          }
+          if (data.playerId === network.mySeatId) {
+            setPlayerHands(prev => {
+              const next = [...prev];
+              let cur = [...(next[network.mySeatId] || [])];
+              const deductTiles = data.meldGroup.tiles.filter(t => t.id !== data.meldGroup.tile?.id);
+              deductTiles.forEach(d => {
+                const idx = cur.findIndex(t => t.suit === d.suit && t.value === d.value);
+                if (idx !== -1) cur.splice(idx, 1);
+              });
+              if (config.autoSort) cur.sort(compareTiles);
+              next[network.mySeatId] = cur;
+              return next;
+            });
+          } else {
+            setPlayerHands(prev => {
+              const next = [...prev];
+              const cur = [...(next[data.playerId] || [])];
+              const countToRemove = data.meldType === 'gang' ? 3 : 2;
+              for (let i = 0; i < countToRemove && cur.length > 0; i++) cur.pop();
+              next[data.playerId] = cur;
+              return next;
+            });
+          }
         } else if (data.type === 'STARTING_HU_BROADCAST') {
           setStartingHuEvents(data.events);
           setGameState('STARTING_HU');
+        } else if (data.type === 'START_PLAYING') {
+          setStartingHuEvents([]);
+          setGameState('PLAYING');
+          setCurrentTurn(data.dealerId);
         } else if (data.type === 'ROUND_WIN_BROADCAST') {
           setRoundResult(data.result);
           setGameState('ROUND_OVER');
+          stateRef.current.gameState = 'ROUND_OVER';
+          if (data.result.scoreChanges) {
+            setPlayerScores(prev => prev.map((s, idx) => s + (data.result.scoreChanges[idx] || 0)));
+          }
         } else if (data.type === 'BUBBLE_BROADCAST') {
           showBubble(data.playerId, data.text);
         }
       }
     });
-  }, []);
+  }, [config, lastDiscard]);
 
   // 房主处理访客的胡碰吃过响应
-  const handleGuestActionResponse = (seatId, action, payload) => {
+  const handleGuestActionResponse = (seatId, action, payload = {}) => {
     if (action === 'hu') {
-      const tile = stateRef.current.lastDiscard?.tile;
-      const huRes = checkHu(stateRef.current.playerHands[seatId], stateRef.current.playerMelds[seatId], tile, false, {});
-      handleRoundWin(seatId, stateRef.current.lastDiscard.fromPlayer, tile, false, huRes.huTypes);
+      const isSelfDrawn = stateRef.current.currentTurn === seatId;
+      const tile = isSelfDrawn
+        ? stateRef.current.playerHands[seatId][stateRef.current.playerHands[seatId].length - 1]
+        : stateRef.current.lastDiscard?.tile;
+      const loserId = isSelfDrawn ? seatId : (stateRef.current.lastDiscard?.fromPlayer ?? 0);
+      const huRes = checkHu(stateRef.current.playerHands[seatId], stateRef.current.playerMelds[seatId], tile, isSelfDrawn, {});
+      handleRoundWin(seatId, loserId, tile, isSelfDrawn, huRes.huTypes);
     } else if (action === 'peng') {
       executePeng(seatId, stateRef.current.lastDiscard.tile, stateRef.current.lastDiscard.fromPlayer);
     } else if (action === 'chi') {
       executeChi(seatId, payload.sequenceTiles, stateRef.current.lastDiscard.tile, stateRef.current.lastDiscard.fromPlayer);
     } else if (action === 'gang') {
       executeKong(seatId, payload.kongOption, stateRef.current.lastDiscard?.tile);
+    } else if (action === 'siXi') {
+      executeMidGameSiXi(seatId, payload.siXiOption);
     } else if (action === 'pass') {
       // 访客点“过”，继续让后续玩家评估
       processAiResponses(stateRef.current.lastDiscard);
@@ -275,20 +409,23 @@ export default function App() {
 
   // 启动多人游戏
   const handleStartMultiplayerGame = (roomConfig) => {
-    setMultiplayerState({
+    const nextMp = {
       isMultiplayer: true,
       isHost: roomConfig.isHost,
       roomCode: roomConfig.roomCode,
       mySeatId: roomConfig.mySeatId,
       seats: roomConfig.seats
-    });
-    startNewRound();
+    };
+    multiplayerRef.current = nextMp;
+    setMultiplayerState(nextMp);
+    startNewRound(nextMp);
   };
 
   // -------------------------------------------------------------------------
   // 开局发牌与起手胡流程
   // -------------------------------------------------------------------------
-  const startNewRound = useCallback(() => {
+  const startNewRound = useCallback((overrideMp = null) => {
+    const mp = overrideMp || multiplayerRef.current;
     sound.init();
     sound.playDice();
 
@@ -315,8 +452,8 @@ export default function App() {
     setDiceValues([d1, d2]);
 
     // 若是联机房主，向所有人广播开局
-    if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
-      network.broadcast({ type: 'GAME_STARTED' });
+    if (mp.isMultiplayer && mp.isHost) {
+      network.broadcast({ type: 'GAME_STARTED', seats: mp.seats });
     }
 
     setTimeout(() => {
@@ -340,9 +477,9 @@ export default function App() {
       setCurrentTurn(dealerId);
 
       // 若联机，房主向每个真人座位安全发送各自手牌
-      if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
+      if (mp.isMultiplayer && mp.isHost) {
         for (let s = 1; s < 4; s++) {
-          if (multiplayerState.seats[s]?.isHuman) {
+          if (mp.seats[s]?.isHuman) {
             network.sendToSeat(s, {
               type: 'DEAL_HAND',
               myHand: hands[s],
@@ -363,7 +500,7 @@ export default function App() {
           }
         });
         if (huList.length > 0) {
-          const playerName = multiplayerState.isMultiplayer ? multiplayerState.seats[pIdx]?.name : PLAYERS[pIdx].name;
+          const playerName = mp.isMultiplayer ? mp.seats[pIdx]?.name : PLAYERS[pIdx].name;
           startingEvents.push({
             player: { ...PLAYERS[pIdx], name: playerName },
             huList
@@ -392,21 +529,29 @@ export default function App() {
         setGameState('STARTING_HU');
         stateRef.current.gameState = 'STARTING_HU';
 
-        if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
+        if (mp.isMultiplayer && mp.isHost) {
           network.broadcast({ type: 'STARTING_HU_BROADCAST', events: startingEvents });
         }
       } else {
-        enterPlayingState(dealerId, hands, newDeck);
+        enterPlayingState(dealerId, hands, newDeck, mp);
       }
     }, 900);
-  }, [dealerId, config, multiplayerState]);
+  }, [dealerId, config]);
 
   const handleAcknowledgeStartingHu = () => {
     setStartingHuEvents([]);
-    enterPlayingState(dealerId, stateRef.current.playerHands, stateRef.current.wall);
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && !mp.isHost) {
+      network.sendToHost({ type: 'ACK_STARTING_HU' });
+      return;
+    }
+    enterPlayingState(dealerId, stateRef.current.playerHands, stateRef.current.wall, mp);
+    if (mp.isMultiplayer && mp.isHost) {
+      network.broadcast({ type: 'START_PLAYING', dealerId });
+    }
   };
 
-  const enterPlayingState = (activeDealerId, hands, currentWall) => {
+  const enterPlayingState = (activeDealerId, hands, currentWall, mp = multiplayerRef.current) => {
     setGameState('PLAYING');
     stateRef.current.gameState = 'PLAYING';
     setCurrentTurn(activeDealerId);
@@ -434,7 +579,7 @@ export default function App() {
       setMidGameSiXiOptions(siXiList);
     } else {
       // 若庄家是联机真人，通知出牌；若是 AI 则自动触发
-      if (multiplayerState.isMultiplayer && multiplayerState.seats[activeDealerId]?.isHuman) {
+      if (mp.isMultiplayer && mp.seats[activeDealerId]?.isHuman) {
         network.sendToSeat(activeDealerId, {
           type: 'TURN_UPDATE',
           currentTurn: activeDealerId,
@@ -456,7 +601,7 @@ export default function App() {
     timerRef.current = setInterval(() => {
       setTurnTimer(prev => {
         if (prev <= 1) {
-          if (stateRef.current.currentTurn === 0) {
+          if (stateRef.current.currentTurn === mySeatId) {
             handleTimeoutAutoDiscard();
           }
           return 15;
@@ -466,13 +611,13 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [gameState]);
+  }, [gameState, mySeatId]);
 
   const handleTimeoutAutoDiscard = () => {
-    const myHand = stateRef.current.playerHands[0];
-    if (myHand && myHand.length > 0) {
-      const tileToDiscard = drawnTile || myHand[myHand.length - 1];
-      executeDiscard(0, tileToDiscard);
+    const curHand = stateRef.current.playerHands[mySeatId] || playerHands[mySeatId];
+    if (curHand && curHand.length > 0) {
+      const tileToDiscard = drawnTile || curHand[curHand.length - 1];
+      executeDiscard(mySeatId, tileToDiscard);
     }
   };
 
@@ -487,9 +632,21 @@ export default function App() {
     setAvailableActions({ hu: false, gang: false, peng: false, chi: false, pass: false });
     setDrawnTile(null);
 
+    const mp = multiplayerRef.current;
     // 如果我是访客，向房主发送出牌意图
-    if (multiplayerState.isMultiplayer && !multiplayerState.isHost) {
+    if (mp.isMultiplayer && !mp.isHost) {
       network.sendToHost({ type: 'DISCARD_ACTION', tile });
+      // 客户端乐观更新自身手牌
+      setPlayerHands(prev => {
+        const next = [...prev];
+        const cur = [...(next[playerId] || [])];
+        const idx = cur.findIndex(t => t.id === tile.id);
+        if (idx !== -1) cur.splice(idx, 1);
+        else cur.pop();
+        if (config.autoSort) cur.sort(compareTiles);
+        next[playerId] = cur;
+        return next;
+      });
       return;
     }
 
@@ -529,7 +686,7 @@ export default function App() {
     setLastDiscard(discardEvent);
 
     // 广播出牌给联机所有人
-    if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
+    if (mp.isMultiplayer && mp.isHost) {
       network.broadcast({
         type: 'TILE_DISCARDED',
         playerId,
@@ -544,6 +701,7 @@ export default function App() {
 
   const processDiscardResponses = (discardEvent) => {
     const { tile, fromPlayer } = discardEvent;
+    const mp = multiplayerRef.current;
 
     // 1. 人类玩家优先判定
     if (fromPlayer !== 0) {
@@ -573,9 +731,9 @@ export default function App() {
     }
 
     // 2. 检查联机真人玩家是否有响应
-    if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
+    if (mp.isMultiplayer && mp.isHost) {
       for (let s = 1; s < 4; s++) {
-        if (s !== fromPlayer && multiplayerState.seats[s]?.isHuman) {
+        if (s !== fromPlayer && mp.seats[s]?.isHuman) {
           const guestHand = stateRef.current.playerHands[s];
           const guestMelds = stateRef.current.playerMelds[s];
           const huRes = checkHu(guestHand, guestMelds, tile, false, {});
@@ -608,12 +766,13 @@ export default function App() {
 
   const processAiResponses = (discardEvent) => {
     const { tile, fromPlayer } = discardEvent;
+    const mp = multiplayerRef.current;
     const otherPlayers = [1, 2, 3].filter(id => id !== fromPlayer);
 
     // A. 评估是否有人点炮胡牌
     for (const pId of otherPlayers) {
       // 如果该座位是真人，跳过 AI
-      if (multiplayerState.isMultiplayer && multiplayerState.seats[pId]?.isHuman) continue;
+      if (mp.isMultiplayer && mp.seats[pId]?.isHuman) continue;
 
       const hand = stateRef.current.playerHands[pId];
       const melds = stateRef.current.playerMelds[pId];
@@ -629,7 +788,7 @@ export default function App() {
 
     // B. 评估是否有人开杠或碰牌
     for (const pId of otherPlayers) {
-      if (multiplayerState.isMultiplayer && multiplayerState.seats[pId]?.isHuman) continue;
+      if (mp.isMultiplayer && mp.seats[pId]?.isHuman) continue;
 
       const hand = stateRef.current.playerHands[pId];
       const melds = stateRef.current.playerMelds[pId];
@@ -650,7 +809,7 @@ export default function App() {
 
     // C. 评估下家吃牌
     const nextPlayerId = (fromPlayer + 1) % 4;
-    if (nextPlayerId !== 0 && (!multiplayerState.isMultiplayer || !multiplayerState.seats[nextPlayerId]?.isHuman)) {
+    if (nextPlayerId !== 0 && (!mp.isMultiplayer || !mp.seats[nextPlayerId]?.isHuman)) {
       const hand = stateRef.current.playerHands[nextPlayerId];
       const melds = stateRef.current.playerMelds[nextPlayerId];
       const decision = decideAiResponse(hand, melds, tile, true, config, {});
@@ -709,19 +868,25 @@ export default function App() {
     setLastDiscard(null);
 
     // 广播面子给所有联机客户端
-    if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && mp.isHost) {
       network.broadcast({
         type: 'MELD_BROADCAST',
         playerId,
         meldType: 'peng',
         meldGroup
       });
+      network.broadcast({
+        type: 'TURN_UPDATE',
+        currentTurn: playerId,
+        turnTimer: 15
+      });
     }
 
     if (playerId === 0) {
       setAvailableActions({ hu: false, gang: false, peng: false, chi: false, pass: false });
     } else {
-      if (multiplayerState.isMultiplayer && multiplayerState.seats[playerId]?.isHuman) {
+      if (mp.isMultiplayer && mp.seats[playerId]?.isHuman) {
         network.sendToSeat(playerId, {
           type: 'TURN_UPDATE',
           currentTurn: playerId,
@@ -793,19 +958,25 @@ export default function App() {
     setDrawnTile(null);
     setLastDiscard(null);
 
-    if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && mp.isHost) {
       network.broadcast({
         type: 'MELD_BROADCAST',
         playerId,
         meldType: 'chi',
         meldGroup
       });
+      network.broadcast({
+        type: 'TURN_UPDATE',
+        currentTurn: playerId,
+        turnTimer: 15
+      });
     }
 
     if (playerId === 0) {
       setAvailableActions({ hu: false, gang: false, peng: false, chi: false, pass: false });
     } else {
-      if (multiplayerState.isMultiplayer && multiplayerState.seats[playerId]?.isHuman) {
+      if (mp.isMultiplayer && mp.seats[playerId]?.isHuman) {
         network.sendToSeat(playerId, {
           type: 'TURN_UPDATE',
           currentTurn: playerId,
@@ -877,6 +1048,16 @@ export default function App() {
     setPlayerHands([...stateRef.current.playerHands]);
     setPlayerMelds([...stateRef.current.playerMelds]);
 
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && mp.isHost) {
+      network.broadcast({
+        type: 'MELD_BROADCAST',
+        playerId,
+        meldType: type === 'an' ? 'an_gang' : 'gang',
+        meldGroup: { type: type === 'an' ? 'an_gang' : 'gang', tile, tiles: kongTiles }
+      });
+    }
+
     const drawCount = Math.min(config.kongDrawCount || 2, stateRef.current.wall.length);
     if (drawCount === 0) {
       handleHuangZhuang();
@@ -921,6 +1102,7 @@ export default function App() {
 
   const discardKongTilesToPool = (kongPlayerId, kongCards) => {
     setKongDrawState({ isOpen: false, kongPlayer: null, drawnTiles: [], count: 2, canSelfHu: false });
+    const mp = multiplayerRef.current;
 
     for (const card of kongCards) {
       stateRef.current.playerDiscards[kongPlayerId] = [
@@ -928,6 +1110,15 @@ export default function App() {
         card
       ];
       setPlayerDiscards([...stateRef.current.playerDiscards]);
+
+      if (mp.isMultiplayer && mp.isHost) {
+        network.broadcast({
+          type: 'TILE_DISCARDED',
+          playerId: kongPlayerId,
+          tile: card,
+          isKongDiscard: true
+        });
+      }
 
       for (let i = 0; i < 4; i++) {
         if (i !== kongPlayerId) {
@@ -970,6 +1161,7 @@ export default function App() {
     ];
     setPlayerHands([...stateRef.current.playerHands]);
 
+    const mp = multiplayerRef.current;
     if (nextPlayerId === 0) {
       sound.playTileTouch();
       const myHand = stateRef.current.playerHands[0];
@@ -987,15 +1179,41 @@ export default function App() {
       });
       setKongOptions(kOptions);
       setMidGameSiXiOptions(siXiList);
+
+      if (mp.isMultiplayer && mp.isHost) {
+        network.broadcast({
+          type: 'TURN_UPDATE',
+          currentTurn: 0,
+          turnTimer: 15
+        });
+      }
     } else {
-      if (multiplayerState.isMultiplayer && multiplayerState.seats[nextPlayerId]?.isHuman) {
+      if (mp.isMultiplayer && mp.seats[nextPlayerId]?.isHuman) {
+        // 给该真人发送私有暗摸牌
         network.sendToSeat(nextPlayerId, {
           type: 'TURN_UPDATE',
           currentTurn: nextPlayerId,
           turnTimer: 15,
           drawnTile: drawn
         });
+        // 告知其余玩家轮次变更
+        for (let s = 1; s < 4; s++) {
+          if (s !== nextPlayerId && mp.seats[s]?.isHuman) {
+            network.sendToSeat(s, {
+              type: 'TURN_UPDATE',
+              currentTurn: nextPlayerId,
+              turnTimer: 15
+            });
+          }
+        }
       } else {
+        if (mp.isMultiplayer && mp.isHost) {
+          network.broadcast({
+            type: 'TURN_UPDATE',
+            currentTurn: nextPlayerId,
+            turnTimer: 15
+          });
+        }
         triggerAiTurn(nextPlayerId);
       }
     }
@@ -1063,8 +1281,9 @@ export default function App() {
     setDealerId(winnerId);
     stateRef.current.dealerId = winnerId;
 
-    const winnerName = multiplayerState.isMultiplayer ? multiplayerState.seats[winnerId]?.name : PLAYERS[winnerId].name;
-    const loserName = loserId !== null ? (multiplayerState.isMultiplayer ? multiplayerState.seats[loserId]?.name : PLAYERS[loserId].name) : '';
+    const mp = multiplayerRef.current;
+    const winnerName = mp.isMultiplayer ? mp.seats[winnerId]?.name : PLAYERS[winnerId].name;
+    const loserName = loserId !== null ? (mp.isMultiplayer ? mp.seats[loserId]?.name : PLAYERS[loserId].name) : '';
 
     const finalResult = {
       isHuangZhuang: false,
@@ -1082,7 +1301,7 @@ export default function App() {
 
     setRoundResult(finalResult);
 
-    if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
+    if (mp.isMultiplayer && mp.isHost) {
       network.broadcast({
         type: 'ROUND_WIN_BROADCAST',
         result: finalResult
@@ -1103,7 +1322,8 @@ export default function App() {
     };
     setRoundResult(finalResult);
 
-    if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && mp.isHost) {
       network.broadcast({
         type: 'ROUND_WIN_BROADCAST',
         result: finalResult
@@ -1130,7 +1350,8 @@ export default function App() {
       return nextScores;
     });
 
-    if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && mp.isHost) {
       network.broadcast({
         type: 'BUBBLE_BROADCAST',
         playerId,
@@ -1150,13 +1371,23 @@ export default function App() {
 
   const handleHumanSiXi = () => {
     if (midGameSiXiOptions.length === 0) return;
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && !mp.isHost) {
+      network.sendToHost({ type: 'RESPOND_ACTION', action: 'siXi', payload: { siXiOption: midGameSiXiOptions[0] } });
+      setMidGameSiXiOptions([]);
+      setAvailableActions(prev => ({ ...prev, siXi: false }));
+      return;
+    }
     executeMidGameSiXi(0, midGameSiXiOptions[0]);
   };
 
   // 人类操作
   const handleHumanHu = () => {
-    if (multiplayerState.isMultiplayer && !multiplayerState.isHost) {
-      network.sendToHost({ type: 'RESPOND_ACTION', action: 'hu' });
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && !mp.isHost) {
+      const isSelfDrawn = currentTurn === mySeatId;
+      network.sendToHost({ type: 'RESPOND_ACTION', action: 'hu', payload: { isSelfDrawn } });
+      setAvailableActions({ hu: false, siXi: false, gang: false, peng: false, chi: false, pass: false });
       return;
     }
     const isSelfDrawn = currentTurn === 0;
@@ -1169,16 +1400,20 @@ export default function App() {
   };
 
   const handleHumanGang = (selectedOption) => {
-    if (multiplayerState.isMultiplayer && !multiplayerState.isHost) {
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && !mp.isHost) {
       network.sendToHost({ type: 'RESPOND_ACTION', action: 'gang', payload: { kongOption: selectedOption } });
+      setAvailableActions({ hu: false, siXi: false, gang: false, peng: false, chi: false, pass: false });
       return;
     }
     executeKong(0, selectedOption, stateRef.current.lastDiscard?.tile);
   };
 
   const handleHumanPeng = () => {
-    if (multiplayerState.isMultiplayer && !multiplayerState.isHost) {
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && !mp.isHost) {
       network.sendToHost({ type: 'RESPOND_ACTION', action: 'peng' });
+      setAvailableActions({ hu: false, siXi: false, gang: false, peng: false, chi: false, pass: false });
       return;
     }
     if (stateRef.current.lastDiscard) {
@@ -1187,8 +1422,10 @@ export default function App() {
   };
 
   const handleHumanChi = (selectedSequence) => {
-    if (multiplayerState.isMultiplayer && !multiplayerState.isHost) {
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && !mp.isHost) {
       network.sendToHost({ type: 'RESPOND_ACTION', action: 'chi', payload: { sequenceTiles: selectedSequence } });
+      setAvailableActions({ hu: false, siXi: false, gang: false, peng: false, chi: false, pass: false });
       return;
     }
     if (stateRef.current.lastDiscard) {
@@ -1199,7 +1436,8 @@ export default function App() {
   const handleHumanPass = () => {
     setAvailableActions({ hu: false, siXi: false, gang: false, peng: false, chi: false, pass: false });
     setMidGameSiXiOptions([]);
-    if (multiplayerState.isMultiplayer && !multiplayerState.isHost) {
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && !mp.isHost) {
       network.sendToHost({ type: 'RESPOND_ACTION', action: 'pass' });
       return;
     }
@@ -1311,39 +1549,42 @@ export default function App() {
           {/* 1. 顶部：对家区域 (手牌在上，副露在右) */}
           <div className="absolute top-1.5 sm:top-2.5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
             <OpponentHand
-              player={currentSeatPlayers[2]}
-              handCount={playerHands[2].length}
-              melds={playerMelds[2]}
-              isCurrentTurn={currentTurn === 2}
-              actionBubble={actionBubbles[2]}
-              score={playerScores[2]}
-              isDealer={dealerId === 2}
+              player={currentSeatPlayers[topSeatId]}
+              handCount={playerHands[topSeatId]?.length || 0}
+              melds={playerMelds[topSeatId] || []}
+              isCurrentTurn={currentTurn === topSeatId}
+              actionBubble={actionBubbles[topSeatId]}
+              score={playerScores[topSeatId]}
+              isDealer={dealerId === topSeatId}
+              visualPosition="top"
             />
           </div>
 
           {/* 2. 左侧：上家区域 (紧靠左侧桌面边框，副露在上方) */}
           <div className="absolute left-1.5 sm:left-3 top-1/2 -translate-y-1/2 z-20 flex items-center">
             <OpponentHand
-              player={currentSeatPlayers[3]}
-              handCount={playerHands[3].length}
-              melds={playerMelds[3]}
-              isCurrentTurn={currentTurn === 3}
-              actionBubble={actionBubbles[3]}
-              score={playerScores[3]}
-              isDealer={dealerId === 3}
+              player={currentSeatPlayers[leftSeatId]}
+              handCount={playerHands[leftSeatId]?.length || 0}
+              melds={playerMelds[leftSeatId] || []}
+              isCurrentTurn={currentTurn === leftSeatId}
+              actionBubble={actionBubbles[leftSeatId]}
+              score={playerScores[leftSeatId]}
+              isDealer={dealerId === leftSeatId}
+              visualPosition="left"
             />
           </div>
 
           {/* 3. 右侧：下家区域 (紧靠右侧桌面边框，副露在右侧) */}
           <div className="absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 z-20 flex items-center">
             <OpponentHand
-              player={currentSeatPlayers[1]}
-              handCount={playerHands[1].length}
-              melds={playerMelds[1]}
-              isCurrentTurn={currentTurn === 1}
-              actionBubble={actionBubbles[1]}
-              score={playerScores[1]}
-              isDealer={dealerId === 1}
+              player={currentSeatPlayers[rightSeatId]}
+              handCount={playerHands[rightSeatId]?.length || 0}
+              melds={playerMelds[rightSeatId] || []}
+              isCurrentTurn={currentTurn === rightSeatId}
+              actionBubble={actionBubbles[rightSeatId]}
+              score={playerScores[rightSeatId]}
+              isDealer={dealerId === rightSeatId}
+              visualPosition="right"
             />
           </div>
 
@@ -1370,8 +1611,8 @@ export default function App() {
             {/* 对家出牌 (罗盘正上方：6张一行横排面对对家) */}
             <div className="mb-0.5 sm:mb-1">
               <PlayerDiscardTray
-                playerId={2}
-                discards={playerDiscards[2]}
+                playerId={topSeatId}
+                discards={playerDiscards[topSeatId] || []}
                 lastDiscard={lastDiscard}
                 hoveredTile={hoveredTile}
                 position="top"
@@ -1382,8 +1623,8 @@ export default function App() {
             <div className="flex items-center justify-center gap-1.5 sm:gap-2.5">
               {/* 上家出牌 (罗盘正左方：6张一列竖排面对上家) */}
               <PlayerDiscardTray
-                playerId={3}
-                discards={playerDiscards[3]}
+                playerId={leftSeatId}
+                discards={playerDiscards[leftSeatId] || []}
                 lastDiscard={lastDiscard}
                 hoveredTile={hoveredTile}
                 position="left"
@@ -1397,12 +1638,13 @@ export default function App() {
                 turnTimer={turnTimer}
                 diceValues={diceValues}
                 isRollingDice={isRollingDice}
+                mySeatId={bottomSeatId}
               />
 
               {/* 下家出牌 (罗盘正右方：6张一列竖排面对下家) */}
               <PlayerDiscardTray
-                playerId={1}
-                discards={playerDiscards[1]}
+                playerId={rightSeatId}
+                discards={playerDiscards[rightSeatId] || []}
                 lastDiscard={lastDiscard}
                 hoveredTile={hoveredTile}
                 position="right"
@@ -1412,8 +1654,8 @@ export default function App() {
             {/* 我家出牌 (罗盘正下方：6张一行横排面对我) */}
             <div className="mt-0.5 sm:mt-1">
               <PlayerDiscardTray
-                playerId={0}
-                discards={playerDiscards[0]}
+                playerId={bottomSeatId}
+                discards={playerDiscards[bottomSeatId] || []}
                 lastDiscard={lastDiscard}
                 hoveredTile={hoveredTile}
                 position="bottom"
@@ -1424,7 +1666,7 @@ export default function App() {
             {gameState === 'IDLE' && (
               <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/70 backdrop-blur-xs rounded-3xl gap-2.5 p-3">
                 <button
-                  onClick={startNewRound}
+                  onClick={() => startNewRound()}
                   className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all border-2 border-amber-200"
                 >
                   <Play className="w-5 h-5 fill-current" />
@@ -1444,7 +1686,7 @@ export default function App() {
 
           {/* 6. 左下角：我方玩家黄金岛专属信息胶囊牌 (复刻原图 djdodkj / 39482) */}
           <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-4 z-40 flex items-center gap-1.5 bg-gradient-to-b from-[#4a180e] via-[#2b0c07] to-[#140503] border-[1.5px] border-amber-400/90 rounded-full px-3 py-1 shadow-2xl">
-            {dealerId === 0 && (
+            {dealerId === bottomSeatId && (
               <span className="w-4 h-4 rounded-full bg-gradient-to-tr from-red-700 to-red-500 border border-amber-300 text-white text-[10px] font-black flex items-center justify-center shadow-md">
                 庄
               </span>
@@ -1454,7 +1696,7 @@ export default function App() {
               <span className="text-xs font-mono font-black text-yellow-300 tracking-tight">39482</span>
             </div>
             <span className="text-xs font-black text-amber-100 ml-1">
-              {multiplayerState.isMultiplayer ? (multiplayerState.seats[0]?.name || '我') : 'djdodkj'}
+              {multiplayerState.isMultiplayer ? (multiplayerState.seats[bottomSeatId]?.name || '我') : 'djdodkj'}
             </span>
             <span className="text-[10px] font-black italic text-amber-300 bg-amber-950/80 px-1 py-0.2 rounded border border-amber-500/40">
               V8
@@ -1481,12 +1723,12 @@ export default function App() {
             {/* 我的手牌 (副露居左，立牌居右，允许交互) */}
             <div className="pointer-events-auto w-full">
               <PlayerHand
-                handTiles={playerHands[0]}
-                melds={playerMelds[0]}
-                drawnTile={currentTurn === 0 ? drawnTile : null}
-                isMyTurn={currentTurn === 0 && gameState === 'PLAYING'}
+                handTiles={playerHands[bottomSeatId] || []}
+                melds={playerMelds[bottomSeatId] || []}
+                drawnTile={currentTurn === bottomSeatId ? drawnTile : null}
+                isMyTurn={currentTurn === bottomSeatId && gameState === 'PLAYING'}
                 tingMap={tingMap}
-                onDiscard={(tile) => executeDiscard(0, tile)}
+                onDiscard={(tile) => executeDiscard(bottomSeatId, tile)}
                 onHoverTile={setHoveredTile}
                 showJiangBadge={config.kongRequiresJiang}
               />
@@ -1543,7 +1785,9 @@ export default function App() {
         isOpen={gameState === 'ROUND_OVER'}
         result={roundResult}
         players={currentSeatPlayers}
-        onNextRound={startNewRound}
+        onNextRound={() => startNewRound()}
+        isMultiplayer={multiplayerState.isMultiplayer}
+        isHost={multiplayerState.isHost}
       />
     </div>
   );

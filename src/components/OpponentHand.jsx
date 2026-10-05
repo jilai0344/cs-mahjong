@@ -14,13 +14,15 @@ export default function OpponentHand({
   isCurrentTurn = false,
   actionBubble = null,
   score = 1000,
-  isDealer = false
+  isDealer = false,
+  visualPosition = null
 }) {
-  const { id, position, name } = player;
+  const { id = 0, name = '' } = player || {};
 
-  const isTop = position === 'top';
-  const isLeft = position === 'left';
-  const isRight = position === 'right';
+  const finalPos = visualPosition || player?.position || 'top';
+  const isTop = finalPos === 'top';
+  const isLeft = finalPos === 'left';
+  const isRight = finalPos === 'right';
 
   // 虚拟 VIP 等级 (高度还原黄金岛 V1, V5, V32 视觉元素)
   const vipRank = id === 2 ? 'V1' : id === 3 ? 'V5' : 'V32';

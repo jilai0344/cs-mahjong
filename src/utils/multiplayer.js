@@ -13,6 +13,16 @@ export function generateRoomCode() {
   return code;
 }
 
+// 国内高可用 STUN 服务器与国际 STUN 备选
+export const DEFAULT_ICE_SERVERS = [
+  { urls: 'stun:stun.qq.com:3478' },
+  { urls: 'stun:stun.miwifi.com:3478' },
+  { urls: 'stun:stun.chat.bilibili.com:3478' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' }
+];
+
 export class NetworkManager {
   constructor() {
     this.peer = null;
@@ -54,10 +64,7 @@ export class NetworkManager {
     this.peer = new Peer(peerId, {
       debug: 1,
       config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
+        iceServers: DEFAULT_ICE_SERVERS
       }
     });
 
@@ -99,6 +106,7 @@ export class NetworkManager {
           }
 
           // 分配座位
+          conn._seatId = assignSeat;
           this.connections.set(assignSeat, conn);
           this.seats[assignSeat] = {
             id: assignSeat,
@@ -156,10 +164,7 @@ export class NetworkManager {
     this.peer = new Peer({
       debug: 1,
       config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
+        iceServers: DEFAULT_ICE_SERVERS
       }
     });
 

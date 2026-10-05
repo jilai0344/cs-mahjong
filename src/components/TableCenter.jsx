@@ -14,15 +14,36 @@ export default function TableCenter({
   turnTimer = 15,
   diceValues = [3, 4],
   isRollingDice = false,
-  statusText = ''
+  statusText = '',
+  mySeatId = 0
 }) {
-  // 方位布局：0: 东(底/我), 1: 南(右/下家), 2: 西(顶/对家), 3: 北(左/上家)
-  const directions = [
-    { id: 0, label: '东', angle: 180, posClass: 'bottom-2 left-1/2 -translate-x-1/2' },
-    { id: 1, label: '南', angle: 90,  posClass: 'right-2 top-1/2 -translate-y-1/2' },
-    { id: 2, label: '西', angle: 0,   posClass: 'top-2 left-1/2 -translate-x-1/2' },
-    { id: 3, label: '北', angle: 270, posClass: 'left-2 top-1/2 -translate-y-1/2' }
-  ];
+  // 相对屏幕方位布局 (以本地视角 mySeatId 为基准): 0: 底(我), 1: 右(下家), 2: 顶(对家), 3: 左(上家)
+  const dirLabels = ['东', '南', '西', '北'];
+  const posClasses = {
+    0: 'bottom-2 left-1/2 -translate-x-1/2',
+    1: 'right-2 top-1/2 -translate-y-1/2',
+    2: 'top-2 left-1/2 -translate-x-1/2',
+    3: 'left-2 top-1/2 -translate-y-1/2'
+  };
+
+  const directions = [0, 1, 2, 3].map(id => {
+    const relPos = (id - mySeatId + 4) % 4;
+    return {
+      id,
+      label: dirLabels[id],
+      relPos,
+      posClass: posClasses[relPos]
+    };
+  });
+
+  // 相对当前出牌箭头朝向 (0朝下指向我，1朝右指向下家，2朝上指向对家，3朝左指向上家)
+  const relTurn = (currentTurn - mySeatId + 4) % 4;
+  const arrowStyles = {
+    0: 'bottom-[-16px] left-1/2 -translate-x-1/2 rotate-180',
+    1: 'right-[-16px] top-1/2 -translate-y-1/2 rotate-90',
+    2: 'top-[-16px] left-1/2 -translate-x-1/2 rotate-0',
+    3: 'left-[-16px] top-1/2 -translate-y-1/2 -rotate-90'
+  };
 
   return (
     <div className="relative flex flex-col items-center justify-center select-none shrink-0 pointer-events-none">
@@ -45,18 +66,10 @@ export default function TableCenter({
           const isActive = currentTurn === d.id;
           if (!isActive) return null;
 
-          // 绿色箭头朝向：0朝下，1朝右，2朝上，3朝左
-          const arrowStyles = {
-            0: 'bottom-[-16px] left-1/2 -translate-x-1/2 rotate-180',
-            1: 'right-[-16px] top-1/2 -translate-y-1/2 rotate-90',
-            2: 'top-[-16px] left-1/2 -translate-x-1/2 rotate-0',
-            3: 'left-[-16px] top-1/2 -translate-y-1/2 -rotate-90'
-          };
-
           return (
             <div
               key={`arrow-${d.id}`}
-              className={`absolute z-20 pointer-events-none flex flex-col items-center animate-pulse ${arrowStyles[d.id]}`}
+              className={`absolute z-20 pointer-events-none flex flex-col items-center animate-pulse ${arrowStyles[d.relPos]}`}
             >
               {/* 翠绿高光辐射气晕 */}
               <div className="w-10 h-10 -mb-6 rounded-full bg-emerald-400/40 blur-md pointer-events-none" />

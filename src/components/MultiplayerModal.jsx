@@ -368,6 +368,18 @@ export default function MultiplayerModal({
                 <span>已进入房间，等待房主点击开始游戏...</span>
               </div>
             )}
+
+            {/* 退出房间按钮 */}
+            <button
+              onClick={() => {
+                network.cleanup();
+                setInLobby(false);
+                setErrorMessage('');
+              }}
+              className="w-full py-2 text-xs font-bold text-slate-400 hover:text-red-300 transition-colors text-center"
+            >
+              退出当前房间
+            </button>
           </div>
         )}
       </div>
