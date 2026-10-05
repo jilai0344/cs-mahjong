@@ -767,7 +767,7 @@ export default function App() {
   const processAiResponses = (discardEvent) => {
     const { tile, fromPlayer } = discardEvent;
     const mp = multiplayerRef.current;
-    const otherPlayers = [1, 2, 3].filter(id => id !== fromPlayer);
+    const otherPlayers = [1, 2, 3].map(offset => (fromPlayer + offset) % 4).filter(id => id !== 0 || fromPlayer !== 0);
 
     // A. 评估是否有人点炮胡牌
     for (const pId of otherPlayers) {
@@ -1070,12 +1070,14 @@ export default function App() {
     setWall([...curWall]);
 
     let canSelfKongHu = false;
+    let kongFlowerWinTile = null;
     drawnKongCards.forEach(drawnCard => {
       const huRes = checkHu(curHand, stateRef.current.playerMelds[playerId], drawnCard, true, {
         isKongFlower: true
       });
-      if (huRes.canHu) {
+      if (huRes.canHu && !canSelfKongHu) {
         canSelfKongHu = true;
+        kongFlowerWinTile = drawnCard;
       }
     });
 
@@ -1091,7 +1093,7 @@ export default function App() {
     } else {
       if (canSelfKongHu) {
         showBubble(playerId, '杠上开花！');
-        handleRoundWin(playerId, playerId, drawnKongCards[0], true, ['杠上开花']);
+        handleRoundWin(playerId, playerId, kongFlowerWinTile, true, ['杠上开花']);
       } else {
         setTimeout(() => {
           discardKongTilesToPool(playerId, drawnKongCards);
@@ -1120,17 +1122,25 @@ export default function App() {
         });
       }
 
+      const kongWinners = [];
       for (let i = 0; i < 4; i++) {
         if (i !== kongPlayerId) {
           const hand = stateRef.current.playerHands[i];
           const melds = stateRef.current.playerMelds[i];
           const huRes = checkHu(hand, melds, card, false, { isKongDiscard: true });
           if (huRes.canHu) {
-            showBubble(i, '杠上炮！');
-            handleRoundWin(i, kongPlayerId, card, false, ['杠上炮', ...huRes.huTypes.filter(t => t !== '平胡')]);
-            return;
+            kongWinners.push({ id: i, huRes });
           }
         }
+      }
+      if (kongWinners.length > 0) {
+        kongWinners.forEach(w => showBubble(w.id, '杠上炮！'));
+        // 按座位顺序，以出杠者下家优先结算（一炮多响取顺位最近者）
+        const first = kongWinners.sort((a, b) =>
+          ((a.id - kongPlayerId + 4) % 4) - ((b.id - kongPlayerId + 4) % 4)
+        )[0];
+        handleRoundWin(first.id, kongPlayerId, card, false, ['杠上炮', ...first.huRes.huTypes.filter(t => t !== '平胡')]);
+        return;
       }
     }
 

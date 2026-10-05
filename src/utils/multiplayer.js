@@ -195,7 +195,7 @@ export class NetworkManager {
       if (!guestId) return;
 
       // 检查是否已有分配座位或寻找空位
-      let assignSeat = this.guestSeatMap?.get ? this.guestSeatMap.get(guestId) : -1;
+      let assignSeat = this.guestToSeat.has(guestId) ? this.guestToSeat.get(guestId) : -1;
       if (assignSeat === undefined || assignSeat === -1) {
         for (let i = 1; i < 4; i++) {
           if (!this.seats[i].isHuman || !this.seats[i].isConnected) {

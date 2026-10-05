@@ -433,7 +433,7 @@ export function checkHu(handTiles, melds = [], winningTile = null, isSelfDrawn =
     counts.forEach(({ count }) => {
       if (count === 2) pairCount++;
       else if (count === 3) tripletCount++;
-      else if (count === 4) tripletCount++; // 4张也可算刻子加一张(但在判胡时不应有单张)
+      else if (count === 4) { tripletCount += 2; } // 4张占4格，两组计入长度
     });
     if (pairCount === 1 && (tripletCount * 3 + 2 === allTilesInHand.length)) {
       isPengPengHu = true;
@@ -506,9 +506,9 @@ export function checkHu(handTiles, melds = [], winningTile = null, isSelfDrawn =
     isBigHu = true;
   }
 
-  // 全求人：已亮4副吃碰杠，手牌仅剩1张点炮成胡，必须258将
+  // 全求人：已亮4副吃碰杠，手牌仅剩1张点炮成胡，大胡乱将
   if (melds.length === 4 && allTilesInHand.length === 2 && !isSelfDrawn) {
-    if (hasValid258Jiang) {
+    if (canStandardDecompose) {
       huTypes.push('全求人');
       isBigHu = true;
     }
