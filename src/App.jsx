@@ -9,6 +9,7 @@ import {
 } from './types/mahjong.js';
 import {
   checkStartingHu,
+  checkMidGameSiXi,
   checkHu,
   getKongOptions,
   canPeng,
@@ -45,7 +46,15 @@ export default function App() {
     const saved = localStorage.getItem('cs_mahjong_config');
     if (saved) {
       try {
-        return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_CONFIG,
+          ...parsed,
+          startingHu: {
+            ...DEFAULT_CONFIG.startingHu,
+            ...(parsed.startingHu || {})
+          }
+        };
       } catch (e) {
         // ignore
       }
@@ -88,6 +97,7 @@ export default function App() {
   // 人类玩家操作控制
   const [availableActions, setAvailableActions] = useState({
     hu: false,
+    siXi: false,
     gang: false,
     peng: false,
     chi: false,
@@ -95,6 +105,8 @@ export default function App() {
   });
   const [chiOptions, setChiOptions] = useState([]);
   const [kongOptions, setKongOptions] = useState([]);
+  const [midGameSiXiOptions, setMidGameSiXiOptions] = useState([]);
+  const declaredSiXiRef = useRef([new Set(), new Set(), new Set(), new Set()]);
 
   // 特殊事件弹窗
   const [startingHuEvents, setStartingHuEvents] = useState([]);
@@ -287,8 +299,10 @@ export default function App() {
     setDrawnTile(null);
     setRoundResult(null);
     setStartingHuEvents([]);
+    setMidGameSiXiOptions([]);
+    declaredSiXiRef.current = [new Set(), new Set(), new Set(), new Set()];
     setKongDrawState({ isOpen: false, kongPlayer: null, drawnTiles: [], count: 2, canSelfHu: false });
-    setAvailableActions({ hu: false, gang: false, peng: false, chi: false, pass: false });
+    setAvailableActions({ hu: false, siXi: false, gang: false, peng: false, chi: false, pass: false });
 
     stateRef.current.playerDiscards = [[], [], [], []];
     stateRef.current.playerMelds = [[], [], [], []];
@@ -342,6 +356,11 @@ export default function App() {
       const startingEvents = [];
       hands.forEach((hand, pIdx) => {
         const huList = checkStartingHu(hand, config);
+        huList.forEach(item => {
+          if (item.type === 'daSiXi') {
+            declaredSiXiRef.current[pIdx].add(getTileKey(item.tiles[0]));
+          }
+        });
         if (huList.length > 0) {
           const playerName = multiplayerState.isMultiplayer ? multiplayerState.seats[pIdx]?.name : PLAYERS[pIdx].name;
           startingEvents.push({
@@ -400,15 +419,18 @@ export default function App() {
     if (activeDealerId === 0) {
       const huRes = checkHu(dealerHand, [], null, true, {});
       const kOptions = getKongOptions(dealerHand, [], null, config);
+      const siXiList = checkMidGameSiXi(dealerHand, config, declaredSiXiRef.current[0]);
 
       setAvailableActions({
         hu: huRes.canHu,
+        siXi: siXiList.length > 0,
         gang: kOptions.length > 0,
         peng: false,
         chi: false,
-        pass: huRes.canHu || kOptions.length > 0
+        pass: huRes.canHu || kOptions.length > 0 || siXiList.length > 0
       });
       setKongOptions(kOptions);
+      setMidGameSiXiOptions(siXiList);
     } else {
       // 若庄家是联机真人，通知出牌；若是 AI 则自动触发
       if (multiplayerState.isMultiplayer && multiplayerState.seats[activeDealerId]?.isHuman) {
@@ -937,15 +959,18 @@ export default function App() {
       const myHand = stateRef.current.playerHands[0];
       const huRes = checkHu(myHand, stateRef.current.playerMelds[0], null, true, {});
       const kOptions = getKongOptions(myHand, stateRef.current.playerMelds[0], null, config);
+      const siXiList = checkMidGameSiXi(myHand, config, declaredSiXiRef.current[0]);
 
       setAvailableActions({
         hu: huRes.canHu,
+        siXi: siXiList.length > 0,
         gang: kOptions.length > 0,
         peng: false,
         chi: false,
-        pass: huRes.canHu || kOptions.length > 0
+        pass: huRes.canHu || kOptions.length > 0 || siXiList.length > 0
       });
       setKongOptions(kOptions);
+      setMidGameSiXiOptions(siXiList);
     } else {
       if (multiplayerState.isMultiplayer && multiplayerState.seats[nextPlayerId]?.isHuman) {
         network.sendToSeat(nextPlayerId, {
@@ -965,6 +990,12 @@ export default function App() {
       const hand = stateRef.current.playerHands[botId];
       const melds = stateRef.current.playerMelds[botId];
       const drawn = hand[hand.length - 1];
+
+      // 评估 AI 中途四喜
+      const siXiList = checkMidGameSiXi(hand, config, declaredSiXiRef.current[botId]);
+      if (siXiList.length > 0) {
+        executeMidGameSiXi(botId, siXiList[0]);
+      }
 
       const decision = decideAiTurnAction(hand, melds, drawn, config, {});
 
@@ -1064,6 +1095,48 @@ export default function App() {
     }
   };
 
+  // 中途四喜结算与执行
+  const executeMidGameSiXi = (playerId, siXiOption) => {
+    sound.playHu();
+    showBubble(playerId, '中途四喜！', 2500);
+    declaredSiXiRef.current[playerId].add(siXiOption.key);
+
+    const ptsPerOther = 2;
+    const totalGain = ptsPerOther * 3;
+    setPlayerScores(prevScores => {
+      const nextScores = [...prevScores];
+      nextScores[playerId] += totalGain;
+      for (let i = 0; i < 4; i++) {
+        if (i !== playerId) {
+          nextScores[i] -= ptsPerOther;
+        }
+      }
+      return nextScores;
+    });
+
+    if (multiplayerState.isMultiplayer && multiplayerState.isHost) {
+      network.broadcast({
+        type: 'BUBBLE_BROADCAST',
+        playerId,
+        text: '中途四喜！'
+      });
+    }
+
+    if (playerId === 0) {
+      setMidGameSiXiOptions([]);
+      setAvailableActions(prev => ({
+        ...prev,
+        siXi: false,
+        pass: prev.hu || prev.gang
+      }));
+    }
+  };
+
+  const handleHumanSiXi = () => {
+    if (midGameSiXiOptions.length === 0) return;
+    executeMidGameSiXi(0, midGameSiXiOptions[0]);
+  };
+
   // 人类操作
   const handleHumanHu = () => {
     if (multiplayerState.isMultiplayer && !multiplayerState.isHost) {
@@ -1108,7 +1181,8 @@ export default function App() {
   };
 
   const handleHumanPass = () => {
-    setAvailableActions({ hu: false, gang: false, peng: false, chi: false, pass: false });
+    setAvailableActions({ hu: false, siXi: false, gang: false, peng: false, chi: false, pass: false });
+    setMidGameSiXiOptions([]);
     if (multiplayerState.isMultiplayer && !multiplayerState.isHost) {
       network.sendToHost({ type: 'RESPOND_ACTION', action: 'pass' });
       return;
@@ -1332,12 +1406,13 @@ export default function App() {
             position="bottom"
           />
 
-          {/* 人类操作按钮栏 (胡/杠/碰/吃/过) */}
+          {/* 人类操作按钮栏 (胡/四喜/杠/碰/吃/过) */}
           <ActionControls
             availableActions={availableActions}
             chiOptions={chiOptions}
             kongOptions={kongOptions}
             onHu={handleHumanHu}
+            onSiXi={handleHumanSiXi}
             onGang={handleHumanGang}
             onPeng={handleHumanPeng}
             onChi={handleHumanChi}

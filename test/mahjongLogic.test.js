@@ -1,6 +1,7 @@
 // 针对长沙麻将核心算法逻辑的自动化单元测试
 import {
   checkStartingHu,
+  checkMidGameSiXi,
   checkHu,
   getKongOptions,
   canPeng,
@@ -77,6 +78,127 @@ console.log('=== 测试 1: 起手胡 (小胡) 检测 ===');
   ];
   const res4 = checkStartingHu(handLiuLiu, { startingHu: { liuLiuShun: true } });
   assert(res4.some(h => h.type === 'liuLiuShun'), '拥有两组3张相同牌应触发【六六顺】');
+
+  // E. 一个五测试 (有且仅有一个五)
+  const handOneFive = [
+    { id: 1, suit: SUITS.WAN, value: 5, name: '五万' },
+    { id: 2, suit: SUITS.TIAO, value: 1, name: '一条' },
+    { id: 3, suit: SUITS.TONG, value: 9, name: '九筒' }
+  ];
+  const resOneFive = checkStartingHu(handOneFive, { startingHu: { yiGeWu: true } });
+  assert(resOneFive.some(h => h.type === 'yiGeWu'), '全手牌有且仅有一个五应触发【一个五】');
+
+  const handTwoFives = [
+    { id: 1, suit: SUITS.WAN, value: 5, name: '五万' },
+    { id: 2, suit: SUITS.TIAO, value: 5, name: '五条' }
+  ];
+  const resTwoFives = checkStartingHu(handTwoFives, { startingHu: { yiGeWu: true } });
+  assert(!resTwoFives.some(h => h.type === 'yiGeWu'), '手牌拥有两个五时不应触发【一个五】');
+
+  const handNoFives = [
+    { id: 1, suit: SUITS.WAN, value: 1, name: '一万' },
+    { id: 2, suit: SUITS.TIAO, value: 2, name: '二条' }
+  ];
+  const resNoFives = checkStartingHu(handNoFives, { startingHu: { yiGeWu: true } });
+  assert(!resNoFives.some(h => h.type === 'yiGeWu'), '手牌无五时不应触发【一个五】');
+
+  // F. 三五三八测试 (三个五筒，三个八筒)
+  const handSanWuSanBa = [
+    { id: 1, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 2, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 3, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 4, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 5, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 6, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 7, suit: SUITS.WAN, value: 1, name: '一万' }
+  ];
+  const res3538 = checkStartingHu(handSanWuSanBa, { startingHu: { sanWuSanBa: true } });
+  assert(res3538.some(h => h.type === 'sanWuSanBa'), '拥有三个五筒和三个八筒应触发【三五三八】');
+
+  const hand3528 = [
+    { id: 1, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 2, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 3, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 4, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 5, suit: SUITS.TONG, value: 8, name: '八筒' }
+  ];
+  const res3528 = checkStartingHu(hand3528, { startingHu: { sanWuSanBa: true } });
+  assert(!res3528.some(h => h.type === 'sanWuSanBa'), '仅有两个八筒时不应触发【三五三八】');
+
+  // G. 三连对测试 (同门三副连续的对子)
+  const handSanLianDui = [
+    { id: 1, suit: SUITS.WAN, value: 2, name: '二万' },
+    { id: 2, suit: SUITS.WAN, value: 2, name: '二万' },
+    { id: 3, suit: SUITS.WAN, value: 3, name: '三万' },
+    { id: 4, suit: SUITS.WAN, value: 3, name: '三万' },
+    { id: 5, suit: SUITS.WAN, value: 4, name: '四万' },
+    { id: 6, suit: SUITS.WAN, value: 4, name: '四万' },
+    { id: 7, suit: SUITS.TIAO, value: 9, name: '九条' }
+  ];
+  const resLianDui = checkStartingHu(handSanLianDui, { startingHu: { sanLianDui: true } });
+  assert(resLianDui.some(h => h.type === 'sanLianDui'), '手牌拥有223344万应触发【三连对】');
+
+  const handBrokenLianDui = [
+    { id: 1, suit: SUITS.WAN, value: 2, name: '二万' },
+    { id: 2, suit: SUITS.WAN, value: 2, name: '二万' },
+    { id: 3, suit: SUITS.WAN, value: 3, name: '三万' },
+    { id: 4, suit: SUITS.WAN, value: 3, name: '三万' },
+    { id: 5, suit: SUITS.WAN, value: 5, name: '五万' },
+    { id: 6, suit: SUITS.WAN, value: 5, name: '五万' }
+  ];
+  const resBrokenLianDui = checkStartingHu(handBrokenLianDui, { startingHu: { sanLianDui: true } });
+  assert(!resBrokenLianDui.some(h => h.type === 'sanLianDui'), '非连续三对(223355)不应触发【三连对】');
+
+  // H. 三同测试 (筒条万同点数各一对)
+  const handSanTong = [
+    { id: 1, suit: SUITS.WAN, value: 2, name: '二万' },
+    { id: 2, suit: SUITS.WAN, value: 2, name: '二万' },
+    { id: 3, suit: SUITS.TIAO, value: 2, name: '二条' },
+    { id: 4, suit: SUITS.TIAO, value: 2, name: '二条' },
+    { id: 5, suit: SUITS.TONG, value: 2, name: '二筒' },
+    { id: 6, suit: SUITS.TONG, value: 2, name: '二筒' }
+  ];
+  const resSanTong = checkStartingHu(handSanTong, { startingHu: { sanTong: true } });
+  assert(resSanTong.some(h => h.type === 'sanTong'), '手牌拥有2万2条2筒各一对相同牌应触发【三同】');
+
+  const handNotSanTong = [
+    { id: 1, suit: SUITS.WAN, value: 2, name: '二万' },
+    { id: 2, suit: SUITS.WAN, value: 2, name: '二万' },
+    { id: 3, suit: SUITS.TIAO, value: 2, name: '二条' },
+    { id: 4, suit: SUITS.TIAO, value: 2, name: '二条' },
+    { id: 5, suit: SUITS.TONG, value: 3, name: '三筒' },
+    { id: 6, suit: SUITS.TONG, value: 3, name: '三筒' }
+  ];
+  const resNotSanTong = checkStartingHu(handNotSanTong, { startingHu: { sanTong: true } });
+  assert(!resNotSanTong.some(h => h.type === 'sanTong'), '筒子点数不同(2万2条3筒)不应触发【三同】');
+
+  // I. 二筒二条测试 (一对二筒一对二条)
+  const handErTongErTiao = [
+    { id: 1, suit: SUITS.TONG, value: 2, name: '二筒' },
+    { id: 2, suit: SUITS.TONG, value: 2, name: '二筒' },
+    { id: 3, suit: SUITS.TIAO, value: 2, name: '二条' },
+    { id: 4, suit: SUITS.TIAO, value: 2, name: '二条' },
+    { id: 5, suit: SUITS.WAN, value: 9, name: '九万' }
+  ];
+  const resErTongErTiao = checkStartingHu(handErTongErTiao, { startingHu: { erTongErTiao: true } });
+  assert(resErTongErTiao.some(h => h.type === 'erTongErTiao'), '手牌拥有一对二筒和一对二条应触发【二筒二条】');
+
+  // J. 中途四喜检测
+  const handMidGameSiXi = [
+    { id: 1, suit: SUITS.WAN, value: 7, name: '七万' },
+    { id: 2, suit: SUITS.WAN, value: 7, name: '七万' },
+    { id: 3, suit: SUITS.WAN, value: 7, name: '七万' },
+    { id: 4, suit: SUITS.WAN, value: 7, name: '七万' },
+    { id: 5, suit: SUITS.TIAO, value: 1, name: '一条' }
+  ];
+  const resMidSiXi = checkMidGameSiXi(handMidGameSiXi, { startingHu: { zhongTuSiXi: true } }, new Set());
+  assert(resMidSiXi.length === 1 && resMidSiXi[0].name === '中途四喜', '手牌有4张相同七万未声明应检测出【中途四喜】');
+
+  const resMidSiXiDeclared = checkMidGameSiXi(handMidGameSiXi, { startingHu: { zhongTuSiXi: true } }, new Set(['wan-7']));
+  assert(resMidSiXiDeclared.length === 0, '已声明过的四喜不应重复触发【中途四喜】');
+
+  const resMidSiXiOff = checkMidGameSiXi(handMidGameSiXi, { startingHu: { zhongTuSiXi: false } }, new Set());
+  assert(resMidSiXiOff.length === 0, '关闭中途四喜开关时不应检测出中途四喜');
 }
 
 console.log('\n=== 测试 2: 开杠需不需要将规则验证 ===');

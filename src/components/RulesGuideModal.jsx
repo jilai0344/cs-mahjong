@@ -61,11 +61,11 @@ export default function RulesGuideModal({ isOpen, onClose }) {
             </ul>
           </div>
 
-          {/* 起手胡 (小胡) */}
+          {/* 起手胡与即时胡 (小胡) */}
           <div className="p-3.5 rounded-xl bg-slate-800/40 border border-emerald-500/20">
             <h3 className="text-sm font-bold text-emerald-300 mb-1 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              起手胡 (小胡) - 支持自主勾选
+              起手胡与中途胡 (小胡) - 支持自主勾选
             </h3>
             <div className="grid grid-cols-2 gap-2 mt-2">
               <div className="p-2 rounded bg-black/30">
@@ -80,9 +80,27 @@ export default function RulesGuideModal({ isOpen, onClose }) {
               <div className="p-2 rounded bg-black/30">
                 <span className="text-amber-300 font-bold">六六顺：</span>起手手牌包含两组刻子(各有3张相同牌)。
               </div>
+              <div className="p-2 rounded bg-black/30">
+                <span className="text-amber-300 font-bold">一个五：</span>筒条万全手牌有且仅有一张五。
+              </div>
+              <div className="p-2 rounded bg-black/30">
+                <span className="text-amber-300 font-bold">三五三八：</span>起手拥有3个五筒与3个八筒。
+              </div>
+              <div className="p-2 rounded bg-black/30">
+                <span className="text-amber-300 font-bold">三连对：</span>同门三副连续的对子(如223344)。
+              </div>
+              <div className="p-2 rounded bg-black/30">
+                <span className="text-amber-300 font-bold">三同：</span>筒条万同点数各有一对相同的牌。
+              </div>
+              <div className="p-2 rounded bg-black/30">
+                <span className="text-amber-300 font-bold">二筒二条：</span>手牌拥有一对二筒与一对二条。
+              </div>
+              <div className="p-2 rounded bg-black/30">
+                <span className="text-amber-300 font-bold">中途四喜：</span>打牌摸牌过程中手牌凑齐4张相同牌即刻算胡牌。
+              </div>
             </div>
             <p className="text-[11px] text-emerald-400/80 mt-2">
-              注：起手胡判定亮牌后直接计分，随后继续正常进行牌局摸打。
+              注：小胡判定亮牌后直接计分（每项每家付2分），随后牌局继续正常摸打。
             </p>
           </div>
 

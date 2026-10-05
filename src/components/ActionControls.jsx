@@ -7,6 +7,7 @@ export default function ActionControls({
   chiOptions = [],
   kongOptions = [],
   onHu = null,
+  onSiXi = null,
   onGang = null,
   onPeng = null,
   onChi = null,
@@ -87,6 +88,19 @@ export default function ActionControls({
 
       {/* 现代超大按键胶囊操作栏 (字体尺寸大幅翻倍) */}
       <div className="flex items-center gap-3.5 bg-slate-950/90 p-2.5 px-6 rounded-full border-2 border-emerald-400/40 shadow-2xl backdrop-blur-xl animate-fade-in-up">
+        {/* 中途四喜 / 摸四喜小胡 */}
+        {availableActions.siXi && (
+          <button
+            onClick={() => {
+              sound.playHu();
+              if (onSiXi) onSiXi();
+            }}
+            className="flex items-center justify-center px-8 sm:px-10 py-3 sm:py-3.5 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:from-purple-500 hover:to-pink-500 text-white font-black text-2xl sm:text-3xl shadow-xl ring-4 ring-pink-400/80 hover:scale-110 active:scale-95 transition-all duration-150 animate-pulse"
+          >
+            四喜
+          </button>
+        )}
+
         {/* 胡牌 */}
         {availableActions.hu && (
           <button

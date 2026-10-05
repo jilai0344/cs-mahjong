@@ -43,7 +43,13 @@ export const DEFAULT_CONFIG = {
     daSiXi: true,     // 大四喜 (起手有4张相同的牌)
     banBanHu: true,    // 板板胡 (起手无2、5、8)
     queYiSe: true,     // 缺一色 (起手缺少一门花色)
-    liuLiuShun: true   // 六六顺 (起手有两组3张相同的牌)
+    liuLiuShun: true,  // 六六顺 (起手有两组3张相同的牌)
+    yiGeWu: true,      // 一个五 (筒子、条子、万子，有且只有一个五)
+    sanWuSanBa: true,  // 三五三八 (三个五筒，三个八筒)
+    sanLianDui: true,  // 三连对 (同门三副连续的对子)
+    sanTong: true,     // 三同 (筒条万同点数各一对)
+    erTongErTiao: true,// 二筒二条 (一对二筒一对二条)
+    zhongTuSiXi: true  // 中途四喜 (打牌过程中摸到4喜算胡牌)
   },
   // 抓鸟数量：0(不抓) | 2 | 4
   birdCount: 2,

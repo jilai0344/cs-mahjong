@@ -157,10 +157,16 @@ export default function SettingsModal({
             </p>
             <div className="grid grid-cols-2 gap-2.5">
               {[
-                { key: 'daSiXi', name: '大四喜', desc: '起手有 4 张相同的牌' },
+                { key: 'daSiXi', name: '大四喜', desc: '起手手牌有 4 张相同的牌' },
                 { key: 'banBanHu', name: '板板胡', desc: '手牌没有任何一张 2、5、8' },
                 { key: 'queYiSe', name: '缺一色', desc: '手牌缺少某一门花色' },
-                { key: 'liuLiuShun', name: '六六顺', desc: '手牌拥有两组刻子 (3张同)' }
+                { key: 'liuLiuShun', name: '六六顺', desc: '手牌拥有两组刻子 (3张同)' },
+                { key: 'yiGeWu', name: '一个五', desc: '筒条万全手牌有且仅有一个五' },
+                { key: 'sanWuSanBa', name: '三五三八', desc: '手牌拥有三个五筒与三个八筒' },
+                { key: 'sanLianDui', name: '三连对', desc: '同门三副连续的对子 (如223344)' },
+                { key: 'sanTong', name: '三同', desc: '筒条万同点数各有一对相同的牌' },
+                { key: 'erTongErTiao', name: '二筒二条', desc: '手牌拥有一对二筒与一对二条' },
+                { key: 'zhongTuSiXi', name: '中途四喜', desc: '打牌摸牌过程中手牌凑齐4张相同牌' }
               ].map(item => {
                 const isChecked = !!config.startingHu[item.key];
                 return (

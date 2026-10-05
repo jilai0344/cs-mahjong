@@ -1,5 +1,5 @@
 // 长沙麻将核心算法与判牌规则引擎
-import { SUITS, JIANG_NUMBERS, isJiangTile, getTileKey, compareTiles } from '../types/mahjong.js';
+import { SUITS, SUIT_NAMES, NUMBER_NAMES, JIANG_NUMBERS, isJiangTile, getTileKey, compareTiles } from '../types/mahjong.js';
 
 /**
  * 统计手牌中各牌的出现数量
@@ -20,7 +20,7 @@ export function countTiles(tiles) {
 
 /**
  * 1. 起手胡检测 (起手小胡)
- * 根据用户设置开关判断：大四喜、板板胡、缺一色、六六顺
+ * 根据用户设置开关判断：大四喜、板板胡、缺一色、六六顺、一个五、三五三八、三连对、三同、二筒二条
  * @param {Array} handTiles 手牌 (庄家14张，闲家13张)
  * @param {Object} config 游戏规则配置
  * @returns {Array<{ type: string, name: string, desc: string, tiles: Array }>}
@@ -33,7 +33,13 @@ export function checkStartingHu(handTiles, config) {
     daSiXi: true,
     banBanHu: true,
     queYiSe: true,
-    liuLiuShun: true
+    liuLiuShun: true,
+    yiGeWu: true,
+    sanWuSanBa: true,
+    sanLianDui: true,
+    sanTong: true,
+    erTongErTiao: true,
+    zhongTuSiXi: true
   };
 
   const counts = countTiles(handTiles);
@@ -95,6 +101,90 @@ export function checkStartingHu(handTiles, config) {
         name: '六六顺',
         desc: `起手拥有两组刻子【${names}】`,
         tiles: handTiles.filter(t => triplets.some(trip => getTileKey(trip) === getTileKey(t)))
+      });
+    }
+  }
+
+  // E. 一个五：筒子、条子、万子中，有且只有一个五
+  if (ruleConfig.yiGeWu) {
+    const fives = handTiles.filter(t => t.value === 5);
+    if (fives.length === 1) {
+      result.push({
+        type: 'yiGeWu',
+        name: '一个五',
+        desc: `起手手牌有且仅有一张五【${fives[0].name}】`,
+        tiles: fives
+      });
+    }
+  }
+
+  // F. 三五三八：起手拥有三个五筒和三个八筒
+  if (ruleConfig.sanWuSanBa) {
+    const tong5 = handTiles.filter(t => t.suit === SUITS.TONG && t.value === 5);
+    const tong8 = handTiles.filter(t => t.suit === SUITS.TONG && t.value === 8);
+    if (tong5.length >= 3 && tong8.length >= 3) {
+      result.push({
+        type: 'sanWuSanBa',
+        name: '三五三八',
+        desc: `起手拥有三个五筒与三个八筒（【五筒】×${tong5.length}，【八筒】×${tong8.length}）`,
+        tiles: [...tong5, ...tong8]
+      });
+    }
+  }
+
+  // G. 三连对：起手拥有同门三副连续的对子 (如 223344条/筒/万)
+  if (ruleConfig.sanLianDui) {
+    const suits = [SUITS.WAN, SUITS.TIAO, SUITS.TONG];
+    suits.forEach(suit => {
+      let v = 1;
+      while (v <= 7) {
+        const p1 = handTiles.filter(t => t.suit === suit && t.value === v);
+        const p2 = handTiles.filter(t => t.suit === suit && t.value === v + 1);
+        const p3 = handTiles.filter(t => t.suit === suit && t.value === v + 2);
+        if (p1.length >= 2 && p2.length >= 2 && p3.length >= 2) {
+          const matched = [...p1.slice(0, 2), ...p2.slice(0, 2), ...p3.slice(0, 2)];
+          const sName = SUIT_NAMES[suit];
+          result.push({
+            type: 'sanLianDui',
+            name: '三连对',
+            desc: `起手拥有同门三连对【${NUMBER_NAMES[v]}${NUMBER_NAMES[v+1]}${NUMBER_NAMES[v+2]}${sName}对】`,
+            tiles: matched
+          });
+          v += 3; // 避免重叠误判
+        } else {
+          v += 1;
+        }
+      }
+    });
+  }
+
+  // H. 三同：筒子、条子、万子一样一对相同的 (如 2万一对、2条一对、2筒一对)
+  if (ruleConfig.sanTong) {
+    for (let v = 1; v <= 9; v++) {
+      const wans = handTiles.filter(t => t.suit === SUITS.WAN && t.value === v);
+      const tiaos = handTiles.filter(t => t.suit === SUITS.TIAO && t.value === v);
+      const tongs = handTiles.filter(t => t.suit === SUITS.TONG && t.value === v);
+      if (wans.length >= 2 && tiaos.length >= 2 && tongs.length >= 2) {
+        result.push({
+          type: 'sanTong',
+          name: '三同',
+          desc: `起手万、条、筒同点数各有一对【${NUMBER_NAMES[v]}万/条/筒各一对】`,
+          tiles: [...wans.slice(0, 2), ...tiaos.slice(0, 2), ...tongs.slice(0, 2)]
+        });
+      }
+    }
+  }
+
+  // I. 二筒二条：起手手牌拥有一对二筒和一对二条
+  if (ruleConfig.erTongErTiao) {
+    const tong2 = handTiles.filter(t => t.suit === SUITS.TONG && t.value === 2);
+    const tiao2 = handTiles.filter(t => t.suit === SUITS.TIAO && t.value === 2);
+    if (tong2.length >= 2 && tiao2.length >= 2) {
+      result.push({
+        type: 'erTongErTiao',
+        name: '二筒二条',
+        desc: '起手手牌拥有一对二筒与一对二条',
+        tiles: [...tong2.slice(0, 2), ...tiao2.slice(0, 2)]
       });
     }
   }
@@ -559,3 +649,36 @@ export function drawBirds(wall, birdCount = 2, winnerId = 0) {
 
   return { birds, hitCount };
 }
+
+/**
+ * 8. 检查中途四喜 (打牌摸牌过程中手牌凑齐4张相同牌)
+ * @param {Array} handTiles 手牌
+ * @param {Object} config 游戏规则配置
+ * @param {Set<string>|Array<string>} declaredKeys 已经声明过的四喜牌key集合
+ * @returns {Array<{ type: string, name: string, key: string, tile: Object, desc: string, tiles: Array }>}
+ */
+export function checkMidGameSiXi(handTiles, config = {}, declaredKeys = new Set()) {
+  if (!config?.startingHu?.zhongTuSiXi) return [];
+  if (!handTiles || handTiles.length === 0) return [];
+
+  const declaredSet = declaredKeys instanceof Set ? declaredKeys : new Set(declaredKeys);
+  const counts = countTiles(handTiles);
+  const results = [];
+
+  counts.forEach(({ tile, count }) => {
+    const key = getTileKey(tile);
+    if (count >= 4 && !declaredSet.has(key)) {
+      results.push({
+        type: 'zhongTuSiXi',
+        name: '中途四喜',
+        key,
+        tile,
+        desc: `打牌摸中第4张【${tile.name}】达成中途四喜！`,
+        tiles: handTiles.filter(t => getTileKey(t) === key).slice(0, 4)
+      });
+    }
+  });
+
+  return results;
+}
+
