@@ -162,7 +162,7 @@ export default function SettingsModal({
                 { key: 'queYiSe', name: '缺一色', desc: '手牌缺少某一门花色' },
                 { key: 'liuLiuShun', name: '六六顺', desc: '手牌拥有两组刻子 (3张同)' },
                 { key: 'yiGeWu', name: '一个五', desc: '某一色起手仅有一张牌且为五' },
-                { key: 'sanWuSanBa', name: '三个五三个八', desc: '有3个五筒或3个八筒，可叠加胡多次' },
+                { key: 'sanWuSanBa', name: '三个五三个八', desc: '有3个五/八筒各胡1把；4个五/八筒与四喜叠加胡2把' },
                 { key: 'sanLianDui', name: '三连对', desc: '同门三副连续的对子 (如223344)' },
                 { key: 'sanTong', name: '三同', desc: '筒条万同点数各有一对相同的牌' },
                 { key: 'erTongErTiao', name: '二筒二条', desc: '手牌拥有一对二筒与一对二条' },

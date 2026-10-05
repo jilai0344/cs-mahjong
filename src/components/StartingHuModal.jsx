@@ -44,8 +44,11 @@ export default function StartingHuModal({
                 <span className="font-bold text-emerald-300 text-sm">
                   【{evt.player.name}】
                 </span>
-                <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30 font-semibold">
-                  + {evt.huList.length * 2} 分
+                <span className="text-xs bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-400/30 font-semibold flex items-center gap-1.5">
+                  <span>共胡 <strong className="text-amber-200 text-sm">{evt.huList.length}</strong> 把</span>
+                  <span className="text-amber-400/50">|</span>
+                  <span>+{evt.huList.length * 2 * 3}分</span>
+                  <span className="text-[10px] text-amber-300/70">(每家付{evt.huList.length * 2}分)</span>
                 </span>
               </div>
 

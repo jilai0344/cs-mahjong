@@ -48,10 +48,14 @@ export function checkStartingHu(handTiles, config) {
   if (ruleConfig.daSiXi) {
     counts.forEach(({ tile, count }) => {
       if (count >= 4) {
+        let note = '';
+        if (ruleConfig.sanWuSanBa && tile.suit === SUITS.TONG && (tile.value === 5 || tile.value === 8)) {
+          note = `（与${tile.value === 5 ? '三个五' : '三个八'}叠加胡2次）`;
+        }
         result.push({
           type: 'daSiXi',
           name: '大四喜',
-          desc: `起手拥有4张相同的【${tile.name}】`,
+          desc: `起手拥有4张相同的【${tile.name}】${note}`,
           tiles: handTiles.filter(t => getTileKey(t) === getTileKey(tile))
         });
       }
@@ -121,7 +125,7 @@ export function checkStartingHu(handTiles, config) {
     });
   }
 
-  // F. 三个五三个八：起手有3个五筒或者3个八筒 (可独立胡牌并与六六顺叠加)
+  // F. 三个五三个八：起手有3个五筒或者3个八筒 (可独立胡牌并与大四喜/六六顺叠加)
   if (ruleConfig.sanWuSanBa) {
     const tong5 = handTiles.filter(t => t.suit === SUITS.TONG && t.value === 5);
     const tong8 = handTiles.filter(t => t.suit === SUITS.TONG && t.value === 8);
@@ -129,16 +133,20 @@ export function checkStartingHu(handTiles, config) {
       result.push({
         type: 'sanWuSanBa',
         name: '三个五',
-        desc: `起手拥有3个五筒【五筒】×${tong5.length}`,
-        tiles: tong5.slice(0, 3)
+        desc: tong5.length >= 4
+          ? (ruleConfig.daSiXi ? `起手拥有4个五筒【五筒】×4（与大四喜叠加胡2次）` : `起手拥有4个五筒【五筒】×4`)
+          : `起手拥有3个五筒【五筒】×3`,
+        tiles: tong5
       });
     }
     if (tong8.length >= 3) {
       result.push({
         type: 'sanWuSanBa',
         name: '三个八',
-        desc: `起手拥有3个八筒【八筒】×${tong8.length}`,
-        tiles: tong8.slice(0, 3)
+        desc: tong8.length >= 4
+          ? (ruleConfig.daSiXi ? `起手拥有4个八筒【八筒】×4（与大四喜叠加胡2次）` : `起手拥有4个八筒【八筒】×4`)
+          : `起手拥有3个八筒【八筒】×3`,
+        tiles: tong8
       });
     }
   }

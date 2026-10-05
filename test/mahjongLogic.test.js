@@ -140,6 +140,41 @@ console.log('=== 测试 1: 起手胡 (小胡) 检测 ===');
   const hasLiuLiu = resBoth3538.some(h => h.type === 'liuLiuShun');
   assert(has35 && has38 && hasLiuLiu && resBoth3538.length === 3, '同时有3个五筒和3个八筒应胡3把(三个五+三个八+六六顺叠加)');
 
+  // 4个五筒测试 (三个五筒胡一次，四喜胡一次，共胡2次)
+  const hand4_5 = [
+    { id: 1, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 2, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 3, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 4, suit: SUITS.TONG, value: 5, name: '五筒' },
+    { id: 5, suit: SUITS.WAN, value: 1, name: '一万' }
+  ];
+  const res4_5 = checkStartingHu(hand4_5, { startingHu: { daSiXi: true, sanWuSanBa: true } });
+  const has4_5_siXi = res4_5.some(h => h.type === 'daSiXi');
+  const has4_5_35 = res4_5.some(h => h.name === '三个五');
+  assert(has4_5_siXi && has4_5_35 && res4_5.length === 2, '起手拥有4个五筒应胡2次(大四喜胡一次+三个五胡一次)');
+
+  // 4个八筒测试 (三个八筒胡一次，四喜胡一次，共胡2次)
+  const hand4_8 = [
+    { id: 1, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 2, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 3, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 4, suit: SUITS.TONG, value: 8, name: '八筒' },
+    { id: 5, suit: SUITS.WAN, value: 1, name: '一万' }
+  ];
+  const res4_8 = checkStartingHu(hand4_8, { startingHu: { daSiXi: true, sanWuSanBa: true } });
+  const has4_8_siXi = res4_8.some(h => h.type === 'daSiXi');
+  const has4_8_38 = res4_8.some(h => h.name === '三个八');
+  assert(has4_8_siXi && has4_8_38 && res4_8.length === 2, '起手拥有4个八筒应胡2次(大四喜胡一次+三个八胡一次)');
+
+  // 4个五筒 + 4个八筒同时存在测试 (2次大四喜 + 1次六六顺 + 1次三个五 + 1次三个八，共胡5把)
+  const handBoth4_5_8 = [
+    ...hand4_5.slice(0, 4),
+    ...hand4_8.slice(0, 4),
+    { id: 9, suit: SUITS.WAN, value: 2, name: '二万' }
+  ];
+  const resBoth4_5_8 = checkStartingHu(handBoth4_5_8, { startingHu: { daSiXi: true, sanWuSanBa: true, liuLiuShun: true } });
+  assert(resBoth4_5_8.length === 5, '拥有4个五筒和4个八筒应胡5把(大四喜×2+三个五+三个八+六六顺)');
+
   // G. 三连对测试 (同门三副连续的对子)
   const handSanLianDui = [
     { id: 1, suit: SUITS.WAN, value: 2, name: '二万' },
