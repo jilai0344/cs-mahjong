@@ -28,7 +28,7 @@ import MahjongTile from './components/MahjongTile.jsx';
 import TableCenter from './components/TableCenter.jsx';
 import PlayerHand from './components/PlayerHand.jsx';
 import OpponentHand from './components/OpponentHand.jsx';
-import DiscardPool from './components/DiscardPool.jsx';
+import DiscardPool, { PlayerDiscardTray } from './components/DiscardPool.jsx';
 import ActionControls from './components/ActionControls.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import StartingHuModal from './components/StartingHuModal.jsx';
@@ -1247,50 +1247,96 @@ export default function App() {
           isDealer={dealerId === 1}
         />
 
-        {/* 牌桌中心核心区域：左侧一行12张的弃牌池 + 右侧方位轮盘与倒计时 */}
-        <div className="relative my-auto flex items-center justify-between w-[820px] max-w-[96vw] h-[370px] rounded-3xl bg-emerald-950/50 border-2 border-emerald-500/30 shadow-2xl p-3 sm:p-4 gap-3">
-          {/* 左侧区域：四位玩家各自一行12张的弃牌行 */}
-          <div className="flex-1 h-full flex flex-col justify-center overflow-hidden">
-            <DiscardPool
-              discardsByPlayer={playerDiscards}
+        {/* 牌桌中央牌局区：四方牌池各自置于玩家手牌正前方 + 正中央罗盘 */}
+        <div className="relative my-auto w-full max-w-[1280px] flex-1 flex flex-col items-center justify-between py-1 z-10">
+          {/* 1. 对家出牌区 (严格置于对家手牌正前方) */}
+          <div className="w-full flex justify-center mt-0.5">
+            <PlayerDiscardTray
+              playerId={2}
+              label="对家"
+              wind="西"
+              discards={playerDiscards[2]}
               lastDiscard={lastDiscard}
               hoveredTile={hoveredTile}
+              position="top"
             />
           </div>
 
-          {/* 右侧：精致的东南西北罗盘与倒计时 */}
-          <div className="shrink-0 flex items-center justify-center pl-2 border-l border-emerald-500/20">
-            <TableCenter
-              currentTurn={currentTurn}
-              dealerId={dealerId}
-              wallRemaining={wall.length}
-              turnTimer={turnTimer}
-              diceValues={diceValues}
-              isRollingDice={isRollingDice}
-              statusText={gameState === 'PLAYING' ? (currentTurn === 0 ? '轮到你出牌' : '思考中') : ''}
-            />
-          </div>
-
-          {/* 开局按钮 (未开局时居中展示) */}
-          {gameState === 'IDLE' && (
-            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 backdrop-blur-xs rounded-3xl gap-3">
-              <button
-                onClick={startNewRound}
-                className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all"
-              >
-                <Play className="w-6 h-6 fill-current" />
-                <span>洗牌发牌 · 开始对局</span>
-              </button>
-
-              <button
-                onClick={() => setIsMultiplayerOpen(true)}
-                className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-emerald-300 font-bold text-xs border border-emerald-500/30 transition-all hover:scale-105"
-              >
-                <Users className="w-4 h-4" />
-                <span>创建房间 · 邀请好友实时联机</span>
-              </button>
+          {/* 2. 中间行：上家出牌区 (左侧门前) + 中央罗盘/倒计时 + 下家出牌区 (右侧门前) */}
+          <div className="w-full flex items-center justify-between px-2 sm:px-6 my-auto gap-2">
+            {/* 上家出牌区 (严格置于上家手牌正前方) */}
+            <div className="flex-1 flex justify-start pl-24 sm:pl-32 md:pl-40">
+              <PlayerDiscardTray
+                playerId={3}
+                label="上家"
+                wind="北"
+                discards={playerDiscards[3]}
+                lastDiscard={lastDiscard}
+                hoveredTile={hoveredTile}
+                position="left"
+              />
             </div>
-          )}
+
+            {/* 正中央：罗盘、倒计时与洗牌开局区 */}
+            <div className="shrink-0 relative flex items-center justify-center mx-2">
+              <TableCenter
+                currentTurn={currentTurn}
+                dealerId={dealerId}
+                wallRemaining={wall.length}
+                turnTimer={turnTimer}
+                diceValues={diceValues}
+                isRollingDice={isRollingDice}
+                statusText={gameState === 'PLAYING' ? (currentTurn === 0 ? '轮到你出牌' : '思考中') : ''}
+              />
+
+              {/* 开局按钮 (未开局时居中展示) */}
+              {gameState === 'IDLE' && (
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs rounded-3xl gap-2.5 p-2">
+                  <button
+                    onClick={startNewRound}
+                    className="flex items-center gap-2 px-7 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all"
+                  >
+                    <Play className="w-5 h-5 fill-current" />
+                    <span>开始对局</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsMultiplayerOpen(true)}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-emerald-300 font-bold text-xs border border-emerald-500/30 transition-all hover:scale-105"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>多人联机</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 下家出牌区 (严格置于下家手牌正前方) */}
+            <div className="flex-1 flex justify-end pr-24 sm:pr-32 md:pr-40">
+              <PlayerDiscardTray
+                playerId={1}
+                label="下家"
+                wind="南"
+                discards={playerDiscards[1]}
+                lastDiscard={lastDiscard}
+                hoveredTile={hoveredTile}
+                position="right"
+              />
+            </div>
+          </div>
+
+          {/* 3. 我的出牌区 (严格置于我的手牌正前方) */}
+          <div className="w-full flex justify-center mb-0.5">
+            <PlayerDiscardTray
+              playerId={0}
+              label="我"
+              wind="东"
+              discards={playerDiscards[0]}
+              lastDiscard={lastDiscard}
+              hoveredTile={hoveredTile}
+              position="bottom"
+            />
+          </div>
         </div>
 
         {/* 人类操作按钮栏 (胡/杠/碰/吃/过) */}
