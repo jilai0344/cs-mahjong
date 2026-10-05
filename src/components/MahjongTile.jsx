@@ -390,23 +390,23 @@ export default function MahjongTile({
 }) {
   const isJiang = tile ? isJiangTile(tile) : false;
 
-  // 牌张物理尺寸大幅翻倍：手牌增大至 68×92px，超大超清，看牌毫无压力
+  // 牌张物理尺寸巨幅升级：手牌布满下方屏幕的三分之二，超大超清，震撼视觉
   const sizeMap = {
-    // 玩家手牌 (翻倍大尺寸，清晰震撼)
-    hand: 'w-[62px] h-[84px] sm:w-[68px] sm:h-[92px]',
+    // 玩家手牌 (巨幅超清，布满下方屏幕的三分之二)
+    hand: 'w-[52px] h-[72px] sm:w-[68px] sm:h-[94px] md:w-[80px] md:h-[110px] lg:w-[92px] lg:h-[126px] xl:w-[98px] xl:h-[134px] 2xl:w-[106px] 2xl:h-[144px]',
     // 碰吃杠面子牌
-    meld: 'w-[46px] h-[62px] sm:w-[50px] sm:h-[68px]',
-    // 弃牌池牌张 (一行12张精美微晶尺寸)
-    discard: 'w-[32px] h-[44px] sm:w-[36px] sm:h-[48px]',
+    meld: 'w-[42px] h-[58px] sm:w-[54px] sm:h-[74px] md:w-[64px] md:h-[88px] lg:w-[72px] lg:h-[98px]',
+    // 弃牌池牌张 (大号桌面牌，一眼看清)
+    discard: 'w-[36px] h-[50px] sm:w-[44px] sm:h-[62px] md:w-[52px] md:h-[72px] lg:w-[60px] lg:h-[84px] xl:w-[66px] xl:h-[92px]',
     // 对家手牌背面
-    'opp-top': 'w-[36px] h-[48px] sm:w-[40px] sm:h-[54px]',
+    'opp-top': 'w-[32px] h-[44px] sm:w-[38px] sm:h-[52px] lg:w-[44px] lg:h-[60px]',
     // 侧边手牌背面
-    'opp-side': 'w-[22px] h-[36px] sm:w-[26px] sm:h-[42px]',
+    'opp-side': 'w-[20px] h-[32px] sm:w-[24px] sm:h-[38px] lg:w-[28px] lg:h-[44px]',
     // 兼容原尺寸代码
-    lg: 'w-[68px] h-[92px]',
-    md: 'w-[48px] h-[64px]',
-    sm: 'w-[36px] h-[48px]',
-    mini: 'w-[26px] h-[36px]'
+    lg: 'w-[92px] h-[126px]',
+    md: 'w-[64px] h-[88px]',
+    sm: 'w-[48px] h-[66px]',
+    mini: 'w-[36px] h-[50px]'
   };
 
   const currentSizeClass = sizeMap[size] || sizeMap.md;

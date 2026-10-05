@@ -37,7 +37,7 @@ export default function ActionControls({
   };
 
   return (
-    <div className="absolute bottom-32 sm:bottom-36 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-3">
+    <div className="absolute bottom-36 sm:bottom-42 md:bottom-48 lg:bottom-52 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-3">
       {/* 多组吃牌选择弹窗 */}
       {showChiPicker && chiOptions.length > 1 && (
         <div className="bg-slate-900/95 border-2 border-emerald-400/50 p-4 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col items-center gap-3 animate-scale-up">

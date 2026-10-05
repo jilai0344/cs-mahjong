@@ -23,47 +23,47 @@ export function PlayerDiscardTray({
 
   return (
     <div
-      className={`flex flex-col select-none transition-all duration-200 rounded-2xl p-2 shadow-lg backdrop-blur-xs ${
+      className={`flex flex-col select-none transition-all duration-200 rounded-2xl p-2.5 sm:p-3 shadow-xl backdrop-blur-xs ${
         isMe
-          ? 'bg-emerald-950/70 border-2 border-emerald-400/50 shadow-emerald-950/50'
-          : 'bg-black/40 border border-emerald-500/30'
+          ? 'bg-emerald-950/80 border-2 border-emerald-400/60 shadow-emerald-950/60'
+          : 'bg-black/50 border border-emerald-500/40'
       } ${
         isTopOrBottom
-          ? 'items-center min-w-[340px] max-w-[530px]'
+          ? 'items-center w-full max-w-[760px] md:max-w-[860px] lg:max-w-[980px] xl:max-w-[1080px]'
           : position === 'left'
-          ? 'items-start min-w-[200px] max-w-[280px] xl:max-w-[530px]'
-          : 'items-end min-w-[200px] max-w-[280px] xl:max-w-[530px]'
+          ? 'items-start min-w-[220px] max-w-[360px] xl:max-w-[440px]'
+          : 'items-end min-w-[220px] max-w-[360px] xl:max-w-[440px]'
       }`}
     >
       {/* 门前出牌标签与张数 (清晰大字) */}
-      <div className={`flex items-center gap-1.5 mb-1 px-1 ${
+      <div className={`flex items-center gap-2 mb-1.5 px-1 ${
         position === 'right' ? 'flex-row-reverse' : 'flex-row'
       }`}>
         <span
-          className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shadow-sm ${
+          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs sm:text-sm font-black shadow-sm ${
             isMe
-              ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300/60'
+              ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300/80'
               : 'bg-slate-800 text-emerald-300 border border-emerald-500/40'
           }`}
         >
           {wind}
         </span>
-        <span className={`text-xs sm:text-sm font-black ${
+        <span className={`text-sm sm:text-base font-black ${
           isMe ? 'text-amber-300' : 'text-slate-200'
         }`}>
           {label}出牌
         </span>
-        <span className="text-[11px] sm:text-xs font-mono font-bold text-emerald-300/70">
+        <span className="text-xs sm:text-sm font-mono font-bold text-emerald-300/80">
           ({discards.length}张)
         </span>
       </div>
 
       {/* 牌张阵列：正前方一行12张 (超出自动换至下一行12张) */}
       <div
-        className={`grid gap-1 min-h-[46px] items-center justify-items-center ${
+        className={`grid gap-1 sm:gap-1.5 min-h-[50px] items-center justify-items-center ${
           isTopOrBottom
-            ? 'grid-cols-12 w-full max-w-[510px]'
-            : 'grid-cols-6 xl:grid-cols-12'
+            ? 'grid-cols-12 w-full max-w-[740px] md:max-w-[840px] lg:max-w-[960px] xl:max-w-[1060px]'
+            : 'grid-cols-6'
         }`}
       >
         {discards.length === 0 ? (

@@ -1248,7 +1248,7 @@ export default function App() {
         />
 
         {/* 牌桌中央牌局区：四方牌池各自置于玩家手牌正前方 + 正中央罗盘 */}
-        <div className="relative my-auto w-full max-w-[1280px] flex-1 flex flex-col items-center justify-between py-1 z-10">
+        <div className="relative my-auto w-full max-w-[1500px] flex-1 flex flex-col items-center justify-between py-1 z-10">
           {/* 1. 对家出牌区 (严格置于对家手牌正前方) */}
           <div className="w-full flex justify-center mt-0.5">
             <PlayerDiscardTray
