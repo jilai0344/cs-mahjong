@@ -1247,23 +1247,29 @@ export default function App() {
           isDealer={dealerId === 1}
         />
 
-        {/* 牌桌中心核心区域：精致的绿色毛毡牌池垫 + 中心罗盘轮盘 */}
-        <div className="relative my-auto flex items-center justify-center w-[580px] h-[390px] rounded-3xl bg-emerald-950/40 border border-emerald-500/20 shadow-2xl p-4">
-          <DiscardPool
-            discardsByPlayer={playerDiscards}
-            lastDiscard={lastDiscard}
-            hoveredTile={hoveredTile}
-          />
+        {/* 牌桌中心核心区域：左侧一行12张的弃牌池 + 右侧方位轮盘与倒计时 */}
+        <div className="relative my-auto flex items-center justify-between w-[720px] max-w-[96vw] h-[330px] rounded-3xl bg-emerald-950/50 border-2 border-emerald-500/30 shadow-2xl p-3 sm:p-4 gap-3">
+          {/* 左侧区域：四位玩家各自一行12张的弃牌行 */}
+          <div className="flex-1 h-full flex flex-col justify-center overflow-hidden">
+            <DiscardPool
+              discardsByPlayer={playerDiscards}
+              lastDiscard={lastDiscard}
+              hoveredTile={hoveredTile}
+            />
+          </div>
 
-          <TableCenter
-            currentTurn={currentTurn}
-            dealerId={dealerId}
-            wallRemaining={wall.length}
-            turnTimer={turnTimer}
-            diceValues={diceValues}
-            isRollingDice={isRollingDice}
-            statusText={gameState === 'PLAYING' ? (currentTurn === 0 ? '轮到你出牌' : '思考中') : ''}
-          />
+          {/* 右侧：精致的东南西北罗盘与倒计时 */}
+          <div className="shrink-0 flex items-center justify-center pl-2 border-l border-emerald-500/20">
+            <TableCenter
+              currentTurn={currentTurn}
+              dealerId={dealerId}
+              wallRemaining={wall.length}
+              turnTimer={turnTimer}
+              diceValues={diceValues}
+              isRollingDice={isRollingDice}
+              statusText={gameState === 'PLAYING' ? (currentTurn === 0 ? '轮到你出牌' : '思考中') : ''}
+            />
+          </div>
 
           {/* 开局按钮 (未开局时居中展示) */}
           {gameState === 'IDLE' && (
