@@ -614,17 +614,53 @@ export default function App() {
     return () => clearInterval(timerRef.current);
   }, [gameState, mySeatId]);
 
-  // 监听屏幕方向变化
+  // 监听屏幕方向变化 (双重检测：matchMedia + 窗口尺寸)
   useEffect(() => {
     const checkOrientation = () => {
-      setIsPortrait(window.innerHeight > window.innerWidth);
+      // 方法1: matchMedia API
+      const mediaQuery = window.matchMedia('(orientation: portrait)');
+      const isPortraitByMedia = mediaQuery.matches;
+
+      // 方法2: 窗口尺寸 (作为fallback)
+      const isPortraitBySize = window.innerHeight > window.innerWidth;
+
+      // 优先用 matchMedia，如果不支持则用尺寸判断
+      const isPortraitMode = isPortraitByMedia !== undefined ? isPortraitByMedia : isPortraitBySize;
+
+      console.log('[Orientation] matchMedia:', isPortraitByMedia, 'size:', isPortraitBySize, 'final:', isPortraitMode);
+      setIsPortrait(isPortraitMode);
     };
+
+    // 初始化
     checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
+
+    // 监听多种事件 (某些浏览器只触发其中一种)
+    const mediaQuery = window.matchMedia('(orientation: portrait)');
+
+    const handleChange = () => {
+      console.log('[Orientation] Event triggered');
+      checkOrientation();
+    };
+
+    // matchMedia change事件
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+    }
+
+    // resize 和 orientationchange 作为fallback
+    window.addEventListener('resize', handleChange);
+    window.addEventListener('orientationchange', handleChange);
+
     return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleChange);
+      } else {
+        mediaQuery.removeListener(handleChange);
+      }
+      window.removeEventListener('resize', handleChange);
+      window.removeEventListener('orientationchange', handleChange);
     };
   }, []);
 
@@ -1503,8 +1539,19 @@ export default function App() {
         <p className="text-lg text-slate-300 text-center mb-6 max-w-sm leading-relaxed">
           长沙麻将需要横屏显示才能获得最佳游戏体验
         </p>
-        <div className="text-sm text-slate-400 text-center">
+        <div className="text-sm text-slate-400 text-center mb-6">
           旋转手机后即可开始游戏
+        </div>
+
+        {/* 手动跳过按钮 (如果自动检测失败) */}
+        <button
+          onClick={() => setIsPortrait(false)}
+          className="px-8 py-3 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-lg transition-colors"
+        >
+          已横屏，开始游戏
+        </button>
+        <div className="text-xs text-slate-500 mt-3">
+          如果已经横屏但仍看到此提示，请点击上方按钮
         </div>
       </div>
       )}
