@@ -979,6 +979,7 @@ export default function App() {
     });
 
     stateRef.current.playerHands[playerId] = curHand;
+    setPlayerHands([...stateRef.current.playerHands]);
     // 用户需求：吃牌要把吃的牌放中间！
     // 两个手牌按点数排序分别置于两侧，被吃的牌（discardedTile）严格置于中间（索引为1）
     let foundTarget = false;
