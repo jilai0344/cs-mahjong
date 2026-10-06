@@ -339,6 +339,15 @@ export function getKongOptions(handTiles, melds = [], targetTile = null, config 
 }
 
 /**
+ * 杠面子判定：4 张的碰/明杠/暗杠/补杠都算（补杠是把 3 张的「碰」升级成 4 张）
+ * @param {{type?:string, tiles?:Array}} meld
+ */
+function isKongMeld(meld) {
+  if (!meld || !Array.isArray(meld.tiles)) return false;
+  return meld.tiles.length === 4 || meld.type === 'gang' || meld.type === 'an_gang';
+}
+
+/**
  * 递归判断剩余牌是否能完全拆解成顺子和刻子
  * @param {Array<number>} sortedValues 某一花色排序后的牌点数列表
  * @returns {boolean}
@@ -389,15 +398,23 @@ function canDecomposeToMelds(sortedValues) {
  */
 export function checkHu(handTiles, melds = [], winningTile = null, isSelfDrawn = false, context = {}) {
   // 组装完整用于判定的所有牌 (手牌 + 待胡牌)
-  const allTilesInHand = winningTile && !isSelfDrawn 
-    ? [...handTiles, winningTile] 
+  // · 点炮：winningTile 不在手牌里 → 追加
+  // · 自摸：winningTile 通常已在手牌里 → 不追加；但「杠上开花」的补牌是单独传入的（手牌是补牌前的张数），
+  //   由 context.includeWinningTile 明确要求追加
+  const includeWinningTile = !!winningTile && (!isSelfDrawn || context.includeWinningTile === true);
+  const allTilesInHand = includeWinningTile
+    ? [...handTiles, winningTile]
     : [...handTiles];
 
-  // 全部牌（包括吃碰杠），总数应为 14 张
+  // 全部牌（包括吃碰杠）
   const allTilesEver = [...allTilesInHand];
   melds.forEach(m => allTilesEver.push(...m.tiles));
 
-  if (allTilesEver.length !== 14) {
+  // 有效张数：每个杠按 3 张折算（Q1 裁定「一个杠折算 3 张有效牌」）——
+  // 开杠后物理张数是 15/16，但有效张数仍是 14，因此含杠的手牌也能胡
+  // （旧实现直接比较物理张数 === 14，导致「开一杠就再也胡不了」）
+  const kongCount = melds.filter(isKongMeld).length;
+  if (allTilesEver.length - kongCount !== 14) {
     return { canHu: false, huTypes: [], isBigHu: false, k: 0, desc: '' };
   }
 

@@ -11,6 +11,7 @@ import {
   checkMidGameSiXi,
   checkHu,
   canPeng,
+  getKongOptions,
   drawBirds
 } from '../utils/mahjongLogic.js';
 import { chooseAiDiscard } from '../utils/aiPlayer.js';
@@ -69,6 +70,7 @@ export function playSimulatedGame({ seed, B, F, config }) {
   const settlements = [];
   const stats = {
     qishou: 0, siji: 0, zimo: 0, dianpao: 0, tongpao: 0,
+    kongs: 0, kongFlower: 0,
     kDistribution: {}, nDistribution: {}, bigHuSettlements: 0, smallHuSettlements: 0
   };
   let outcome = null;
@@ -141,6 +143,87 @@ export function playSimulatedGame({ seed, B, F, config }) {
       break;
     }
 
+    // 开杠（暗杠）：摸到的牌若能开杠就开 —— 覆盖「含杠手牌可胡」「杠上开花」「杠上炮」
+    const kongOptions = getKongOptions(hands[turn], melds[turn], null, config);
+    if (kongOptions.length > 0 && wall.length > 0) {
+      const kongTile = kongOptions[0].tile;
+      const key = getTileKey(kongTile);
+      let removedKong = 0;
+      hands[turn] = hands[turn].filter((t) => {
+        if (removedKong < 4 && getTileKey(t) === key) { removedKong++; return false; }
+        return true;
+      });
+      melds[turn].push({ type: 'an_gang', tile: kongTile, tiles: [kongTile, kongTile, kongTile, kongTile] });
+      stats.kongs += 1;
+
+      const kongDrawCount = Math.min(config?.kongDrawCount || 2, wall.length);
+      const kongHandBefore = [...hands[turn]];
+      const kongDrawn = wall.slice(wall.length - kongDrawCount);
+      wall = wall.slice(0, wall.length - kongDrawCount);
+
+      // 杠上开花：补牌单独传入（includeWinningTile），手牌仍是补牌前的张数
+      let kongWin = null;
+      for (const kd of kongDrawn) {
+        const huRes = checkHu(kongHandBefore, melds[turn], kd, true, {
+          isKongFlower: true,
+          includeWinningTile: true
+        });
+        if (huRes.canHu) { kongWin = { tile: kd, huRes }; break; }
+      }
+      if (kongWin) {
+        const birdValues = drawBirds(wall, config?.birdCount || 0, turn).birdValues;
+        wall = wall.slice(0, wall.length - birdValues.length);
+        apply('zimo', scoreRound({
+          method: 'zimo', B, F,
+          winner: huEntryFromTypes(turn, kongWin.huRes.huTypes),
+          birdValues
+        }), { seat: turn, birdValues, kongFlower: true });
+        stats.kongFlower += 1;
+        outcome = 'win';
+        break;
+      }
+
+      // 未胡的补牌全部入池 → 其他玩家可点炮（杠上炮，支持一炮多响）
+      hands[turn] = kongHandBefore;
+      let kongPao = false;
+      for (const kd of kongDrawn) {
+        const paoSeats = [];
+        for (const s of OTHERS(turn)) {
+          const huRes = checkHu(hands[s], melds[s], kd, false, { isKongDiscard: true });
+          if (huRes.canHu) paoSeats.push({ seat: s, huTypes: huRes.huTypes });
+        }
+        if (paoSeats.length === 1) {
+          const birdValues = drawBirds(wall, config?.birdCount || 0, paoSeats[0].seat).birdValues;
+          wall = wall.slice(0, wall.length - birdValues.length);
+          apply('dianpao', scoreRound({
+            method: 'dianpao', B, F,
+            winner: huEntryFromTypes(paoSeats[0].seat, paoSeats[0].huTypes),
+            discarderSeat: turn,
+            birdValues
+          }), { seat: paoSeats[0].seat, discarderSeat: turn, birdValues, kongDiscard: true });
+          outcome = 'win';
+          kongPao = true;
+          break;
+        }
+        if (paoSeats.length > 1) {
+          const birdValues = drawBirds(wall, config?.birdCount || 0, turn).birdValues;
+          wall = wall.slice(0, wall.length - birdValues.length);
+          apply('tongpao', scoreRound({
+            method: 'tongpao', B, F,
+            winners: paoSeats.map((w) => huEntryFromTypes(w.seat, w.huTypes)),
+            discarderSeat: turn,
+            birdValues
+          }), { discarderSeat: turn, birdValues, kongDiscard: true });
+          outcome = 'tongpao';
+          kongPao = true;
+          break;
+        }
+      }
+      if (kongPao) break;
+      turn = (turn + 1) % 4;
+      continue;
+    }
+
     // 打牌（AI 决策；必须来自手牌，且只移除这一张）
     const tile = chooseAiDiscard(hands[turn], melds[turn], config, []) || hands[turn][hands[turn].length - 1];
     let discarded = false;
@@ -194,7 +277,7 @@ export function playSimulatedGame({ seed, B, F, config }) {
         if (removed < 2 && getTileKey(t) === key) { removed++; return false; }
         return true;
       });
-      melds[pongSeat].push({ type: 'peng', tiles: [tile, tile, tile] });
+      melds[pongSeat].push({ type: 'peng', tile, tiles: [tile, tile, tile] });
       const ownDiscard = chooseAiDiscard(hands[pongSeat], melds[pongSeat], config, []) || hands[pongSeat][hands[pongSeat].length - 1];
       hands[pongSeat] = hands[pongSeat].filter((t) => t !== ownDiscard);
       turn = (pongSeat + 1) % 4;
