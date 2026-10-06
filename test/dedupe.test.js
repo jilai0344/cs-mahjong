@@ -1,6 +1,6 @@
 // 长沙麻将 · 消息幂等（去重）测试（ROADMAP P0-4）
 // 运行：npm test（串在最后）
-import { createMessageFilter, createSequenceTracker, nextMessageId } from '../src/utils/dedupe.js';
+import { createMessageFilter, createSequenceTracker, nextMessageId, sequenceKey } from '../src/utils/dedupe.js';
 
 let passed = 0;
 let failed = 0;
@@ -153,6 +153,26 @@ console.log('\n=== 测试 8: 回归——没有序号追踪时，乱序消息会
   ];
   eq(ordered.filter(m => tracker.accept(m.senderId, m.seq)).map(m => m.seq), [],
     '已经在 seq=3 之后，正常的 1/2/3 全部不会再被应用');
+}
+
+console.log('\n=== 测试 9: 序号要按「发送者+话题」分开算（跨话题不保证顺序）===');
+{
+  eq(sequenceKey('host:c1', 'room/b'), 'host:c1|room/b', '键 = 发送者|话题');
+  eq(sequenceKey('host:c1', ''), 'host:c1|', '缺话题时也稳定成键');
+  eq(sequenceKey('', 'room/b'), null, '没有发送者 → null（交给上层放行）');
+
+  // 真实现场（三真人冒烟实测）：房主先发座位信令 seq=2，再收到广播 seq=1 —— 跨话题乱序
+  const tracker = createSequenceTracker();
+  const hostBroadcast = sequenceKey('host:c1', 'room/b');
+  const hostSeat = sequenceKey('host:c1', 'room/seat/1');
+
+  eq(tracker.accept(hostSeat, 2), true, '座位话题 seq=2 先到 → 放行');
+  eq(tracker.accept(hostBroadcast, 1), true,
+    '广播话题 seq=1 后到 → **仍要放行**（话题内仍是最新的；旧实现按发送者全局计数会误丢，实测到过）');
+  eq(tracker.accept(hostBroadcast, 2), true, '广播话题继续递增 → 放行');
+  eq(tracker.accept(hostBroadcast, 2), false, '同一话题内重复序号 → 丢弃');
+  eq(tracker.accept(hostBroadcast, 1), false, '同一话题内迟到旧序号 → 丢弃');
+  eq(tracker.accept(hostSeat, 3), true, '两个话题各自独立推进，互不影响');
 }
 
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);
