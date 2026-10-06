@@ -84,7 +84,7 @@ export default function App() {
   const multiplayerRef = useRef(multiplayerState);
   multiplayerRef.current = multiplayerState;
 
-  // P2-6：胶囊牌原先写死占位符 39482 / djdodkj，这里改成「本机固定标识 + 真实昵称」。
+  // P2-6：胶囊牌原先写死 5 位数字与固定昵称两个占位符，这里改成「本机固定标识 + 真实昵称」。
   // 标识首次进入时随机生成并存 localStorage（不跨设备，也不上传），生成逻辑抽到 utils/localId.js
   // 用 useState 惰性初始化，避免在渲染期直接调用随机数（oxlint react(purity)）。
   const [myDisplayId] = useState(getLocalDisplayId);
@@ -1824,7 +1824,7 @@ export default function App() {
   }, [multiplayerState]);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden flex flex-col bg-[#1f0604] text-slate-100 select-none">
+    <div className="relative w-screen h-screen overflow-hidden flex flex-col bg-panel text-slate-100 select-none">
       {/* 竖屏提示遮罩 (仅在竖屏时显示) */}
       {isPortrait && (
       <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-[100] flex flex-col items-center justify-center p-8">
@@ -1855,7 +1855,7 @@ export default function App() {
       )}
 
       {/* 顶部黄金岛经典 HUD 导航栏 (红木描金古典风) */}
-      <header className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-amber-500/30 bg-gradient-to-r from-[#3b0e08] via-[#240804] to-[#3b0e08] shadow-lg z-30 shrink-0">
+      <header className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-amber-500/30 bg-gradient-to-r from-shell-800 via-shell-500 to-shell-800 shadow-lg z-30 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-700 flex items-center justify-center font-black text-slate-950 text-base shadow-md border border-amber-300">
             岛
@@ -1936,7 +1936,7 @@ export default function App() {
       </header>
 
       {/* 牌桌主体核心区 (红木包边 + 金色内嵌线 + 皇家红丝绒桌面) */}
-      <div className="relative flex-1 w-full h-[calc(100vh-3.5rem)] p-2 sm:p-3 bg-gradient-to-b from-[#380e08] via-[#240804] to-[#140302] overflow-hidden flex flex-col">
+      <div className="relative flex-1 w-full h-[calc(100vh-3.5rem)] p-2 sm:p-3 bg-gradient-to-b from-shell-700 via-shell-500 to-shell-300 overflow-hidden flex flex-col">
         {/* 皇家红丝绒圆角牌桌主面板 */}
         <main className="relative flex-1 w-full h-full rounded-2xl sm:rounded-3xl border-2 sm:border-[3px] border-amber-400/80 shadow-[inset_0_0_60px_rgba(0,0,0,0.85),0_10px_35px_rgba(0,0,0,0.9)] mahjong-table overflow-hidden">
           {/* 1. 顶部：对家区域 (手牌在上，副露在右) */}
@@ -2078,7 +2078,7 @@ export default function App() {
           </div>
 
           {/* 6. 左下角：我方玩家信息胶囊牌（P2-6：占位符改为本机真实标识与昵称） */}
-          <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-4 z-40 flex items-center gap-1.5 bg-gradient-to-b from-[#4a180e] via-[#2b0c07] to-[#140503] border-[1.5px] border-amber-400/90 rounded-full px-3 py-1 shadow-2xl">
+          <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-4 z-40 flex items-center gap-1.5 bg-gradient-to-b from-panel-800 via-panel-700 to-panel-600 border-[1.5px] border-amber-400/90 rounded-full px-3 py-1 shadow-2xl">
             {dealerId === bottomSeatId && (
               <span className="w-4 h-4 rounded-full bg-gradient-to-tr from-red-700 to-red-500 border border-amber-300 text-white text-[10px] font-black flex items-center justify-center shadow-md">
                 庄

@@ -74,22 +74,22 @@ export default function TableCenter({
               {/* 翠绿高光辐射气晕 */}
               <div className="w-10 h-10 -mb-6 rounded-full bg-emerald-400/40 blur-md pointer-events-none" />
               {/* 3D 翠绿多边形指示箭头 */}
-              <svg viewBox="0 0 32 24" className="w-8 h-6 filter drop-shadow-[0_0_8px_#22c55e]">
+              <svg viewBox="0 0 32 24" className="w-8 h-6 filter drop-shadow-[0_0_8px_var(--color-jade-500)]">
                 <defs>
                   <linearGradient id="neonGreenGrad" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#15803d" />
-                    <stop offset="40%" stopColor="#22c55e" />
-                    <stop offset="100%" stopColor="#86efac" />
+                    <stop offset="0%" stopColor="var(--color-jade-600)" />
+                    <stop offset="40%" stopColor="var(--color-jade-500)" />
+                    <stop offset="100%" stopColor="var(--color-jade-300)" />
                   </linearGradient>
                 </defs>
-                <polygon points="16,0 32,20 22,17 16,24 10,17 0,20" fill="url(#neonGreenGrad)" stroke="#bbf7d0" strokeWidth="1" />
+                <polygon points="16,0 32,20 22,17 16,24 10,17 0,20" fill="url(#neonGreenGrad)" stroke="var(--color-jade-200)" strokeWidth="1" />
               </svg>
             </div>
           );
         })}
 
         {/* 罗盘底座：八角紫晶金边底盘 */}
-        <div className="w-full h-full rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#4c1d73] via-[#2d0e45] to-[#1a082b] border-[3px] border-amber-400/80 shadow-[0_8px_25px_rgba(0,0,0,0.85),inset_0_2px_4px_rgba(255,255,255,0.3)] flex items-center justify-center p-2 relative ring-2 ring-amber-500/40">
+        <div className="w-full h-full rounded-2xl sm:rounded-3xl bg-gradient-to-br from-violet-800 via-violet-600 to-violet-400 border-[3px] border-amber-400/80 shadow-[0_8px_25px_rgba(0,0,0,0.85),inset_0_2px_4px_rgba(255,255,255,0.3)] flex items-center justify-center p-2 relative ring-2 ring-amber-500/40">
           {/* 四个方位文字 (东 南 西 北) */}
           {directions.map(dir => {
             const isActive = currentTurn === dir.id;
@@ -103,7 +103,7 @@ export default function TableCenter({
                 <span
                   className={`text-xs sm:text-sm font-black transition-all ${
                     isActive
-                      ? 'text-amber-200 scale-125 [text-shadow:_0_0_8px_#fde047]'
+                      ? 'text-amber-200 scale-125 [text-shadow:_0_0_8px_var(--color-gold-200)]'
                       : 'text-amber-400/50'
                   }`}
                 >

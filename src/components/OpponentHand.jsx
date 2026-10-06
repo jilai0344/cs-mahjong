@@ -34,7 +34,7 @@ export default function OpponentHand({
       }`}
     >
       {/* 玩家信息胶囊牌 (高度复刻黄金岛金框黑红椭圆胶囊) */}
-      <div className="relative flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-gradient-to-b from-[#4a180e] via-[#2b0c07] to-[#140503] border-[1.5px] border-amber-400/90 shadow-[0_4px_12px_rgba(0,0,0,0.8)] shrink-0">
+      <div className="relative flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-gradient-to-b from-panel-800 via-panel-700 to-panel-600 border-[1.5px] border-amber-400/90 shadow-[0_4px_12px_rgba(0,0,0,0.8)] shrink-0">
         {/* 操作/思考气泡 */}
         {actionBubble && (
           <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-xs sm:text-sm px-3 py-0.5 rounded-full shadow-2xl animate-bounce z-40 border-2 border-amber-500 whitespace-nowrap">

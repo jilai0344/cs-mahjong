@@ -1,6 +1,48 @@
 @import "tailwindcss";
 @import "./mahjong.css";
 
+/* ---------------------------------------------------------------------------
+ * 设计 token（P2-2 / D1：色值集中在这里；组件与 CSS 只允许用 var(--color-*)
+ * 或等价的 Tailwind 工具类，禁止再写 #xxxxxx。取值与用途见 docs/DESIGN.md §3）
+ * ------------------------------------------------------------------------- */
+@theme {
+  /* 页面与面板 */
+  --color-page: #03140e;        /* 牌桌外的页面底色 */
+  --color-panel: #1f0604;       /* 根容器/面板底 */
+
+  /* 外壳渐变（顶栏与牌桌外框） */
+  --color-shell-800: #3b0e08;
+  --color-shell-700: #380e08;
+  --color-shell-500: #240804;   /* 顶栏与桌区共用的中段 */
+  --color-shell-300: #140302;
+
+  /* 胶囊/头像牌渐变 */
+  --color-panel-800: #4a180e;
+  --color-panel-700: #2b0c07;
+  --color-panel-600: #140503;
+
+  /* 皇家红绒牌桌（四档渐变） */
+  --color-felt-300: #a01c22;
+  --color-felt-400: #560a0d;
+  --color-felt-500: #821318;
+  --color-felt-700: #280406;
+
+  /* 翡翠（可操作态、牌背、霓虹指示） */
+  --color-jade-600: #15803d;
+  --color-jade-500: #22c55e;
+  --color-jade-300: #86efac;
+  --color-jade-200: #bbf7d0;
+
+  /* 桌心紫檀面板 */
+  --color-violet-800: #4c1d73;
+  --color-violet-600: #2d0e45;
+  --color-violet-400: #1a082b;
+
+  /* 金与正文 */
+  --color-gold-200: #fde047;
+  --color-body: #f1f5f9;
+}
+
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   color-scheme: dark;
@@ -12,5 +54,5 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #03140e;
+  background-color: var(--color-page);
 }

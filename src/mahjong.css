@@ -7,15 +7,15 @@
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
-    background-color: #03140e;
-    color: #f1f5f9;
+    background-color: var(--color-page);
+    color: var(--color-body);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   }
 }
 
 /* 黄金岛经典皇家红丝绒牌桌材质背景 */
 .mahjong-table {
-  background: radial-gradient(circle at 50% 48%, #a01c22 0%, #821318 45%, #560a0d 80%, #280406 100%);
+  background: radial-gradient(circle at 50% 48%, var(--color-felt-300) 0%, var(--color-felt-500) 45%, var(--color-felt-400) 80%, var(--color-felt-700) 100%);
   position: relative;
   overflow: hidden;
 }
