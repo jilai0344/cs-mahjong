@@ -432,6 +432,20 @@ console.log('\n=== 测试 6: 含杠手牌可胡（Q1 裁定：1 个杠折算 3 �
   assert(f3.canHu && !f3.huTypes.includes('海底捞月'), '非最后一张牌不触发海底（回归保护）');
 }
 
+console.log('\n=== 测试 7: 抢杠胡（Q11）===');
+{
+  const T = (suit, values) => values.map(value => ({ suit, value }));
+  const W = SUITS.WAN, TIAO = SUITS.TIAO, TONG = SUITS.TONG;
+  // 手牌 13 张：123万 111万 456条 789筒 + 5万（听 5万 将）
+  const hand13 = [...T(W, [1, 2, 3]), ...T(W, [1, 1, 1]), ...T(TIAO, [4, 5, 6]), ...T(TONG, [7, 8, 9]), { suit: W, value: 5 }];
+  const rob = checkHu(hand13, [], { suit: W, value: 5 }, false, { isRobbingKong: true });
+  assert(rob.canHu && rob.huTypes.includes('抢杠胡') && rob.isBigHu && rob.k === 1,
+    '别人补杠的那张牌能成胡 → 判定为【抢杠胡】（大胡，k=1）');
+  const notRob = checkHu(hand13, [], { suit: W, value: 5 }, false, {});
+  assert(notRob.canHu && !notRob.huTypes.includes('抢杠胡'),
+    '不传 isRobbingKong 时不会误判成抢杠胡（回归保护）');
+}
+
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个\n`);
 if (failed > 0) {
   process.exit(1);

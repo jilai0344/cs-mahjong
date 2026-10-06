@@ -30,7 +30,7 @@ console.log('\n=== 测试: 1000 局随机对局模拟（规格 §九.7）===');
 const summary = {
   games: 0, zeroSumBad: 0, capBad: 0, nBad: 0, kBad: 0, pBad: 0, negWallBad: 0,
   siXiGames: 0, siXiNotContinued: 0, guardHit: 0,
-  kongs: 0, kongFlower: 0, kongPao: 0,
+  kongs: 0, kongFlower: 0, kongPao: 0, robbingKong: 0,
   outcomes: {}, methods: {}, kDist: {}, nDist: {}, maxP: 0, settlements: 0
 };
 
@@ -42,6 +42,7 @@ for (let i = 0; i < GAMES; i++) {
   summary.outcomes[game.outcome] = (summary.outcomes[game.outcome] || 0) + 1;
   summary.kongs += game.stats.kongs || 0;
   summary.kongFlower += game.stats.kongFlower || 0;
+  summary.robbingKong += game.stats.robbingKong || 0;
   if (game.guardHit) summary.guardHit++;
   if (!game.zeroSum) summary.zeroSumBad++;
   if (game.siXiSeen) {
@@ -88,7 +89,7 @@ console.log('  结算方式:', JSON.stringify(summary.methods));
 console.log('  大胡 k 分布:', JSON.stringify(summary.kDist));
 console.log('  中鸟 n 分布:', JSON.stringify(summary.nDist));
 console.log(`  中途四喜出现的局数 ${summary.siXiGames} · 其中未继续到结算 ${summary.siXiNotContinued}`);
-console.log(`  开杠次数 ${summary.kongs} · 杠上开花 ${summary.kongFlower} 次 · 杠上炮/一炮多响（补牌入池被胡） ${summary.kongPao} 次`);
+console.log(`  开杠次数 ${summary.kongs} · 杠上开花 ${summary.kongFlower} 次 · 杠上炮/一炮多响（补牌入池被胡） ${summary.kongPao} 次 · 抢杠胡 ${summary.robbingKong} 次`);
 
 assert(summary.games === GAMES, `模拟局数应为 ${GAMES}（实际 ${summary.games}）`);
 assert(summary.zeroSumBad === 0, '每局得失分总和恒为 0');

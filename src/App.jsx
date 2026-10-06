@@ -1118,6 +1118,32 @@ export default function App() {
         { type: 'an_gang', tile, tiles: kongTiles }
       ];
     } else if (type === 'bu') {
+      // 抢杠胡（Q11）：补杠的这张牌，其他家可以抢胡；抢胡成立则本次补杠不成立
+      const robbers = [0, 1, 2, 3]
+        .filter(s => s !== playerId)
+        .map(s => ({
+          seat: s,
+          huRes: checkHu(
+            stateRef.current.playerHands[s],
+            stateRef.current.playerMelds[s],
+            tile, false,
+            { isRobbingKong: true, isLastTile: stateRef.current.wall.length === 0 }
+          )
+        }))
+        .filter(r => r.huRes.canHu)
+        .map(r => ({ seat: r.seat, huTypes: r.huRes.huTypes }));
+
+      if (robbers.length > 0) {
+        robbers.forEach(r => showBubble(r.seat, '抢杠胡！'));
+        const winners = robbers.map(r => huEntryFromTypes(r.seat, ['抢杠胡', ...r.huTypes.filter(t => t !== '平胡')]));
+        if (winners.length === 1) {
+          handleRoundWin(robbers[0].seat, playerId, tile, false, winners[0].huTypes);
+        } else {
+          handleRoundWin(winners[0].seat, playerId, tile, false, winners[0].huTypes, { method: 'tongpao', winners });
+        }
+        return;
+      }
+
       const idx = curHand.findIndex(t => t.id === tile.id);
       if (idx !== -1) curHand.splice(idx, 1);
 
