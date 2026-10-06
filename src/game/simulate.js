@@ -70,7 +70,7 @@ export function playSimulatedGame({ seed, B, F, config }) {
   const settlements = [];
   const stats = {
     qishou: 0, siji: 0, zimo: 0, dianpao: 0, tongpao: 0,
-    kongs: 0, kongFlower: 0,
+    kongs: 0, kongFlower: 0, robbingKong: 0,
     kDistribution: {}, nDistribution: {}, bigHuSettlements: 0, smallHuSettlements: 0
   };
   let outcome = null;
@@ -143,17 +143,61 @@ export function playSimulatedGame({ seed, B, F, config }) {
       break;
     }
 
-    // 开杠（暗杠）：摸到的牌若能开杠就开 —— 覆盖「含杠手牌可胡」「杠上开花」「杠上炮」
+    // 开杠：优先补杠（先查抢杠胡），否则暗杠 —— 覆盖「含杠手牌可胡」「杠上开花」「杠上炮」「抢杠胡」
     const kongOptions = getKongOptions(hands[turn], melds[turn], null, config);
-    if (kongOptions.length > 0 && wall.length > 0) {
-      const kongTile = kongOptions[0].tile;
+    const buOption = kongOptions.find(o => o.type === 'bu');
+    const anOption = kongOptions.find(o => o.type === 'an');
+    if ((buOption || anOption) && wall.length > 0) {
+      const kongOption = buOption || anOption;
+      const kongTile = kongOption.tile;
       const key = getTileKey(kongTile);
-      let removedKong = 0;
-      hands[turn] = hands[turn].filter((t) => {
-        if (removedKong < 4 && getTileKey(t) === key) { removedKong++; return false; }
-        return true;
-      });
-      melds[turn].push({ type: 'an_gang', tile: kongTile, tiles: [kongTile, kongTile, kongTile, kongTile] });
+
+      if (kongOption.type === 'bu') {
+        // 抢杠胡：补杠的这张牌其他家可抢；有人抢则本次补杠不成立
+        const robbers = OTHERS(turn)
+          .map(s => ({ seat: s, huRes: checkHu(hands[s], melds[s], kongTile, false, { isRobbingKong: true }) }))
+          .filter(r => r.huRes.canHu)
+          .map(r => ({ seat: r.seat, huTypes: r.huRes.huTypes }));
+
+        if (robbers.length > 0) {
+          const winners = robbers.map(r => huEntryFromTypes(r.seat, ['抢杠胡', ...r.huTypes.filter(t => t !== '平胡')]));
+          const birdValues = drawBirds(wall, config?.birdCount || 0, turn).birdValues;
+          wall = wall.slice(0, wall.length - birdValues.length);
+          if (winners.length === 1) {
+            apply('dianpao', scoreRound({
+              method: 'dianpao', B, F, winner: winners[0], discarderSeat: turn, birdValues
+            }), { seat: winners[0].seat, discarderSeat: turn, birdValues, robbingKong: true });
+            outcome = 'win';
+          } else {
+            apply('tongpao', scoreRound({
+              method: 'tongpao', B, F, winners, discarderSeat: turn, birdValues
+            }), { discarderSeat: turn, birdValues, robbingKong: true });
+            outcome = 'tongpao';
+          }
+          stats.robbingKong += winners.length;
+          break;
+        }
+
+        // 无人抢 → 补杠成立：把「碰」升级为杠，手牌去掉这第 4 张
+        let removedBu = 0;
+        hands[turn] = hands[turn].filter((t) => {
+          if (removedBu < 1 && getTileKey(t) === key) { removedBu++; return false; }
+          return true;
+        });
+        melds[turn] = melds[turn].map(m => (
+          m.type === 'peng' && getTileKey(m.tile) === key
+            ? { type: 'gang', tile: kongTile, tiles: [...m.tiles, kongTile] }
+            : m
+        ));
+      } else {
+        // 暗杠：从手牌移除 4 张
+        let removedKong = 0;
+        hands[turn] = hands[turn].filter((t) => {
+          if (removedKong < 4 && getTileKey(t) === key) { removedKong++; return false; }
+          return true;
+        });
+        melds[turn].push({ type: 'an_gang', tile: kongTile, tiles: [kongTile, kongTile, kongTile, kongTile] });
+      }
       stats.kongs += 1;
 
       const kongDrawCount = Math.min(config?.kongDrawCount || 2, wall.length);
