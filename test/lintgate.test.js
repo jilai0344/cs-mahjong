@@ -1,6 +1,6 @@
 // lint 基线门禁的纯函数测试（ROADMAP P1-7 ③）
 // 运行：npm test（串在最后）
-import { normalizeDiagnostic, normalizeDependencyList, compareWarnings } from '../scripts/check-lint.mjs';
+import { normalizeDiagnostic, normalizeDependencyList, compareWarnings, warningKey } from '../scripts/check-lint.mjs';
 
 let passed = 0;
 let failed = 0;
@@ -59,6 +59,20 @@ console.log('\n=== 测试 2: 基线对比（新增 vs 修复）===');
   eq(compareWarnings([], baseline), { added: [], removed: baseline }, '全部清空 → 全部算 removed');
   eq(compareWarnings(['src/z.js:1:1 warning eslint(no-unused-vars): new'], baseline).added.length, 1,
     '替换成另一条 → 一条 added、一条 removed');
+}
+
+console.log('\n=== 测试 3: 行号平移不算新增（真实现场：往文件上方加代码） ===');
+{
+  const before = 'src/utils/multiplayer.js:158:44 warning eslint(no-unused-vars): Catch parameter \'_\' is caught but never used.';
+  const after = 'src/utils/multiplayer.js:176:44 warning eslint(no-unused-vars): Catch parameter \'_\' is caught but never used.';
+  assert(before !== after, '两条展示行本身不同（行号变了）');
+  eq(warningKey(before) === warningKey(after), true, '但指纹相同（忽略行列号）');
+  eq(compareWarnings([after], [before]), { added: [], removed: [] },
+    '同一告警只是行号平移 → 不算新增、也不算消失（否则每次在前文插代码都会误报）');
+
+  const realNew = 'src/utils/multiplayer.js:176:44 warning eslint(no-unused-vars): Identifier \'foo\' is imported but never used.';
+  eq(compareWarnings([after, realNew], [before]).added, [realNew], '同一文件里的**不同**告警仍然算新增');
+  eq(warningKey('src/a.js:1:1 warning x(): y'), 'src/a.js warning x(): y', '指纹格式 = 「文件 级别 规则: 消息」');
 }
 
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);

@@ -65,12 +65,21 @@ export function collectWarnings(cwd = process.cwd()) {
   return [...new Set(rows)].sort();
 }
 
+/**
+ * 比较用的「告警指纹」：与展示行相同，但**去掉行列号**。
+ * 为什么：往文件上方插入代码会让已有告警整体平移行号（规则、消息完全没变），
+ * 按行号比较会把这种平移误报成「新增 + 消失」两条。行号仍保留在展示行里方便定位。
+ */
+export function warningKey(line) {
+  return String(line).replace(/:\d+:\d+ /, ' ');
+}
+
 export function compareWarnings(current, baseline) {
-  const baseSet = new Set(baseline);
-  const curSet = new Set(current);
+  const baseKeys = new Set(baseline.map(warningKey));
+  const curKeys = new Set(current.map(warningKey));
   return {
-    added: current.filter((l) => !baseSet.has(l)),
-    removed: baseline.filter((l) => !curSet.has(l))
+    added: current.filter((l) => !baseKeys.has(warningKey(l))),
+    removed: baseline.filter((l) => !curKeys.has(warningKey(l)))
   };
 }
 
