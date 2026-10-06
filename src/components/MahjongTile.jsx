@@ -430,20 +430,24 @@ export default function MahjongTile({
 }) {
   const isJiang = tile ? isJiangTile(tile) : false;
 
-  // 牌张物理尺寸精确适配：手牌布满下方屏幕三分之二，对局空间开阔不遮挡
+  // 牌张物理尺寸精确适配（P2-2 / D2）
+  // 只用**宽度断点**缩放：本应用是强制横屏（竖屏显示「请横置手机」遮罩），
+  // 而 Tailwind 的 `landscape:` 媒体查询在生成的 CSS 里排在断点工具类之后 —— 只要横屏就压过
+  // sm/md/lg/xl，导致桌面大屏也一直用小尺寸（实测 1440×900 手牌只有 60×82，本该 88×120）。
+  // 见 docs/DESIGN.md §2.3 / 差距清单 D2。
   const sizeMap = {
-    // 玩家手牌 (巨幅超清，布满下方屏幕的三分之二) — 必须比出牌区大1.5倍
-    hand: 'w-[48px] h-[66px] landscape:w-[60px] landscape:h-[82px] sm:w-[60px] sm:h-[82px] md:w-[70px] md:h-[96px] lg:w-[80px] lg:h-[110px] xl:w-[88px] xl:h-[120px] 2xl:w-[94px] 2xl:h-[128px]',
+    // 玩家手牌 (巨幅超清，布满下方屏幕的三分之二)
+    hand: 'w-[48px] h-[66px] sm:w-[60px] sm:h-[82px] md:w-[70px] md:h-[96px] lg:w-[80px] lg:h-[110px] xl:w-[88px] xl:h-[120px] 2xl:w-[94px] 2xl:h-[128px]',
     // 碰吃杠面子牌 (比手牌略小)
-    meld: 'w-[40px] h-[55px] landscape:w-[48px] landscape:h-[66px] sm:w-[46px] sm:h-[64px] md:w-[54px] md:h-[74px] lg:w-[60px] lg:h-[82px]',
+    meld: 'w-[40px] h-[55px] sm:w-[46px] sm:h-[64px] md:w-[54px] md:h-[74px] lg:w-[60px] lg:h-[82px] xl:w-[66px] xl:h-[90px]',
     // 弃牌池牌张 (对家与自己出牌，一行12张) — 手牌的2/3大小
     discard: 'w-[32px] h-[44px] sm:w-[38px] sm:h-[52px] md:w-[44px] md:h-[60px] lg:w-[48px] lg:h-[66px] xl:w-[52px] xl:h-[72px]',
     // 侧边出牌 (用于上家与下家竖排纵向成列出牌)
-    'discard-side': 'w-[28px] h-[38px] sm:w-[32px] sm:h-[44px]',
+    'discard-side': 'w-[28px] h-[38px] sm:w-[32px] sm:h-[44px] md:w-[34px] md:h-[46px] lg:w-[36px] lg:h-[50px] xl:w-[38px] xl:h-[52px]',
     // 对家手牌背面
-    'opp-top': 'w-[34px] h-[46px] sm:w-[40px] sm:h-[54px] lg:w-[44px] lg:h-[60px]',
+    'opp-top': 'w-[34px] h-[46px] sm:w-[40px] sm:h-[54px] md:w-[42px] md:h-[58px] lg:w-[44px] lg:h-[60px] xl:w-[46px] xl:h-[64px]',
     // 侧边手牌背面 (上家与下家，紧凑叠放避免撑爆屏幕高度)
-    'opp-side': 'w-[24px] h-[32px] sm:w-[26px] sm:h-[34px] lg:w-[28px] lg:h-[36px]',
+    'opp-side': 'w-[24px] h-[32px] sm:w-[26px] sm:h-[34px] md:w-[28px] md:h-[38px] lg:w-[30px] lg:h-[40px] xl:w-[32px] xl:h-[42px]',
     // 兼容原尺寸代码
     lg: 'w-[80px] h-[110px]',
     md: 'w-[60px] h-[82px]',
