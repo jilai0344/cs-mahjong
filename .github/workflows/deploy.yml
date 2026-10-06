@@ -33,6 +33,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint (no new warnings vs baseline)
+        run: npm run lint:check
+
       - name: Run Tests
         run: npm test
 
