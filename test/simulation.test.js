@@ -30,6 +30,7 @@ console.log('\n=== 测试: 1000 局随机对局模拟（规格 §九.7）===');
 const summary = {
   games: 0, zeroSumBad: 0, capBad: 0, nBad: 0, kBad: 0, pBad: 0, negWallBad: 0,
   siXiGames: 0, siXiNotContinued: 0, guardHit: 0,
+  kongs: 0, kongFlower: 0, kongPao: 0,
   outcomes: {}, methods: {}, kDist: {}, nDist: {}, maxP: 0, settlements: 0
 };
 
@@ -39,6 +40,8 @@ for (let i = 0; i < GAMES; i++) {
   const game = playSimulatedGame({ seed: 100000 + i, B: c.B, F: c.F, config });
   summary.games++;
   summary.outcomes[game.outcome] = (summary.outcomes[game.outcome] || 0) + 1;
+  summary.kongs += game.stats.kongs || 0;
+  summary.kongFlower += game.stats.kongFlower || 0;
   if (game.guardHit) summary.guardHit++;
   if (!game.zeroSum) summary.zeroSumBad++;
   if (game.siXiSeen) {
@@ -51,6 +54,7 @@ for (let i = 0; i < GAMES; i++) {
   for (const st of game.settlements) {
     summary.settlements++;
     summary.methods[st.method] = (summary.methods[st.method] || 0) + 1;
+    if (st.kongDiscard) summary.kongPao++;
     const isQishouOrSiji = st.method === 'qishou' || st.method === 'siji';
     const cap = CAP_BASE_MULTIPLIER * c.B;
     for (const d of st.details) {
@@ -84,6 +88,7 @@ console.log('  结算方式:', JSON.stringify(summary.methods));
 console.log('  大胡 k 分布:', JSON.stringify(summary.kDist));
 console.log('  中鸟 n 分布:', JSON.stringify(summary.nDist));
 console.log(`  中途四喜出现的局数 ${summary.siXiGames} · 其中未继续到结算 ${summary.siXiNotContinued}`);
+console.log(`  开杠次数 ${summary.kongs} · 杠上开花 ${summary.kongFlower} 次 · 杠上炮/一炮多响（补牌入池被胡） ${summary.kongPao} 次`);
 
 assert(summary.games === GAMES, `模拟局数应为 ${GAMES}（实际 ${summary.games}）`);
 assert(summary.zeroSumBad === 0, '每局得失分总和恒为 0');
@@ -98,6 +103,9 @@ assert(summary.methods.zimo > 0, '模拟中确实出现了自摸结算');
 assert(summary.methods.qishou > 0, '模拟中确实出现了起手胡结算');
 assert(summary.outcomes.draw > 0, '模拟中确实出现了流局（牌墙摸完）');
 assert(summary.siXiGames > 0, '模拟中确实出现了中途四喜');
+assert(summary.kongs > 0, '模拟中确实开了杠（覆盖含杠手牌的判定路径）');
+assert(summary.kongFlower + summary.kongPao > 0,
+  'Q1 修复后含杠手牌真的能胡：模拟里出现了杠上开花或杠上炮（修复前含杠永远不能胡）');
 
 // 复现性：同一种子必须产出完全相同的牌局记录（含每次结算、骰子点数与明细）
 {

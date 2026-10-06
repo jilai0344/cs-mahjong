@@ -410,7 +410,7 @@ export default function App() {
         ? stateRef.current.playerHands[seatId][stateRef.current.playerHands[seatId].length - 1]
         : stateRef.current.lastDiscard?.tile;
       const loserId = isSelfDrawn ? seatId : (stateRef.current.lastDiscard?.fromPlayer ?? 0);
-      const huRes = checkHu(stateRef.current.playerHands[seatId], stateRef.current.playerMelds[seatId], tile, isSelfDrawn, {});
+      const huRes = checkHu(stateRef.current.playerHands[seatId], stateRef.current.playerMelds[seatId], tile, isSelfDrawn, { isLastTile: stateRef.current.wall.length === 0 });
       handleRoundWin(seatId, loserId, tile, isSelfDrawn, huRes.huTypes);
     } else if (action === 'peng') {
       executePeng(seatId, stateRef.current.lastDiscard.tile, stateRef.current.lastDiscard.fromPlayer);
@@ -792,7 +792,7 @@ export default function App() {
       const myHand = stateRef.current.playerHands[0];
       const myMelds = stateRef.current.playerMelds[0];
 
-      const huRes = checkHu(myHand, myMelds, tile, false, { isKongDiscard: discardEvent.isKongDiscard });
+      const huRes = checkHu(myHand, myMelds, tile, false, { isKongDiscard: discardEvent.isKongDiscard, isLastTile: stateRef.current.wall.length === 0 });
       const kOptions = getKongOptions(myHand, myMelds, tile, config);
       const pAllowed = canPeng(myHand, tile);
       const isFromPrev = (fromPlayer === 3);
@@ -820,7 +820,7 @@ export default function App() {
         if (s !== fromPlayer && mp.seats[s]?.isHuman) {
           const guestHand = stateRef.current.playerHands[s];
           const guestMelds = stateRef.current.playerMelds[s];
-          const huRes = checkHu(guestHand, guestMelds, tile, false, {});
+          const huRes = checkHu(guestHand, guestMelds, tile, false, { isLastTile: stateRef.current.wall.length === 0 });
           const kOptions = getKongOptions(guestHand, guestMelds, tile, config);
           const pAllowed = canPeng(guestHand, tile);
           const isFromPrev = ((fromPlayer + 1) % 4 === s);
@@ -861,7 +861,8 @@ export default function App() {
       const hand = stateRef.current.playerHands[pId];
       const melds = stateRef.current.playerMelds[pId];
       const decision = decideAiResponse(hand, melds, tile, false, config, {
-        isKongDiscard: discardEvent.isKongDiscard
+        isKongDiscard: discardEvent.isKongDiscard,
+        isLastTile: stateRef.current.wall.length === 0
       });
       if (decision.action === 'hu') {
         showBubble(pId, '胡！');
@@ -877,7 +878,7 @@ export default function App() {
       const hand = stateRef.current.playerHands[pId];
       const melds = stateRef.current.playerMelds[pId];
       const isPrev = ((fromPlayer + 1) % 4 === pId);
-      const decision = decideAiResponse(hand, melds, tile, isPrev, config, {});
+      const decision = decideAiResponse(hand, melds, tile, isPrev, config, { isLastTile: stateRef.current.wall.length === 0 });
 
       if (decision.action === 'gang') {
         showBubble(pId, '杠！');
@@ -896,7 +897,7 @@ export default function App() {
     if (nextPlayerId !== 0 && (!mp.isMultiplayer || !mp.seats[nextPlayerId]?.isHuman)) {
       const hand = stateRef.current.playerHands[nextPlayerId];
       const melds = stateRef.current.playerMelds[nextPlayerId];
-      const decision = decideAiResponse(hand, melds, tile, true, config, {});
+      const decision = decideAiResponse(hand, melds, tile, true, config, { isLastTile: stateRef.current.wall.length === 0 });
       if (decision.action === 'chi') {
         showBubble(nextPlayerId, '吃！');
         executeChi(nextPlayerId, decision.tiles, tile, fromPlayer);
@@ -1159,7 +1160,10 @@ export default function App() {
     let kongFlowerWinTile = null;
     drawnKongCards.forEach(drawnCard => {
       const huRes = checkHu(curHand, stateRef.current.playerMelds[playerId], drawnCard, true, {
-        isKongFlower: true
+        isKongFlower: true,
+        // 补牌单独传入（手牌是补牌前的张数），由 checkHu 追加后再按「杠折算 3 张」判定
+        includeWinningTile: true,
+        isLastTile: stateRef.current.wall.length === 0
       });
       if (huRes.canHu && !canSelfKongHu) {
         canSelfKongHu = true;
@@ -1213,7 +1217,7 @@ export default function App() {
         if (i !== kongPlayerId) {
           const hand = stateRef.current.playerHands[i];
           const melds = stateRef.current.playerMelds[i];
-          const huRes = checkHu(hand, melds, card, false, { isKongDiscard: true });
+          const huRes = checkHu(hand, melds, card, false, { isKongDiscard: true, isLastTile: stateRef.current.wall.length === 0 });
           if (huRes.canHu) {
             kongWinners.push({ id: i, huRes });
           }
@@ -1266,7 +1270,7 @@ export default function App() {
     if (nextPlayerId === 0) {
       sound.playTileTouch();
       const myHand = stateRef.current.playerHands[0];
-      const huRes = checkHu(myHand, stateRef.current.playerMelds[0], null, true, {});
+      const huRes = checkHu(myHand, stateRef.current.playerMelds[0], null, true, { isLastTile: stateRef.current.wall.length === 0 });
       const kOptions = getKongOptions(myHand, stateRef.current.playerMelds[0], null, config);
       const siXiList = checkMidGameSiXi(myHand, config, declaredSiXiRef.current[0]);
 
@@ -1332,7 +1336,7 @@ export default function App() {
         executeMidGameSiXi(botId, siXiList[0]);
       }
 
-      const decision = decideAiTurnAction(hand, melds, drawn, config, {});
+      const decision = decideAiTurnAction(hand, melds, drawn, config, { isLastTile: stateRef.current.wall.length === 0 });
 
       if (decision.action === 'hu') {
         showBubble(botId, '自摸！');
@@ -1526,7 +1530,7 @@ export default function App() {
     const myMelds = stateRef.current.playerMelds[0];
     const winningTile = isSelfDrawn ? drawnTile : stateRef.current.lastDiscard?.tile;
 
-    const huRes = checkHu(myHand, myMelds, winningTile, isSelfDrawn, {});
+    const huRes = checkHu(myHand, myMelds, winningTile, isSelfDrawn, { isLastTile: stateRef.current.wall.length === 0 });
     handleRoundWin(0, isSelfDrawn ? 0 : stateRef.current.lastDiscard.fromPlayer, winningTile, isSelfDrawn, huRes.huTypes);
   };
 

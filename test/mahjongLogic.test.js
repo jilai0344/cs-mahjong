@@ -387,6 +387,51 @@ console.log('\n=== 测试 5: 扎鸟算法验证（S2 裁定：翻牌墙取末尾
   assert(birdRes0.birds.length === 0 && birdRes0.hitCount === 0 && birdRes0.birdValues.length === 0, '不抓鸟（0 只）时返回空结果');
 }
 
+console.log('\n=== 测试 6: 含杠手牌可胡（Q1 裁定：1 个杠折算 3 张有效牌）与海底 ===');
+{
+  const T = (suit, values) => values.map(value => ({ suit, value }));
+  const W = SUITS.WAN, TIAO = SUITS.TIAO, TONG = SUITS.TONG;
+  const kong1 = { type: 'an_gang', tile: { suit: W, value: 1 }, tiles: T(W, [1, 1, 1, 1]) };
+  const kong2 = { type: 'gang', tile: { suit: TIAO, value: 9 }, tiles: T(TIAO, [9, 9, 9, 9]) };
+  // 手牌 11 张 = 3 副 + 将（有效 11 + 杠按 3 张 = 14）
+  const hand11 = [...T(W, [1, 2, 3]), ...T(TIAO, [4, 5, 6]), ...T(TONG, [7, 8, 9]), ...T(W, [5, 5])];
+
+  // A. 杠上开花（补牌已在手牌里）
+  const a = checkHu(hand11, [kong1], null, true, { isKongFlower: true });
+  assert(a.canHu && a.huTypes.includes('杠上开花') && a.isBigHu && a.k === 1,
+    '含 1 个杠 + 补牌成胡 → 杠上开花可触发（修复前含杠手牌永远不能胡），k=1');
+
+  // B. 杠上开花（补牌单独传入：手牌是补牌前的张数）
+  const hand10 = [...T(W, [1, 2, 3]), ...T(TIAO, [4, 5, 6]), ...T(TONG, [7, 8, 9]), ...T(W, [5])];
+  const b = checkHu(hand10, [kong1], { suit: W, value: 5 }, true, { isKongFlower: true, includeWinningTile: true });
+  assert(b.canHu && b.huTypes.includes('杠上开花'),
+    'context.includeWinningTile：补牌单独传入也能判成杠上开花（App 的实际调用方式）');
+
+  // C. 含杠点炮（杠上炮）
+  const c = checkHu(hand10, [kong1], { suit: W, value: 5 }, false, { isKongDiscard: true });
+  assert(c.canHu && c.huTypes.includes('杠上炮'),
+    '含杠手牌点炮胡（杠上炮）可触发');
+
+  // D. 含两个杠仍可胡：2 个杠折算 6 张，手牌 7 张 + 胡张 = 8 张（2 副 + 将）→ 有效 14
+  const hand7 = [...T(W, [2, 3, 4]), ...T(W, [6, 7, 8]), { suit: TONG, value: 5 }];
+  const d = checkHu(hand7, [kong1, kong2], { suit: TONG, value: 5 }, false, {});
+  assert(d.canHu, '含两个杠时手牌 7 张 + 胡张即可成胡（有效 8 + 6 = 14）');
+
+  // E. 张数不足仍然不能胡（回归保护：不能因为放宽杠折算而误判）
+  const e = checkHu(hand10, [kong1], null, true, {});
+  assert(!e.canHu, '有效张数不是 14 时仍然不能胡（手牌 10 + 杠 3 = 13）');
+
+  // F. 海底（最后一张牌）：自摸 → 海底捞月；点炮 → 海底炮
+  const hand14 = [...T(W, [1, 2, 3]), ...T(TIAO, [4, 5, 6]), ...T(TONG, [7, 8, 9]), ...T(W, [1, 2, 3]), ...T(TONG, [5, 5])];
+  const f1 = checkHu(hand14, [], null, true, { isLastTile: true });
+  assert(f1.canHu && f1.huTypes.includes('海底捞月'), '摸到最后一张牌自摸 → 海底捞月');
+  const hand13 = hand14.slice(0, 13);
+  const f2 = checkHu(hand13, [], { suit: TONG, value: 5 }, false, { isLastTile: true });
+  assert(f2.canHu && f2.huTypes.includes('海底炮'), '最后一张牌被打出后被点炮 → 海底炮');
+  const f3 = checkHu(hand14, [], null, true, {});
+  assert(f3.canHu && !f3.huTypes.includes('海底捞月'), '非最后一张牌不触发海底（回归保护）');
+}
+
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个\n`);
 if (failed > 0) {
   process.exit(1);
