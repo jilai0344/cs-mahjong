@@ -1,6 +1,7 @@
 # 长沙麻将 · 项目审计报告（AUDIT.md）
 
-> 第 0 阶段（只读审计）产物。基线 commit：`2facaeb`（main），仓库 https://github.com/jilai0344/cs-mahjong
+> 第 0 阶段（只读审计）产物。**初次审计基线 commit：`2facaeb`（main）**；§11 已在合并计分 PR 之后把复核基线推进到 `caec53c`（复核结论、命令原始输出与重拍截图见 §11）。
+> 仓库 https://github.com/jilai0344/cs-mahjong
 > 审计方式：通读源码 + 实际运行（install/test/lint/build/dev）+ 浏览器实测（375px 竖屏 / 812×375 横屏 / 1440px 桌面）+ 规则引擎探针脚本 + 联机信道第三方测试。
 > 所有结论都标注了**代码位置**或**实测证据**；未验证的一律写「未能确认」。
 > 缩写：`APP:`=`src/App.jsx`，`ML:`=`src/utils/mahjongLogic.js`，`T:`=`src/types/mahjong.js`，`AI:`=`src/utils/aiPlayer.js`，`MP:`=`src/utils/multiplayer.js`，`AUD:`=`src/utils/audio.js`。
@@ -307,3 +308,43 @@ RESULT=第三方可完整读写广播频道/房主信箱/座位私密频道（�
 ### 10.4 组件层直接放大的既有风险
 - `KongDrawModal` 的 `canSelfHu` 恒为 `false`（源头上游 `checkHu` 含杠必失败，见 R5）→ 面板永远只剩「打出牌张继续」一个按钮，「杠上开花」按钮是**不可达 UI**。
 - `MultiplayerModal` 房间号 `maxLength=6` 与「4 位房间号」文案矛盾（R24），且直接读 `network` 单例状态而非订阅回调 → 大厅刷新依赖偶然重渲染。
+
+---
+
+## 11. 基线复核（追加于合并计分 PR 之后，复核基线 `caec53c`）
+
+> 起因：上文写于 `2facaeb`，此后 main 又合并了 3 个 PR（审计文档本身 #1、计分纯函数模块 #2、计分 engine 修正 #3）。
+> 本节用**同一套命令在当前 main 上重跑一遍**，逐条确认上文结论是否仍然成立，并补记新发现。
+
+### 11.1 门禁实测（本机原样输出）
+
+| 步骤 | 命令 | 实测结果 | 与 §6.1 对比 |
+|---|---|---|---|
+| 安装 | `npm ci` | ✅ `added 94 packages in 1s`；⚠️ 仍为 `fsevents@2.3.3` 安装脚本未在 npm allowScripts 白名单（同 §6.1，非故障） | 不变 |
+| 测试 | `npm test` | ✅ `mahjongLogic.test.js` 通过 32 / 失败 0，`scoring.test.js` 通过 104 / 失败 0，串跑退出码 0 | **+104 条**（新增计分测试） |
+| 校验 | `npx oxlint` | ✅ 退出码 0，**35 条 warning**（`eslint(no-unused-vars)` 24 / `react(immutability)` 5 / `react-hooks(exhaustive-deps)` 3 / `react(set-state-in-effect)` 2 / `react(refs)` 1） | **与文档基线完全一致** |
+| 构建 | `npm run build` | ✅ 551ms；`index.html` 1.35 KB、CSS 79.88 KB(gzip 11.79)、JS 698.37 KB(gzip 207.49)；仍有 chunk > 500 KB 告警 | 字节数一致 |
+| 启动 | `npm run dev` | ✅ Vite v8.3.2 `ready in 143 ms`，`http://localhost:5173/` 返回 200，`window.onerror` 0 条 | **端口记录修正**：`vite.config.js` 未配置端口 → 默认 5173；§6.1 的 5199 是当时显式加 `--port` 的结果 |
+
+### 11.2 浏览器实测（本轮重拍，截图已更新）
+
+| 视口 | 截图文件 | 溢出检测（`scrollWidth/Height` vs `clientWidth/Height`，实测） |
+|---|---|---|
+| 375×812 竖屏 | `docs/screenshots/portrait-375x812.png` | 375/375、812/812 → 无溢出；**「请横置手机」遮挡层依旧存在**（R19 未变） |
+| 812×375 横屏 | `docs/screenshots/landscape-812x375.png` | 812/812、375/375 → 无溢出 |
+| 1440×900 桌面（开局前 / 对局中） | `docs/screenshots/desktop-1440x900.png`、`docs/screenshots/desktop-1440x900-ingame.png` | 1440/1440、900/900 → 无溢出 |
+
+对局实测（桌面）：点「开始对局」→ 三家 AI 各 1000 分、牌墙 55 张起步 → AI 触发**起手胡**结算弹窗（对家 +6 分、其余三家各 −2，与 `APP:512-527` 一致）→ 全程无 JS 异常。
+占位符文本实测仍在（`V1/V5/V32`、`39482`、`djdodkj`、`V8`、`新手区 20`），与 R16 / §10.1 / §10.4 一致。
+
+### 11.3 本轮新发现
+
+**N1（P0 相邻）计分重写只落地了「纯函数模块」这一步，尚未接线到游戏。**
+`src/utils/scoring.js`（307 行）与 `test/scoring.test.js`（313 行）已合并，但 `src/` 目录下**没有任何文件引用它**（唯一引用方是测试）：
+- `grep -rn "scoring.js" src/ test/` → 仅命中 `test/scoring.test.js:14`；
+- `grep -n "finalScorePerLoser" src/App.jsx` → 命中 `1318/1331`，即运行时仍走旧口径（`平胡 1 分 / 大胡 k×6`、`baseScore × (1 + hitCount)` 三家共用同一倍数、点炮包三家）。
+⇒ **R15（双份计分）在运行时依然成立**；`docs/SCORING.md` §7 的步骤 2–7（`checkHu` 返回值改造、庄家轮换、起手胡/中途四喜按新公式结算、结算页逐项明细、README/规则页同步、1000 局随机模拟）**全部未做**，且步骤 3–7 依赖 S2/S3/S4/S7 等裁定。
+
+**N2 基线漂移的确认（说明上文无需重审）**：`git diff --stat 2facaeb..main` 显示自审计以来**规则层与 UI 层源码零改动** —— 变更仅 `docs/`、`package.json`（test 脚本串联新增测试）、新增 `src/utils/scoring.js` 与 `test/scoring.test.js`。因此 R1–R25 全部仍有效。
+
+**N3 环境（非项目缺陷，记录以免误判）**：`gh auth status` 报告 keyring token 失效（`The token in keyring is invalid`），但**实测 `gh` 的 PR 能力可用** —— 本次复核文档即由 `gh pr create` 开出 PR #4，并以 `gh pr view 4` 回读确认 `state=OPEN`、`headRefName=docs/stage0-refresh` ⇒ 修正为「gh 可开 PR」。真实约束是**本机到 github.com 的 TLS 连接偶发失败**（`LibreSSL SSL_connect: SSL_ERROR_SYSCALL`，实测 3 次里 1 次成功）；`git push` 与 `gh` 均需**带 2–4 次重试**才稳定成功。
