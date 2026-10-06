@@ -145,7 +145,7 @@ node v26.7.0 / npm 11.19.0 / git 2.54.0（macOS 26.6.2，Apple Silicon）
 |---|---|
 | `npm install` | ✅ `added 94 packages, audited 95, found 0 vulnerabilities`（11s）。⚠️ 警告：`fsevents@2.3.3` 安装脚本未在 npm 的 allowScripts 白名单内（npm 11 新策略），不影响构建 |
 | `npm test` | ✅ 32 通过 / 0 失败，`process.exit(1)` 保护存在（`test/mahjongLogic.test.js:345-348`）→ CI 能正确失败 |
-| `npx oxlint` | ✅ 退出码 0，但 **29 条 warning**：`no-unused-vars` ×21（含 `App.jsx` 未使用的 import `isJiangTile/MahjongTile/DiscardPool/Sparkles/RotateCcw/Wifi/Globe`）、`react(immutability)`「Cannot access variable while it is being initialized」×5（`App.jsx:205/207/209/537/606`，闭包自引用，属真实风险）、`react(refs)` 1 条（`App.jsx:79` 渲染期读 ref）、`react(set-state-in-effect)` 2 条、`react-hooks(exhaustive-deps)` 3 条（`App.jsx:207/537/606` 缺依赖） |
+| `npx oxlint` | ✅ 退出码 0，但 **35 条 warning**（实测规则分布：`eslint(no-unused-vars)` 24、`react(immutability)` 5、`react-hooks(exhaustive-deps)` 3、`react(set-state-in-effect)` 2、`react(refs)` 1）：未使用变量含 `App.jsx` 的 import `isJiangTile/MahjongTile/DiscardPool/Sparkles/RotateCcw/Wifi/Globe`；「Cannot access variable while it is being initialized」5 条（`App.jsx:205/207/209/537/606`，闭包自引用，属真实风险）；`react(refs)` 1 条（`App.jsx:79` 渲染期读 ref）；`exhaustive-deps` 3 条（`App.jsx:207/537/606` 缺依赖） |
 | `npm run build` | ✅ 528ms，产物见 §4；1 条 chunk >500 KB 告警 |
 | `npm run dev` | ✅ `http://127.0.0.1:5199/` 正常启动，页面 200、无 Vite 错误遮罩、无 `window.onerror` 记录 |
 | 截图 | `docs/screenshots/portrait-375x812.png`、`docs/screenshots/landscape-812x375.png`、`docs/screenshots/desktop-1440x900.png`（三种尺寸均无横向/纵向溢出） |
@@ -179,7 +179,7 @@ perf   analyzeTingCards ×20         → 24.1 ms（1.2 ms/次）
 - 测试是**自研断言脚本**（`assert(condition, message)` 计数 + `process.exit(1)`），`npm test` = `node test/mahjongLogic.test.js`。
 - 覆盖：起手胡 10 类（23 条）、开杠需将（3 条）、胡牌判定（4 条）、扎鸟（2 条）。**未覆盖**：吃碰杠流程、杠上开花/杠上炮、海底、抢杠、算分与分数守恒、听牌分析、AI 决策、`countTiles`、联机协议、随机对局守恒、组件渲染、非法输入。另：`canPeng`/`getChiOptions` 被 `import` 但**未使用**（`test/mahjongLogic.test.js:7-8`）。
 - **为什么 P0 没被现有测试拦住**：没有任何「含杠面子的手牌能否胡」的用例（现状 `checkHu` 的 14 张硬校验把含杠手牌全判死），因此这条 P0 在 CI 里是绿的。
-- CI：`npm ci → npm test → npm run build → 部署 Pages`；**没有 lint 步骤**（所以 29 条 warning 可以长期存在）；没有 `engines` 字段；`npm ci` 依赖 `package-lock.json`（已提交 ✓）。
+- CI：`npm ci → npm test → npm run build → 部署 Pages`；**没有 lint 步骤**（所以 35 条 warning 可以长期存在）；没有 `engines` 字段；`npm ci` 依赖 `package-lock.json`（已提交 ✓）。
 - 仓库卫生：`.gitignore` 覆盖 `node_modules/dist/logs`，但**没有 `.env*` 规则**（P2-4 要补）；源码内未发现密钥（密钥仅存在于本地 Hermes 配置，不在仓库）。
 
 ---
@@ -300,7 +300,7 @@ RESULT=第三方可完整读写广播频道/房主信箱/座位私密频道（�
 - 缺口：**无音量调节**（只有开关）、无按音效类型分档控制。
 
 ### 10.3 测试、CI 与仓库卫生（补充）
-- `.oxlintrc.json` 只开了 2 条规则（`react/rules-of-hooks: error`、`react/only-export-components: warn`），其余 29 条 warning 全部来自 oxlint 默认集 → 规则集过窄，且 CI 里**没有 lint 步骤**。
+- `.oxlintrc.json` 只开了 2 条规则（`react/rules-of-hooks: error`、`react/only-export-components: warn`），其余 35 条 warning 全部来自 oxlint 默认集 → 规则集过窄，且 CI 里**没有 lint 步骤**。
 - `test/mahjongLogic.test.js` 的 `canPeng`/`getChiOptions` 导入未使用（`:7-8`）。
 - `.gitignore` 缺 `.env*` 规则（与 R 表无冲突，P2-4 处理）。
 

@@ -4,7 +4,7 @@
 > 每项任务的验收标准为「可执行、可复现」的判定条件，未达标不得合并。
 > 通用门禁（每个 PR 都必须过，下文不再重复）：
 > **G1** `npm ci && npm test` 全绿（失败必须 `exit 1`，禁止“只打印不退出”）；
-> **G2** `npx oxlint` 无**新增**告警（当前基线 29 条 warning，见 AUDIT §运行记录）；
+> **G2** `npx oxlint` 无**新增**告警（当前基线 35 条 warning：`no-unused-vars` 24 / `react(immutability)` 5 / `exhaustive-deps` 3 / `set-state-in-effect` 2 / `react(refs)` 1，见 AUDIT §运行记录）；
 > **G3** `npm run build` 成功且产物 ≤ 现状（698 KB / gzip 207 KB）不显著增长；
 > **G4** 主分支任意时刻可启动、测试全绿、可构建；
 > **G5** 一个 PR 只做一件事、可回滚、提交信息说清「问题/方案/验证」；
