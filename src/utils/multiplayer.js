@@ -74,14 +74,17 @@ export class NetworkManager {
 
   // 辅助方法：发布消息（一律加密后再上路，公共 broker 上只有密文）
   async _publish(topic, message, opts = { qos: 1 }) {
-    if (!this.client || !this.client.connected) return;
+    // 注意：await 期间 this.client 可能被 cleanup()/换通道重连清空（整局冒烟实测验到过
+    // "Cannot read properties of null (reading 'publish')"）→ 先抓住本次要用的 client 引用。
+    const client = this.client;
+    if (!client || !client.connected) return;
     if (!this.roomKey) {
       console.warn('[CSMJ Network] 房间密钥未就绪，消息未发送');
       return;
     }
     try {
       const payload = await encryptJson(this.roomKey, this._stamp(message));
-      this.client.publish(topic, payload, opts);
+      client.publish(topic, payload, opts);
     } catch (e) {
       console.warn('[CSMJ Network] 加密发送失败:', e.message);
     }
@@ -108,17 +111,20 @@ export class NetworkManager {
     const total = brokerList.length;
     const requested = startIndex === null ? (this._pendingStartChannel || 0) : startIndex;
     const start = ((Number(requested) || 0) % total + total) % total;
-    const ordered = [...brokerList.slice(start), ...brokerList.slice(0, start)];
+    // 换通道重试时只连目标通道：绕回原通道会造成「换回去又失败」的来回横跳（冒烟实测）
+    const candidates = this._pendingChannelOnly
+      ? brokerList.slice(start, start + 1)
+      : [...brokerList.slice(start), ...brokerList.slice(0, start)];
     let index = 0;
 
     const tryNext = () => {
-      if (index >= ordered.length) {
+      if (index >= candidates.length) {
         if (onFailed) onFailed(new Error('无法连接到联机服务器，请检查网络设置'));
         return;
       }
 
-      const brokerUrl = ordered[index];
-      const channelIndex = (start + index) % total;
+      const brokerUrl = candidates[index];
+      const channelIndex = this._pendingChannelOnly ? start : (start + index) % total;
       console.log(`[CSMJ Network] 正在连接通信通道 (${channelIndex + 1}/${total}):`, brokerUrl);
 
       let isConnected = false;
@@ -193,6 +199,7 @@ export class NetworkManager {
     const willPayload = await encryptJson(this.roomKey, { type: 'ROOM_CLOSED', message: '房主已断开连接，房间已解散' });
     // 想从哪条通道开始（邀请链接会带过来；房主一般从主通道开始）
     this._pendingStartChannel = Number.isInteger(opts.channelIndex) ? opts.channelIndex : 0;
+    this._pendingChannelOnly = false; // 房主建房不走「只连一条通道」的重试模式
 
     this._connectWithFallback(
       BROKER_URLS,
@@ -384,6 +391,8 @@ export class NetworkManager {
     let hasJoined = false;
     // 优先尝试的通道（邀请链接 &b= 指定；缺省主通道）
     this._pendingStartChannel = startChannel;
+    // channelOnly：只连这一条通道（换通道重试用），失败就直接报错，不再来回切换
+    this._pendingChannelOnly = opts.channelOnly === true;
 
     this._connectWithFallback(
       BROKER_URLS,
@@ -421,7 +430,8 @@ export class NetworkManager {
               console.warn(`[CSMJ Network] 房主无响应，换通道 ${this.channelIndex + 1} → ${altChannel + 1} 重试加入`);
               this.joinRoom(this.roomCode, this.playerName, onJoined, onError, {
                 channelIndex: altChannel,
-                allowChannelRetry: false
+                allowChannelRetry: false,
+                channelOnly: true
               });
               return;
             }
