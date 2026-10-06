@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Users, Copy, Check, Play, UserPlus, Bot, Shield, Loader2, Sparkles, RefreshCw } from 'lucide-react';
-import { generateRoomCode, network } from '../utils/multiplayer.js';
+import { generateRoomCode, network, BROKER_URLS } from '../utils/multiplayer.js';
+import { buildInviteUrl, parseInviteParams } from '../utils/invite.js';
 
 export default function MultiplayerModal({
   isOpen,
@@ -15,18 +16,20 @@ export default function MultiplayerModal({
   const [isConnecting, setIsConnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isCopied, setIsCopied] = useState(false);
+  // 邀请链接解析结果（房间号 + 房主所在通道），见 utils/invite.js
+  const [inviteParams, setInviteParams] = useState({ roomCode: null, channelIndex: 0 });
 
   // 房间大厅座位
   const [lobbySeats, setLobbySeats] = useState(network.seats);
   const [inLobby, setInLobby] = useState(false);
 
-  // 自动从 URL 参数读取 ?room=XXXX
+  // 自动从 URL 参数读取 ?room=XXXX&b=N（b = 房主所在的联机通道，见 utils/invite.js）
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const urlRoom = params.get('room');
-      if (urlRoom) {
-        setRoomCodeInput(urlRoom.toUpperCase());
+      const invite = parseInviteParams(window.location.search, BROKER_URLS.length);
+      if (invite.roomCode) {
+        setRoomCodeInput(invite.roomCode);
+        setInviteParams(invite);
         setActiveTab('join');
       }
     }
@@ -46,7 +49,8 @@ export default function MultiplayerModal({
 
   const handleCopyLink = () => {
     const code = network.roomCode || generatedCode;
-    const url = `${window.location.origin}${window.location.pathname}?room=${code}`;
+    // 链接里带上房主实际所在的通道（否则访客可能连到另一条 broker，双方永远碰不上）
+    const url = buildInviteUrl(window.location, code, network.channelIndex || 0, BROKER_URLS.length);
     navigator.clipboard.writeText(url).then(() => {
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
@@ -85,6 +89,12 @@ export default function MultiplayerModal({
     setErrorMessage('');
     localStorage.setItem('cs_player_name', playerName);
 
+    // 从邀请链接进来、且房间号没被改成别的房间时，直接连同房主那条通道
+    const typedCode = roomCodeInput.trim().toUpperCase();
+    const joinOpts = (inviteParams.roomCode === typedCode && inviteParams.channelIndex > 0)
+      ? { channelIndex: inviteParams.channelIndex }
+      : {};
+
     network.joinRoom(
       roomCodeInput.trim(),
       playerName,
@@ -96,7 +106,8 @@ export default function MultiplayerModal({
       (err) => {
         setIsConnecting(false);
         setErrorMessage(err.message || '加入房间失败，房间号可能不存在');
-      }
+      },
+      joinOpts
     );
   };
 
