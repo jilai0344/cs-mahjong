@@ -124,6 +124,29 @@ console.log('\n=== 测试 3: 文档与代码一致（docs/DESIGN.md §3）===');
     'App.jsx 里没有占位符 39482 / djdodkj 的字样（含注释）');
 }
 
+console.log('\n=== 测试 4: 牌张尺寸六场景断点齐全（D2）===');
+{
+  const tileSrc = readFileSync(join(ROOT, 'src/components/MahjongTile.jsx'), 'utf8');
+  const mapBlock = tileSrc.match(/const sizeMap = \{([\s\S]*?)\n  \};/);
+  assert(!!mapBlock, 'MahjongTile.jsx 里存在 sizeMap');
+
+  const SCENARIOS = ['hand', 'meld', 'discard', 'discard-side', 'opp-top', 'opp-side'];
+  const REQUIRED_VARIANTS = ['sm:', 'md:', 'lg:', 'xl:'];
+
+  for (const key of SCENARIOS) {
+    const re = new RegExp(`(?:'${key}'|\\b${key})\\s*:\\s*'([^']*)'`);
+    const m = (mapBlock ? mapBlock[1] : '').match(re);
+    assert(!!m, `${key} 场景存在尺寸定义`);
+    if (!m) continue;
+    const cls = m[1];
+    const missing = REQUIRED_VARIANTS.filter((v) => !cls.includes(v));
+    eq(missing, [], `${key} 场景补齐了 ${REQUIRED_VARIANTS.join(' / ')} 四档（D2：小屏到大屏都要有明确尺寸）`);
+    assert(/w-\[\d+px\] h-\[\d+px\]/.test(cls), `${key} 给出了基础宽高`);
+    // 强制横屏 + Tailwind 的 landscape: 变体会压过宽度断点（实测桌面 1440 手牌只有 60×82）→ 尺寸表里不许再用它
+    assert(!cls.includes('landscape:'), `${key} 不使用 landscape: 变体（它会在横屏下压过 xl 等宽度断点）`);
+  }
+}
+
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);
 if (failures.length > 0) {
   console.error('\n失败列表:');
