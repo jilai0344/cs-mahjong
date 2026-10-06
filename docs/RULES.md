@@ -3,6 +3,7 @@
 > 第 0 阶段产物。**只记录代码实际实现的规则**，并逐条与 README 核对、列出差异。
 > 凡代码与真实长沙麻将习惯不一致、或 README 未定义的部分，一律进入文末「待你决策的问题清单」，**不自行臆断**。
 > 核对基线：commit `2facaeb`（main）。
+> **复核（基线 `caec53c`，见 AUDIT §11）**：自审计以来 `src/utils/mahjongLogic.js`、`src/App.jsx`、`src/components/` **零改动**，故下列「代码实际实现」的每条结论与差异清单（含 Q1–Q11）**全部继续有效**；期间新增的 `src/utils/scoring.js` 是**计划中的新计分口径**（纯函数、未被 `src/` 引用），不代表现行运行时行为。
 > 代码位置缩写：`ML:` = `src/utils/mahjongLogic.js`，`APP:` = `src/App.jsx`，`T:` = `src/types/mahjong.js`，`AI:` = `src/utils/aiPlayer.js`，`MP:` = `src/utils/multiplayer.js`。
 
 ---
