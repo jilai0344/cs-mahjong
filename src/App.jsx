@@ -18,7 +18,7 @@ import {
   drawBirds
 } from './utils/mahjongLogic.js';
 import { nextDealerSeat, drawDealerSeat, scoreRound, rollBirdDice, secureRandomInt, normalizeScoreParams, huEntryFromTypes } from './utils/scoring.js';
-import { hasPendingResponse, resolveTimeoutAction } from './game/actions.js';
+import { hasPendingResponse, resolveTimeoutAction, hostTurnWatchdogDelay } from './game/actions.js';
 import {
   chooseAiDiscard,
   decideAiResponse,
@@ -137,6 +137,7 @@ export default function App() {
 
   // 定时器引用
   const timerRef = useRef(null);
+  const aiTurnRef = useRef(null); // 指向 triggerAiTurn（掉线托管时从网络回调里调用，避免闭包过期）
   // P0-5：倒计时回调里要读「当前是否处于响应窗口」与「超时该调用谁」，
   // 用 ref 同步（避免把处理器塞进 effect 依赖数组导致闭包读到旧状态）。
   const actionsRef = useRef({});
@@ -1632,6 +1633,51 @@ export default function App() {
       pass: handleHumanPass
     };
   });
+
+  // ---------------------------------------------------------------------------
+  // P0-4 掉线托管
+  // ---------------------------------------------------------------------------
+  // triggerAiTurn 每次渲染都是新函数，用 ref 保持最新，供网络回调（托管接管）调用。
+  useEffect(() => {
+    aiTurnRef.current = triggerAiTurn;
+  });
+
+  // 座位被降级为电脑 AI 时（心跳超时、房主手动替换、托管看门狗），若此刻正轮到该座位，
+  // 立刻由 AI 接管这一手 —— 否则牌局会永久停在「等一个已经不在的人出牌」。
+  useEffect(() => {
+    network.onSeatRevertedToAI = (seatId) => {
+      if (stateRef.current.gameState !== 'PLAYING') return;
+      if (stateRef.current.currentTurn !== seatId) return;
+      console.log(`[CSMJ] 托管接管：座位 ${seatId} 改由电脑 AI 出牌`);
+      aiTurnRef.current?.(seatId);
+    };
+    return () => {
+      network.onSeatRevertedToAI = null;
+    };
+  }, []);
+
+  // 房主看门狗：轮到的真人迟迟不出牌（客户端挂了 / 标签页被浏览器冻结 / 网络断了）→ 降级为 AI 并托管。
+  // 客户端自己的出牌倒计时只管「轮到我」，管不了「轮到别人」（见 game/actions.js 注释）。
+  useEffect(() => {
+    const mp = multiplayerRef.current;
+    const seats = multiplayerState.seats || [];
+    const delay = hostTurnWatchdogDelay({
+      isHost: !!mp.isHost,
+      gameState,
+      currentTurn,
+      mySeatId,
+      seatIsHuman: !!seats[currentTurn]?.isHuman
+    });
+    if (delay == null) return;
+
+    const watchedSeat = currentTurn;
+    const watchdog = setTimeout(() => {
+      if (stateRef.current.currentTurn !== watchedSeat) return; // 已经正常出牌了
+      console.warn(`[CSMJ] 座位 ${watchedSeat} 超时未出牌，自动托管为电脑 AI`);
+      network.revertSeatToAI(watchedSeat);
+    }, delay);
+    return () => clearTimeout(watchdog);
+  }, [gameState, currentTurn, mySeatId, multiplayerState.seats]);
 
   // 获得座位对应的展示信息 (单机或联机)
   const currentSeatPlayers = useMemo(() => {

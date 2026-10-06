@@ -1,6 +1,6 @@
 // 长沙麻将 · 操作窗口判定测试（ROADMAP P0-5：响应窗口超时兜底）
 // 运行：npm test（串在最后）
-import { hasPendingResponse, resolveTimeoutAction, RESPONSE_TIMEOUT_SECONDS } from '../src/game/actions.js';
+import { hasPendingResponse, resolveTimeoutAction, RESPONSE_TIMEOUT_SECONDS, hostTurnWatchdogDelay, HOST_TURN_TIMEOUT_MS } from '../src/game/actions.js';
 
 let passed = 0;
 let failed = 0;
@@ -59,6 +59,45 @@ console.log('\n=== 测试 3: 回归——旧实现只处理「轮到自己」，
   const scenario = { currentTurn: 1, mySeatId: 0, pendingResponse: true };
   eq(legacyTick(scenario), 'none', '旧逻辑在响应窗口下什么都不做（这就是卡死的原因）');
   eq(resolveTimeoutAction(scenario), 'pass', '新逻辑在同样的场景下自动「过」，牌局可以继续');
+}
+
+console.log('\n=== 测试 4: 房主托管看门狗该不该为这一手起表（表驱动）===');
+{
+  const base = { isHost: true, gameState: 'PLAYING', currentTurn: 2, mySeatId: 0, seatIsHuman: true };
+  eq(hostTurnWatchdogDelay(base), HOST_TURN_TIMEOUT_MS, '房主 + 行牌中 + 轮到真人访客 → 起表（22 秒）');
+  eq(HOST_TURN_TIMEOUT_MS, 22000, '看门狗时长 = 22 秒 > 客户端出牌倒计时 15 秒（留余量，避免误杀慢网络）');
+
+  const cases = [
+    [{ ...base, isHost: false }, null, '访客不是权威端 → 不起表（由房主统一托管）'],
+    [{ ...base, gameState: 'IDLE' }, null, '未开局 → 不起表'],
+    [{ ...base, gameState: 'ROUND_OVER' }, null, '本局已结束 → 不起表'],
+    [{ ...base, gameState: 'DEALING' }, null, '发牌中 → 不起表'],
+    [{ ...base, currentTurn: 0 }, null, '轮到房主自己 → 不起表（本地出牌倒计时已兜底）'],
+    [{ ...base, currentTurn: 2, mySeatId: 2 }, null, '我这个客户端轮到自己（访客视角）→ 不起表'],
+    [{ ...base, seatIsHuman: false }, null, '轮到电脑 AI → 不起表（AI 逻辑自己推进）'],
+    [{ ...base, currentTurn: 1, seatIsHuman: true }, HOST_TURN_TIMEOUT_MS, '轮到 1 号位真人 → 起表'],
+    [{ ...base, currentTurn: 3, seatIsHuman: true }, HOST_TURN_TIMEOUT_MS, '轮到 3 号位真人 → 起表']
+  ];
+  cases.forEach(([input, expected, label]) => {
+    eq(hostTurnWatchdogDelay(input), expected, label);
+  });
+}
+
+console.log('\n=== 测试 5: 回归——只有心跳看门狗会永久卡死 ===');
+{
+  // 旧实现：心跳看门狗把座位降级成 AI，但只改大厅状态、不接管当前这一手
+  const legacyOnHeartbeatTimeout = () => ({ seatRevertedToAI: true, turnTakenOver: false });
+  const now = (input) => ({
+    seatRevertedToAI: true,
+    turnTakenOver: hostTurnWatchdogDelay(input) !== null
+  });
+  const input = { isHost: true, gameState: 'PLAYING', currentTurn: 1, mySeatId: 0, seatIsHuman: true };
+
+  eq(legacyOnHeartbeatTimeout(), { seatRevertedToAI: true, turnTakenOver: false },
+    '旧实现：座位变成 AI 了，但没人管这一手 → 牌局停在「等一个不在的人出牌」（整局冒烟实测卡死）');
+  eq(now(input).turnTakenOver, true, '新实现：看门狗判定该托管 → 交给 AI 接管出牌');
+  eq(hostTurnWatchdogDelay({ ...input, seatIsHuman: false }), null,
+    '座位已经是 AI 后看门狗自动收手（避免重复托管）');
 }
 
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);
