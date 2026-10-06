@@ -14,7 +14,7 @@ export default function KongDrawModal({
   if (!isOpen || drawnKongTiles.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in select-none">
+    <div role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in select-none">
       <div className="relative w-full max-w-sm rounded-2xl bg-gradient-to-b from-slate-900 via-amber-950/80 to-slate-900 border-2 border-amber-400/80 p-5 shadow-2xl flex flex-col items-center text-center animate-scale-up">
         {/* 图标与标题 */}
         <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center mb-2">

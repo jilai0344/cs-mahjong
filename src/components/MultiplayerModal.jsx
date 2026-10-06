@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Users, Copy, Check, Play, UserPlus, Bot, Shield, Loader2, Sparkles, RefreshCw } from 'lucide-react';
 import { generateRoomCode, network, BROKER_URLS } from '../utils/multiplayer.js';
 import { buildInviteUrl, parseInviteParams } from '../utils/invite.js';
+import { useModalA11y } from '../hooks/useModalA11y.js';
 
 export default function MultiplayerModal({
   isOpen,
@@ -44,6 +45,9 @@ export default function MultiplayerModal({
       setIsConnecting(false);
     });
   }, []);
+
+  // 弹窗无障碍（P2-6）：Esc 关闭 + role/aria + 焦点循环。必须放在提前 return 之前。
+  const modalA11y = useModalA11y(onClose);
 
   if (!isOpen) return null;
 
@@ -129,7 +133,7 @@ export default function MultiplayerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in select-none">
+    <div {...modalA11y} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in select-none">
       <div className="relative w-full max-w-lg rounded-2xl bg-gradient-to-b from-slate-900 via-emerald-950/90 to-slate-900 border-2 border-emerald-500/40 p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
         {/* 顶部标题栏 */}
         <div className="flex items-center justify-between pb-4 border-b border-emerald-500/20">

@@ -48,33 +48,6 @@
   pointer-events: none;
 }
 
-/* 麻将牌 3D 骨牌与琉璃玉背质感 */
-.mahjong-tile {
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.4),
-    0 2px 4px -2px rgba(0, 0, 0, 0.3),
-    0 1px 0 rgba(255, 255, 255, 0.6) inset;
-  transform-origin: bottom center;
-}
-
-.mahjong-tile:hover {
-  transform: translateY(-8px);
-}
-
-.mahjong-tile .tile-face {
-  background: linear-gradient(180deg, #ffffff 0%, #faf8f2 85%, #f2efe4 100%);
-  box-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.1),
-    0 -1px 1px rgba(255, 255, 255, 0.8) inset;
-}
-
-/* 牌背翡翠玉石立体光泽 */
-.mahjong-tile-back {
-  box-shadow: 
-    0 3px 6px rgba(0, 0, 0, 0.35),
-    0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
 /* 关键帧微动效 */
 @keyframes fadeIn {
   from { opacity: 0; }

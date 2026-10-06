@@ -1,11 +1,15 @@
 import React from 'react';
+import { useModalA11y } from '../hooks/useModalA11y.js';
 import { X, BookOpen, CheckCircle2 } from 'lucide-react';
 
 export default function RulesGuideModal({ isOpen, onClose }) {
+  // 弹窗无障碍（P2-6）：Esc 关闭 + role/aria + 焦点循环
+  const modalA11y = useModalA11y(onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in select-none">
+    <div {...modalA11y} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in select-none">
       <div className="relative w-full max-w-lg rounded-2xl bg-gradient-to-b from-slate-900 via-emerald-950/90 to-slate-900 border border-emerald-500/30 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
         {/* 标题 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-500/20 bg-black/30">
