@@ -325,6 +325,29 @@ console.log('\n=== 测试 3: 长沙麻将胡牌判定 (二五八做将 & 大胡)
   ];
   const qingRes = checkHu(qingYiSeHand, [], null, true, {});
   assert(qingRes.canHu && qingRes.huTypes.includes('清一色'), '全同一花色且成型成功判定为大胡【清一色】(允许乱将)');
+
+  // E. 番型计数：checkHu 只给 { isBigHu, k, huTypes }，金额一律交给 src/utils/scoring.js
+  //    （规格 §三/§六：大胡每多一个番型 +7B，线性相加，不是翻番）
+  assert(pingHuRes.isBigHu === false && pingHuRes.k === 0, '平胡：isBigHu=false、k=0');
+  assert(jiangRes.isBigHu === true && jiangRes.huTypes.includes('将将胡'), '将将胡：isBigHu=true');
+  // 该牌型同为「4 刻子 + 1 对」，因此【碰碰胡】也成立、各算一个番型 → k=2（规格 §六）
+  assert(jiangRes.huTypes.includes('碰碰胡') && jiangRes.k === 2, '将将胡 + 碰碰胡 同时成立：k=2（每项大胡各算一个，线性相加）');
+  assert(qingRes.isBigHu === true && qingRes.k === 1, '清一色：k=1');
+  assert(!('score' in pingHuRes) && !('score' in qingRes), '旧计分字段 score（平胡1 / 大胡 k×6）已从 checkHu 返回值中删除');
+  assert(!invalidHuRes.isBigHu && invalidHuRes.k === 0, '不能胡时 isBigHu=false、k=0（不返回 undefined）');
+
+  // F. 大胡叠加：清一色 + 碰碰胡 → k=2（对应规格第八节示例 8 的牌型，Base = 14B）
+  const qingPengHand = [
+    { suit: SUITS.WAN, value: 1 }, { suit: SUITS.WAN, value: 1 }, { suit: SUITS.WAN, value: 1 },
+    { suit: SUITS.WAN, value: 2 }, { suit: SUITS.WAN, value: 2 }, { suit: SUITS.WAN, value: 2 },
+    { suit: SUITS.WAN, value: 3 }, { suit: SUITS.WAN, value: 3 }, { suit: SUITS.WAN, value: 3 },
+    { suit: SUITS.WAN, value: 9 }, { suit: SUITS.WAN, value: 9 }, { suit: SUITS.WAN, value: 9 },
+    { suit: SUITS.WAN, value: 5 }, { suit: SUITS.WAN, value: 5 } // 五万做将
+  ];
+  const qingPengRes = checkHu(qingPengHand, [], null, true, {});
+  assert(qingPengRes.canHu && qingPengRes.huTypes.includes('清一色') && qingPengRes.huTypes.includes('碰碰胡'),
+    '清一色 + 碰碰胡 同时成立（各算一个番型）');
+  assert(qingPengRes.isBigHu === true && qingPengRes.k === 2, '清一色 + 碰碰胡：k=2（线性相加 2×7B，非翻番）');
 }
 
 console.log('\n=== 测试 4: 扎鸟算法验证 ===');

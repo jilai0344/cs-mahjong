@@ -385,7 +385,7 @@ function canDecomposeToMelds(sortedValues) {
  * @param {Object} winningTile 待判定胡的牌 (自摸手牌中已有，或别人点炮/开杠摸出的牌)
  * @param {boolean} isSelfDrawn 是否自摸
  * @param {Object} context 附加场景上下文 { isKongFlower, isKongDiscard, isRobbingKong, isLastTile }
- * @returns {{ canHu: boolean, huTypes: string[], score: number, desc: string }}
+ * @returns {{ canHu: boolean, huTypes: string[], isBigHu: boolean, k: number, desc: string }}
  */
 export function checkHu(handTiles, melds = [], winningTile = null, isSelfDrawn = false, context = {}) {
   // 组装完整用于判定的所有牌 (手牌 + 待胡牌)
@@ -398,7 +398,7 @@ export function checkHu(handTiles, melds = [], winningTile = null, isSelfDrawn =
   melds.forEach(m => allTilesEver.push(...m.tiles));
 
   if (allTilesEver.length !== 14) {
-    return { canHu: false, huTypes: [], score: 0, desc: '' };
+    return { canHu: false, huTypes: [], isBigHu: false, k: 0, desc: '' };
   }
 
   const huTypes = [];
@@ -541,22 +541,20 @@ export function checkHu(handTiles, melds = [], winningTile = null, isSelfDrawn =
   }
 
   if (huTypes.length === 0) {
-    return { canHu: false, huTypes: [], score: 0, desc: '' };
+    return { canHu: false, huTypes: [], isBigHu: false, k: 0, desc: '' };
   }
 
-  // 计分规则：平胡 1分（或2分），大胡每项番数累加（每项大胡 6 分）
-  let score = 0;
-  if (isBigHu) {
-    const bigTypes = huTypes.filter(t => t !== '平胡');
-    score = bigTypes.length * 6; // 大胡每个番种 6 番
-  } else {
-    score = 1; // 平胡 1 番
-  }
+  // 番型计数（规格 §三/§六）：k = 本次胡牌所含大胡番型个数（线性相加，1 个 7B、2 个 14B…），
+  // k ≥ 1 即大胡；平胡/起手胡/中途四喜属小胡（k 记 0）。
+  // 注意：旧字段 `score`（平胡 1 / 大胡 k×6）已删除——金额一律由 src/utils/scoring.js 按
+  //      P = min(Base × (n+1), 42B) + 2F 计算，判番与算钱必须分开。
+  const k = huTypes.filter(t => t !== '平胡').length;
 
   return {
     canHu: true,
     huTypes,
-    score,
+    isBigHu: k >= 1,
+    k,
     isSelfDrawn,
     desc: huTypes.join(' · ')
   };
@@ -607,7 +605,8 @@ export function analyzeTingCards(handTiles, melds = [], config = {}, allKnownTil
             tile: testTile,
             remaining,
             huTypes: huResult.huTypes,
-            score: huResult.score
+            isBigHu: huResult.isBigHu,
+            k: huResult.k
           });
         }
       }
