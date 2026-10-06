@@ -17,6 +17,7 @@ import {
   analyzeTingCards,
   drawBirds
 } from './utils/mahjongLogic.js';
+import { nextDealerSeat, drawDealerSeat } from './utils/scoring.js';
 import {
   chooseAiDiscard,
   decideAiResponse,
@@ -143,6 +144,8 @@ export default function App() {
     currentTurn: 0,
     dealerId: 0,
     lastDiscard: null,
+    // 规格 §二.4：流局时「最后一张牌由谁摸谁做庄」，因此记录本局最后一次从牌墙取牌的座位
+    lastDrawerId: null,
     gameState: 'IDLE'
   });
 
@@ -445,6 +448,7 @@ export default function App() {
 
     stateRef.current.playerDiscards = [[], [], [], []];
     stateRef.current.playerMelds = [[], [], [], []];
+    stateRef.current.lastDrawerId = null;
     setPlayerDiscards([[], [], [], []]);
     setPlayerMelds([[], [], [], []]);
 
@@ -1124,6 +1128,7 @@ export default function App() {
     const curWall = [...stateRef.current.wall];
     const drawnKongCards = curWall.splice(curWall.length - drawCount, drawCount);
     stateRef.current.wall = curWall;
+    stateRef.current.lastDrawerId = playerId; // 开杠补牌也是「从牌墙摸走牌」
     setWall([...curWall]);
 
     let canSelfKongHu = false;
@@ -1219,6 +1224,7 @@ export default function App() {
     const curWall = [...stateRef.current.wall];
     const drawn = curWall.shift();
     stateRef.current.wall = curWall;
+    stateRef.current.lastDrawerId = nextPlayerId; // 规格 §二.4：记下本局最后一张牌是谁摸走的
     setWall([...curWall]);
     setDrawnTile(drawn);
 
@@ -1345,8 +1351,10 @@ export default function App() {
     }
 
     setPlayerScores(prev => prev.map((s, idx) => s + changes[idx]));
-    setDealerId(winnerId);
-    stateRef.current.dealerId = winnerId;
+    // 规格 §二.1：谁胡牌，本次计分时谁就是庄（自摸、点炮均如此）
+    const nextDealer = nextDealerSeat({ outcome: 'win', winnerSeat: winnerId });
+    setDealerId(nextDealer);
+    stateRef.current.dealerId = nextDealer;
 
     const mp = multiplayerRef.current;
     const winnerName = mp.isMultiplayer ? mp.seats[winnerId]?.name : PLAYERS[winnerId].name;
@@ -1363,7 +1371,8 @@ export default function App() {
       melds: stateRef.current.playerMelds[winnerId],
       winningTile,
       isSelfDrawn,
-      scoreChanges: changes
+      scoreChanges: changes,
+      newDealerId: nextDealer
     };
 
     setRoundResult(finalResult);
@@ -1379,13 +1388,20 @@ export default function App() {
   const handleHuangZhuang = () => {
     setGameState('ROUND_OVER');
     stateRef.current.gameState = 'ROUND_OVER';
-    const nextDealer = (dealerId + 1) % 4;
+    // 规格 §二.4：流局不计分；下一局庄 = 本局最后一张牌由谁摸走（正常摸牌与开杠补牌都算）。
+    // 若本局从未有人从牌墙摸过牌（异常路径），退回当前庄，避免静默顺移。
+    const nextDealer = drawDealerSeat({
+      lastDrawerSeat: stateRef.current.lastDrawerId,
+      currentDealerSeat: dealerId
+    });
     setDealerId(nextDealer);
     stateRef.current.dealerId = nextDealer;
 
     const finalResult = {
       isHuangZhuang: true,
-      scoreChanges: [0, 0, 0, 0]
+      scoreChanges: [0, 0, 0, 0],
+      lastDrawerId: stateRef.current.lastDrawerId,
+      newDealerId: nextDealer
     };
     setRoundResult(finalResult);
 
