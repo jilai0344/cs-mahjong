@@ -34,6 +34,10 @@ export const WIND_NAMES = ['东', '南', '西', '北'];
 
 // 默认规则配置
 export const DEFAULT_CONFIG = {
+  // 基础分 B / 固定分 F（规格 §一）：由玩家在房间规则里自定，联机时同步、开局后锁定。
+  // 小胡 Base = 2B，大胡 Base = 7B × k；每家应付 P = min(Base × (n+1), 42B) + 2F，封顶固定 42B。
+  baseScore: 1,  // B：整数 1–100
+  fixedScore: 1, // F：整数 0–100（可为 0）
   // 开杠摸牌数：2只 或 4只
   kongDrawCount: 2, // 2 | 4
   // 开杠需不需要将：true(需要有258将) | false(不需要)

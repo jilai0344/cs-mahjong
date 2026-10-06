@@ -47,6 +47,36 @@ export function capAmount(B) {
   return CAP_BASE_MULTIPLIER * B;
 }
 
+/**
+ * 房间规则里的 B/F → 计分参数（规格 §一 + S4 裁定）
+ * · B：整数 1–100，缺省 1；F：整数 0–100，缺省 1（可为 0）
+ * · 封顶固定 42B，不可配置
+ * @param {{baseScore?:number, fixedScore?:number}} config
+ * @returns {{B:number, F:number}}
+ */
+export function normalizeScoreParams(config = {}) {
+  const rawB = Number(config?.baseScore);
+  const rawF = Number(config?.fixedScore);
+  const clampInt = (v, min, max, fallback) => {
+    const n = Number.isFinite(v) ? Math.floor(v) : fallback;
+    return Math.min(max, Math.max(min, n));
+  };
+  return {
+    B: clampInt(rawB, 1, 100, 1),
+    F: clampInt(rawF, 0, 100, 1)
+  };
+}
+
+/**
+ * 番型列表 → 计分用的赢家条目（规格 §六：每多一个大胡番型 k+1；平胡/起手胡/中途四喜 k 记 0）
+ * @param {number} seat
+ * @param {string[]} huTypes
+ */
+export function huEntryFromTypes(seat, huTypes = []) {
+  const bigTypes = (huTypes || []).filter((t) => t !== '平胡');
+  return { seat, isBigHu: bigTypes.length > 0, k: bigTypes.length, huTypes };
+}
+
 /** 小胡底分 */
 export function smallHuBase(B) {
   return SMALL_HU_BASE_MULTIPLIER * B;
@@ -309,6 +339,31 @@ export function rollBirdDice(count, randomInt = defaultRandomInt) {
 
 function defaultRandomInt(maxExclusive) {
   return Math.floor(Math.random() * maxExclusive);
+}
+
+/**
+ * 可供 rollBirdDice 注入的随机源：优先用 Web Crypto 的安全随机数（联机时由服务端执行,
+ * 客户端只负责展示动画与结果），环境不支持时退回 Math.random（仅单机练习可接受）。
+ * 用拒绝采样消除取模偏差。
+ * @param {number} maxExclusive 上界（不含），必须为 1..2^32
+ * @returns {number} [0, maxExclusive) 的整数
+ */
+export function secureRandomInt(maxExclusive) {
+  if (!Number.isInteger(maxExclusive) || maxExclusive <= 0) {
+    throw new Error(`secureRandomInt: maxExclusive 必须是正整数（实际 ${JSON.stringify(maxExclusive)}）`);
+  }
+  const g = globalThis;
+  if (g.crypto && typeof g.crypto.getRandomValues === 'function') {
+    const limit = Math.floor(0xFFFFFFFF / maxExclusive) * maxExclusive;
+    const buf = new Uint32Array(1);
+    let v;
+    do {
+      g.crypto.getRandomValues(buf);
+      v = buf[0];
+    } while (v >= limit);
+    return v % maxExclusive;
+  }
+  return defaultRandomInt(maxExclusive);
 }
 
 /** 中鸟落点描述（供 UI 展示，如「3 只中鸟：庄位 2、下家 1」） */

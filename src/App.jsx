@@ -17,7 +17,7 @@ import {
   analyzeTingCards,
   drawBirds
 } from './utils/mahjongLogic.js';
-import { nextDealerSeat, drawDealerSeat } from './utils/scoring.js';
+import { nextDealerSeat, drawDealerSeat, scoreRound, rollBirdDice, secureRandomInt, normalizeScoreParams, huEntryFromTypes } from './utils/scoring.js';
 import {
   chooseAiDiscard,
   decideAiResponse,
@@ -41,6 +41,8 @@ import RulesGuideModal from './components/RulesGuideModal.jsx';
 import MultiplayerModal from './components/MultiplayerModal.jsx';
 
 import { Settings, BookOpen, Volume2, VolumeX, Sparkles, Play, RotateCcw, Users, Wifi, Globe } from 'lucide-react';
+
+// (helper 已移入 src/utils/scoring.js：normalizeScoreParams / huEntryFromTypes —— 纯函数、可单测)
 
 export default function App() {
   // 1. 规则与配置状态
@@ -369,6 +371,19 @@ export default function App() {
         } else if (data.type === 'STARTING_HU_BROADCAST') {
           setStartingHuEvents(data.events);
           setGameState('STARTING_HU');
+          // 起手胡由房主（权威端）算分，客户端只累加权威结果（规格 §九.3）
+          const perSeat = [0, 0, 0, 0];
+          (data.events || []).forEach(evt => {
+            (evt.scoreChanges || []).forEach((c, i) => { perSeat[i] += c; });
+          });
+          if (perSeat.some(c => c !== 0)) {
+            setPlayerScores(prev => prev.map((s, i) => s + perSeat[i]));
+          }
+        } else if (data.type === 'SI_XI_BROADCAST') {
+          showBubble(data.playerId, data.text);
+          if (data.changes) {
+            setPlayerScores(prev => prev.map((s, i) => s + (data.changes[i] || 0)));
+          }
         } else if (data.type === 'START_PLAYING') {
           setStartingHuEvents([]);
           setGameState('PLAYING');
@@ -514,28 +529,37 @@ export default function App() {
       });
 
       if (startingEvents.length > 0) {
-        setPlayerScores(prevScores => {
-          const nextScores = [...prevScores];
-          startingEvents.forEach(evt => {
-            const pId = evt.player.id;
-            const ptsPerHu = 2;
-            const totalGain = evt.huList.length * ptsPerHu * 3;
-            nextScores[pId] += totalGain;
-            for (let i = 0; i < 4; i++) {
-              if (i !== pId) {
-                nextScores[i] -= evt.huList.length * ptsPerHu;
-              }
-            }
+        // 规格 §七.2/§八.10：每个起手胡各摇一次骰子、各自独立按「小胡自摸」结算（逐家 n + 封顶 + 2F），
+        // 且不影响下一局庄。骰子数量 = 规则设置里的抓鸟数，随机源走安全随机数（联机时由服务端执行）。
+        const { B, F } = normalizeScoreParams(config);
+        const scoredEvents = startingEvents.map(evt => {
+          const perHu = evt.huList.map(hu => {
+            const birdValues = rollBirdDice(config.birdCount || 0, secureRandomInt);
+            const scored = scoreRound({ method: 'qishou', B, F, winner: { seat: evt.player.id }, birdValues });
+            return {
+              name: hu.name,
+              birdValues,
+              changes: scored.changes,
+              details: scored.details,
+              birdDetail: scored.birdDetail,
+              cap: scored.cap
+            };
           });
-          return nextScores;
+          const changes = [0, 0, 0, 0];
+          perHu.forEach(p => p.changes.forEach((c, i) => { changes[i] += c; }));
+          return { ...evt, perHuScores: perHu, scoreChanges: changes };
         });
 
-        setStartingHuEvents(startingEvents);
+        setPlayerScores(prevScores => prevScores.map((s, i) =>
+          s + scoredEvents.reduce((sum, e) => sum + e.scoreChanges[i], 0)
+        ));
+
+        setStartingHuEvents(scoredEvents);
         setGameState('STARTING_HU');
         stateRef.current.gameState = 'STARTING_HU';
 
         if (mp.isMultiplayer && mp.isHost) {
-          network.broadcast({ type: 'STARTING_HU_BROADCAST', events: startingEvents });
+          network.broadcast({ type: 'STARTING_HU_BROADCAST', events: scoredEvents });
         }
       } else {
         enterPlayingState(dealerId, hands, newDeck, mp);
@@ -1197,11 +1221,15 @@ export default function App() {
       }
       if (kongWinners.length > 0) {
         kongWinners.forEach(w => showBubble(w.id, '杠上炮！'));
-        // 按座位顺序，以出杠者下家优先结算（一炮多响取顺位最近者）
-        const first = kongWinners.sort((a, b) =>
-          ((a.id - kongPlayerId + 4) % 4) - ((b.id - kongPlayerId + 4) % 4)
-        )[0];
-        handleRoundWin(first.id, kongPlayerId, card, false, ['杠上炮', ...first.huRes.huTypes.filter(t => t !== '平胡')]);
+        // 规格 §四 通炮：每位胡牌者按各自的牌型、各自的 k 与 n 单独结算，出杠者总付 = ΣP
+        // （Q9 裁定：真·一炮多响；原来的「只取顺位最近一家」已被替换）
+        const winners = kongWinners.map(w =>
+          huEntryFromTypes(w.id, ['杠上炮', ...w.huRes.huTypes.filter(t => t !== '平胡')])
+        );
+        handleRoundWin(winners[0].seat, kongPlayerId, card, false, winners[0].huTypes, {
+          method: 'tongpao',
+          winners
+        });
         return;
       }
     }
@@ -1321,38 +1349,40 @@ export default function App() {
   // -------------------------------------------------------------------------
   // 终局结算与扎鸟
   // -------------------------------------------------------------------------
-  const handleRoundWin = (winnerId, loserId, winningTile, isSelfDrawn, huTypes) => {
+  // 规格 §四/§六：番型 → 大胡标记与 k（k = 大胡番型个数）的换算见 scoring.js 的 huEntryFromTypes
+  const handleRoundWin = (winnerId, loserId, winningTile, isSelfDrawn, huTypes, opts = {}) => {
+    const { B, F } = normalizeScoreParams(config);
     setGameState('ROUND_OVER');
     stateRef.current.gameState = 'ROUND_OVER';
     setAvailableActions({ hu: false, gang: false, peng: false, chi: false, pass: false });
 
-    const birdResult = drawBirds(stateRef.current.wall, config.birdCount, winnerId);
+    // 通炮（一炮多响）：opts.winners 给多位胡牌者，每位按各自牌型、各自的 k 与 n 单独结算（规格 §四）
+    const method = opts.method || (isSelfDrawn ? 'zimo' : 'dianpao');
+    const isTongPao = method === 'tongpao';
+    const winnerList = (opts.winners && opts.winners.length > 0)
+      ? opts.winners
+      : [huEntryFromTypes(winnerId, huTypes)];
 
-    let baseScore = 1;
-    const isBig = huTypes.some(t => t !== '平胡');
-    if (isBig) {
-      baseScore = huTypes.filter(t => t !== '平胡').length * 6;
+    // 终局抓鸟（S2 裁定）：仍翻牌墙，取末尾并移除；座位基准 = 本次结算的庄位
+    // （自摸/点炮 = 胡牌者，通炮 = 放炮者）
+    const birdBaseSeat = isTongPao ? loserId : winnerId;
+    const birdResult = drawBirds(stateRef.current.wall, config.birdCount, birdBaseSeat);
+    if (birdResult.birds.length > 0) {
+      stateRef.current.wall = stateRef.current.wall.slice(0, -birdResult.birds.length);
+      setWall([...stateRef.current.wall]);
     }
 
-    const finalScorePerLoser = baseScore * (1 + birdResult.hitCount);
-    const changes = [0, 0, 0, 0];
-
-    if (isSelfDrawn) {
-      for (let i = 0; i < 4; i++) {
-        if (i === winnerId) {
-          changes[i] = finalScorePerLoser * 3;
-        } else {
-          changes[i] = -finalScorePerLoser;
-        }
-      }
-    } else {
-      changes[winnerId] = finalScorePerLoser * 3;
-      changes[loserId] = -finalScorePerLoser * 3;
-    }
+    // 计分一律走纯函数模块（规格 §九.2）：P = min(Base × (n+1), 42B) + 2F
+    const scored = scoreRound(isTongPao
+      ? { method, B, F, winners: winnerList, discarderSeat: loserId, birdValues: birdResult.birdValues }
+      : { method, B, F, winner: winnerList[0], discarderSeat: method === 'dianpao' ? loserId : null, birdValues: birdResult.birdValues });
+    const changes = scored.changes;
 
     setPlayerScores(prev => prev.map((s, idx) => s + changes[idx]));
-    // 规格 §二.1：谁胡牌，本次计分时谁就是庄（自摸、点炮均如此）
-    const nextDealer = nextDealerSeat({ outcome: 'win', winnerSeat: winnerId });
+    // 规格 §二.1/§二.3：谁胡牌谁做庄；通炮时放炮者做庄
+    const nextDealer = isTongPao
+      ? nextDealerSeat({ outcome: 'tongpao', discarderSeat: loserId })
+      : nextDealerSeat({ outcome: 'win', winnerSeat: winnerId });
     setDealerId(nextDealer);
     stateRef.current.dealerId = nextDealer;
 
@@ -1363,16 +1393,28 @@ export default function App() {
     const finalResult = {
       isHuangZhuang: false,
       winner: { ...PLAYERS[winnerId], name: winnerName },
-      loser: isSelfDrawn ? null : { ...PLAYERS[loserId], name: loserName },
-      huTypes: huTypes.length > 0 ? huTypes : ['平胡'],
-      score: finalScorePerLoser,
+      loser: (isSelfDrawn && !isTongPao) ? null : { ...PLAYERS[loserId], name: loserName },
+      huTypes: (huTypes && huTypes.length > 0) ? huTypes : ['平胡'],
+      score: scored.winners.reduce((sum, w) => sum + w.receives, 0),
       birdsResult: birdResult,
       handTiles: stateRef.current.playerHands[winnerId],
       melds: stateRef.current.playerMelds[winnerId],
       winningTile,
-      isSelfDrawn,
+      isSelfDrawn: isSelfDrawn && !isTongPao,
       scoreChanges: changes,
-      newDealerId: nextDealer
+      newDealerId: nextDealer,
+      // 逐项明细（规格 §九.5）：番型与 k、B、F、每家 n 与乘数、封顶前后、应付、得失、骰子/鸟
+      scoring: {
+        method,
+        B,
+        F,
+        cap: scored.cap,
+        dealerSeat: scored.dealerSeat,
+        details: scored.details,
+        winners: scored.winners,
+        birdDetail: scored.birdDetail,
+        zeroSum: scored.zeroSum
+      }
     };
 
     setRoundResult(finalResult);
@@ -1417,28 +1459,28 @@ export default function App() {
   // 中途四喜结算与执行
   const executeMidGameSiXi = (playerId, siXiOption) => {
     sound.playHu();
-    showBubble(playerId, '中途四喜！', 2500);
     declaredSiXiRef.current[playerId].add(siXiOption.key);
 
-    const ptsPerOther = 2;
-    const totalGain = ptsPerOther * 3;
-    setPlayerScores(prevScores => {
-      const nextScores = [...prevScores];
-      nextScores[playerId] += totalGain;
-      for (let i = 0; i < 4; i++) {
-        if (i !== playerId) {
-          nextScores[i] -= ptsPerOther;
-        }
-      }
-      return nextScores;
-    });
+    // 规格 §七.3/§八.11：按「小胡自摸」结算（触发者即该次结算的庄），摇骰子抓鸟；
+    // 结算后牌局继续、不改庄；同一组 4 张只触发一次（declaredSiXiRef 去重）
+    const { B, F } = normalizeScoreParams(config);
+    const birdValues = rollBirdDice(config.birdCount || 0, secureRandomInt);
+    const scored = scoreRound({ method: 'siji', B, F, winner: { seat: playerId }, birdValues });
+    setPlayerScores(prev => prev.map((s, i) => s + scored.changes[i]));
+
+    const gain = scored.changes[playerId];
+    showBubble(playerId, `中途四喜！ +${gain} 分`, 2500);
 
     const mp = multiplayerRef.current;
     if (mp.isMultiplayer && mp.isHost) {
+      // 联机时由房主（权威端）算分并广播结果，客户端只累加（规格 §九.3）
       network.broadcast({
-        type: 'BUBBLE_BROADCAST',
+        type: 'SI_XI_BROADCAST',
         playerId,
-        text: '中途四喜！'
+        text: `中途四喜！ +${gain} 分`,
+        changes: scored.changes,
+        details: scored.details,
+        birdValues
       });
     }
 

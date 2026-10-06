@@ -40,6 +40,21 @@ export default function SettingsModal({
     });
   };
 
+  // B/F 由玩家自定（S4 裁定：B 整数 1–100，F 整数 0–100 且可为 0；封顶固定 42B 不可配）
+  const clampIntField = (value, min) => {
+    const n = Math.floor(Number(value));
+    if (!Number.isFinite(n)) return min;
+    return Math.min(100, Math.max(min, n));
+  };
+
+  const handleSetBaseScore = (value) => {
+    onUpdateConfig({ ...config, baseScore: clampIntField(value, 1) });
+  };
+
+  const handleSetFixedScore = (value) => {
+    onUpdateConfig({ ...config, fixedScore: clampIntField(value, 0) });
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in select-none">
       <div className="relative w-full max-w-lg rounded-2xl bg-gradient-to-b from-slate-900 via-emerald-950/90 to-slate-900 border border-emerald-500/30 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -193,6 +208,44 @@ export default function SettingsModal({
                 );
               })}
             </div>
+          </div>
+
+          {/* 3.5 基础分 B / 固定分 F（规格 §一：小胡 2B、大胡 7B×k、封顶 42B） */}
+          <div className="p-4 rounded-xl bg-slate-800/40 border border-emerald-500/20">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-bold text-white">基础分 B / 固定分 F</span>
+              <span className="text-xs text-amber-300 font-mono">
+                封顶 {42 * (config.baseScore || 1)} 分（42B）
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/60 border border-slate-700">
+                <span className="text-xs font-semibold text-white">基础分 B</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={config.baseScore ?? 1}
+                  onChange={e => handleSetBaseScore(e.target.value)}
+                  className="w-16 px-1.5 py-1 rounded-md bg-slate-800 text-emerald-200 font-mono text-xs text-right border border-slate-600 focus:border-emerald-400 focus:outline-none"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/60 border border-slate-700">
+                <span className="text-xs font-semibold text-white">固定分 F</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={config.fixedScore ?? 1}
+                  onChange={e => handleSetFixedScore(e.target.value)}
+                  className="w-16 px-1.5 py-1 rounded-md bg-slate-800 text-emerald-200 font-mono text-xs text-right border border-slate-600 focus:border-emerald-400 focus:outline-none"
+                />
+              </label>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-2 leading-tight">
+              B 为整数 1–100，F 为整数 0–100（可为 0）。小胡底分 2B、大胡底分 7B×k（k = 大胡番型个数，线性相加）；
+              每家应付 = min(底分 × (n+1), 42B) + 2F，2F 不参与翻倍、不受封顶。
+            </p>
           </div>
 
           {/* 4. 抓鸟设置 */}

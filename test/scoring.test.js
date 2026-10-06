@@ -7,6 +7,9 @@ import {
   countEffectiveBirds,
   birdSeat,
   capAmount,
+  normalizeScoreParams,
+  huEntryFromTypes,
+  secureRandomInt,
   nextDealerSeat,
   drawDealerSeat,
   rollBirdDice,
@@ -307,6 +310,51 @@ console.log('\n=== 测试 8: 回归用例（外部审计发现的 2 处缺陷）
   let msg = '';
   try { scoreRound({ method: 'zimo', B: 1, F: 1, winner: { seat: 7 } }); } catch (e) { msg = e.message; }
   assert(msg.includes('winner.seat') && msg.includes('7'), `越界错误信息含字段名与实际值（实际消息：${msg}）`);
+}
+
+// ------------------------------------------------------------------
+console.log('\n=== 测试 9: 房间规则 → 计分参数（B/F）与番型折算 ===');
+{
+  eq(normalizeScoreParams({ baseScore: 3, fixedScore: 0 }), { B: 3, F: 0 }, 'B/F 原样通过（F 可为 0）');
+  eq(normalizeScoreParams({}), { B: 1, F: 1 }, '缺省 B=1、F=1（S4 裁定）');
+  eq(normalizeScoreParams({ baseScore: 0, fixedScore: -5 }), { B: 1, F: 0 }, 'B 下限 1、F 下限 0（越界被夹紧）');
+  eq(normalizeScoreParams({ baseScore: 999, fixedScore: 999 }), { B: 100, F: 100 }, 'B/F 上限 100');
+  eq(normalizeScoreParams({ baseScore: 2.7, fixedScore: 1.2 }), { B: 2, F: 1 }, '小数向下取整为整数');
+  eq(normalizeScoreParams({ baseScore: 'abc' }), { B: 1, F: 1 }, '非数字回退默认值');
+
+  eq(huEntryFromTypes(2, ['平胡']), { seat: 2, isBigHu: false, k: 0, huTypes: ['平胡'] }, '平胡 → k=0');
+  eq(huEntryFromTypes(0, ['清一色', '碰碰胡']).k, 2, '同时成立两个大胡番型 → k=2');
+  eq(huEntryFromTypes(1, ['杠上炮', '清一色']).isBigHu, true, '杠上炮等特殊番种计入大胡');
+  eq(huEntryFromTypes(0, []).k, 0, '空番型列表 → k=0（不抛错）');
+
+  // 端到端：B=3、F=0，大胡 k=2 自摸，鸟 1 只落付分者（n=1）→ min(42×2, 126)=84
+  const r = scoreRound({
+    method: 'zimo', B: 3, F: 0,
+    winner: huEntryFromTypes(0, ['清一色', '碰碰胡']),
+    birdValues: [2]
+  });
+  eq([r.details[0].n, r.details[0].base, r.details[0].beforeCap, r.details[0].capped, r.details[0].P], [1, 42, 84, 84, 84],
+    'B=3：底分 7B×2=42，乘数 2 → 84 未超封顶 126，P=84');
+  assert(r.zeroSum, 'B=3/F=0 结算零和');
+}
+
+// ------------------------------------------------------------------
+console.log('\n=== 测试 10: 安全随机源（摇骰子抓鸟） ===');
+{
+  let allInRange = true;
+  for (let i = 0; i < 500; i++) {
+    const v = secureRandomInt(6);
+    if (!Number.isInteger(v) || v < 0 || v >= 6) allInRange = false;
+  }
+  assert(allInRange, 'secureRandomInt(6) 500 次全部为 [0,6) 的整数');
+  eq(new Set(Array.from({ length: 2000 }, () => secureRandomInt(6))).size, 6, '2000 次采样覆盖骰子 6 个面');
+  throws(() => secureRandomInt(0), 'maxExclusive=0 抛错');
+  throws(() => secureRandomInt(1.5), '非整数 maxExclusive 抛错');
+
+  const dice = rollBirdDice(4, secureRandomInt);
+  eq(dice.length, 4, '抓 4 只鸟 → 4 颗骰子');
+  assert(dice.every(v => v >= 1 && v <= 6), '骰子点数在 1..6（六面骰不会出现 7/8/9，故 7/8/9 的鸟点只能来自终局翻牌）');
+  eq(rollBirdDice(0, secureRandomInt).length, 0, '不抓鸟时不摇骰子');
 }
 
 // ------------------------------------------------------------------

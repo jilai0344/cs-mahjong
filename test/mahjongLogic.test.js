@@ -350,19 +350,29 @@ console.log('\n=== 测试 3: 长沙麻将胡牌判定 (二五八做将 & 大胡)
   assert(qingPengRes.isBigHu === true && qingPengRes.k === 2, '清一色 + 碰碰胡：k=2（线性相加 2×7B，非翻番）');
 }
 
-console.log('\n=== 测试 4: 扎鸟算法验证 ===');
+console.log('\n=== 测试 4: 扎鸟算法验证（S2 裁定：翻牌墙取末尾）===');
 {
+  // 牌墙：头部即将被摸的牌，末尾才是扎鸟取的牌
   const testWall = [
-    { value: 1, name: '一万' }, // 1 -> 赢家中鸟
-    { value: 5, name: '五条' }, // 5 -> 赢家中鸟
-    { value: 2, name: '二筒' }, // 2 -> 下家中鸟
-    { value: 9, name: '九万' }  // 9 -> 赢家中鸟
+    { value: 3, name: '三条' }, // 头部：会被摸走
+    { value: 7, name: '七万' },
+    { value: 1, name: '一万' }, // 末尾倒数第 3 张
+    { value: 5, name: '五条' }, // 末尾倒数第 2 张
+    { value: 2, name: '二筒' }, // 末尾倒数第 1 张
+    { value: 9, name: '九万' }  // 末尾最后一张
   ];
-  const birdRes2 = drawBirds(testWall, 2, 0); // 抓2鸟
-  assert(birdRes2.birds.length === 2 && birdRes2.hitCount === 2, '前两张为1与5，抓2鸟全部命中赢家(中2鸟)');
+  const birdRes2 = drawBirds(testWall, 2, 0); // 庄位=0，抓末尾 2 张（保持牌墙顺序）：2、9
+  assert(birdRes2.birds.length === 2 && birdRes2.source === 'tail', '抓鸟取牌墙末尾');
+  assert(birdRes2.birds[0].tile.value === 2 && birdRes2.birds[1].tile.value === 9, '抓 2 鸟取到末尾的 2、9（不是头部的 3、7）');
+  assert(birdRes2.birdValues.join(',') === '2,9', '输出鸟点序列供计分模块使用');
+  assert(birdRes2.birds.map(b => b.targetSeat).join(',') === '1,0', '庄位=0 时：2→下家、9→庄位');
+  assert(birdRes2.hitCount === 1, '中庄位的鸟只有 9，共 1 只');
 
-  const birdRes4 = drawBirds(testWall, 4, 0); // 抓4鸟
-  assert(birdRes4.birds.length === 4 && birdRes4.hitCount === 3, '4张牌中1、5、9共命中3只鸟');
+  const birdRes4 = drawBirds(testWall, 4, 0); // 抓末尾 4 张：1、5、2、9
+  assert(birdRes4.birds.length === 4 && birdRes4.hitCount === 3, '末尾 4 张中 1、5、9 共命中庄位 3 只鸟');
+
+  const birdRes0 = drawBirds(testWall, 0, 0);
+  assert(birdRes0.birds.length === 0 && birdRes0.hitCount === 0 && birdRes0.birdValues.length === 0, '不抓鸟（0 只）时返回空结果');
 }
 
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个\n`);
