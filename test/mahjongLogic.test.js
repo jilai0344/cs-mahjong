@@ -350,6 +350,48 @@ console.log('\n=== 测试 3: 长沙麻将胡牌判定 (二五八做将 & 大胡)
   assert(qingPengRes.isBigHu === true && qingPengRes.k === 2, '清一色 + 碰碰胡：k=2（线性相加 2×7B，非翻番）');
 }
 
+console.log('\n=== 测试 3b: 碰碰胡与「4 张同牌」（P1-6）===');
+{
+  const W = SUITS.WAN, TIAO = SUITS.TIAO, TONG = SUITS.TONG;
+  const T = (suit, values) => values.map(value => ({ suit, value }));
+
+  // A. 旧实现会误判：4×万1 + 3×条2 + 3×条3 + 2×筒5 + 1×万7 + 1×筒9
+  //    拆不出「4 刻子 + 1 对」（4 张只能算 1 刻子 + 1 张散牌），旧实现把 4 张记成 2 个刻子，
+  //    多记的 2 张正好与 2 张散牌抵消 → 误判成碰碰胡。
+  const falsePositive = [
+    ...T(W, [1, 1, 1, 1]),
+    ...T(TIAO, [2, 2, 2, 3, 3, 3]),
+    ...T(TONG, [5, 5, 9]),
+    ...T(W, [7])
+  ];
+  assert(falsePositive.length === 14, '构造的误判牌例为 14 张');
+  const fpRes = checkHu(falsePositive, [], null, true, {});
+  assert(!fpRes.huTypes.includes('碰碰胡'), '4 张同牌 + 2 张散牌不得判【碰碰胡】（旧实现误判，P1-6）');
+
+  // B. 两个 4 张同牌：4×万1 + 4×条2 + 3×条3 + 3×筒5 → 同样拆不出 4 刻子 + 1 对
+  const twoQuads = [
+    ...T(W, [1, 1, 1, 1]),
+    ...T(TIAO, [2, 2, 2, 2]),
+    ...T(TIAO, [3, 3, 3]),
+    ...T(TONG, [5, 5, 5])
+  ];
+  const tqRes = checkHu(twoQuads, [], null, true, {});
+  assert(!tqRes.huTypes.includes('碰碰胡'), '两组 4 张同牌也不得判【碰碰胡】');
+
+  // C. 回归：正常的 4 刻子 + 1 对（没有 4 张同牌）仍然成立
+  const normal = [
+    ...T(W, [1, 1, 1]), ...T(TIAO, [2, 2, 2]), ...T(TIAO, [3, 3, 3]), ...T(TONG, [5, 5, 5]), ...T(TONG, [9, 9])
+  ];
+  const normalRes = checkHu(normal, [], null, true, {});
+  assert(normalRes.canHu && normalRes.huTypes.includes('碰碰胡'), '回归：4 刻子 + 1 对仍判【碰碰胡】');
+
+  // D. 回归：4 张同牌已经开杠（在 melds 里）时不受影响 —— 杠按 3 张有效牌折算
+  const kongMeld = { type: 'gang', tile: { suit: W, value: 1 }, tiles: T(W, [1, 1, 1, 1]) };
+  const handWithKong = [...T(TIAO, [2, 2, 2]), ...T(TIAO, [3, 3, 3]), ...T(TONG, [5, 5, 5]), ...T(TONG, [9, 9])];
+  const kongRes = checkHu(handWithKong, [kongMeld], null, true, {});
+  assert(kongRes.canHu && kongRes.huTypes.includes('碰碰胡'), '回归：开杠（4 张在面子里）后仍判【碰碰胡】');
+}
+
 console.log('\n=== 测试 4: 房间规则默认值（规格 §一/§六 + S3/S4 裁定）===');
 {
   const j = (v) => JSON.stringify(v);
