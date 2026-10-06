@@ -25,8 +25,8 @@ src/components/TableCenter.jsx:40:9 warning eslint(no-unused-vars): Variable 're
 src/utils/aiPlayer.js:2:35 warning eslint(no-unused-vars): Identifier 'compareTiles' is imported but never used.
 src/utils/mahjongLogic.js:2:43 warning eslint(no-unused-vars): Identifier 'JIANG_NUMBERS' is imported but never used.
 src/utils/mahjongLogic.js:2:83 warning eslint(no-unused-vars): Identifier 'compareTiles' is imported but never used.
-src/utils/multiplayer.js:144:44 warning eslint(no-unused-vars): Catch parameter '_' is caught but never used.
-src/utils/multiplayer.js:162:44 warning eslint(no-unused-vars): Catch parameter '_' is caught but never used.
-src/utils/multiplayer.js:651:16 warning eslint(no-unused-vars): Catch parameter '_' is caught but never used.
+src/utils/multiplayer.js:158:44 warning eslint(no-unused-vars): Catch parameter '_' is caught but never used.
+src/utils/multiplayer.js:176:44 warning eslint(no-unused-vars): Catch parameter '_' is caught but never used.
+src/utils/multiplayer.js:665:16 warning eslint(no-unused-vars): Catch parameter '_' is caught but never used.
 test/mahjongLogic.test.js:7:3 warning eslint(no-unused-vars): Identifier 'canPeng' is imported but never used.
 test/mahjongLogic.test.js:8:3 warning eslint(no-unused-vars): Identifier 'getChiOptions' is imported but never used.
