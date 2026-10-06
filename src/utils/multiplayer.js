@@ -2,6 +2,7 @@
 // 适配国内移动网络 (4G/5G/Wi-Fi/跨运营商)，无需公网 IP 与穿透中继
 import mqtt from 'mqtt';
 import { deriveRoomKey, encryptJson, decryptJson } from './crypto.js';
+import { createMessageFilter, nextMessageId } from './dedupe.js';
 
 export const ROOM_PREFIX = 'csmj-v1-';
 
@@ -27,6 +28,11 @@ export class NetworkManager {
     this.isHost = false;
     this.roomCode = '';
     this.roomKey = null; // 房间密钥（由房间号派生，见 utils/crypto.js）
+    // 幂等与重连（P0-4）
+    this.connId = 'c' + Math.random().toString(36).slice(2, 8); // 本连接的 id 前缀，避免与他端撞号
+    this.inboundFilter = createMessageFilter();
+    this.joined = false;   // 访客是否已成功落座
+    this.reconnecting = false;
     this.mySeatId = 0; // 0: 东(房主), 1: 南, 2: 西, 3: 北
     this.playerName = '我';
     this.guestTempId = '';
@@ -59,6 +65,11 @@ export class NetworkManager {
     return `csmj/v1/${this.roomCode}/${sub}`;
   }
 
+  // 辅助方法：给消息打上唯一 id 与时间戳（用于接收端幂等去重）
+  _stamp(message) {
+    return { ...message, msgId: nextMessageId(this.connId), ts: Date.now() };
+  }
+
   // 辅助方法：发布消息（一律加密后再上路，公共 broker 上只有密文）
   async _publish(topic, message, opts = { qos: 1 }) {
     if (!this.client || !this.client.connected) return;
@@ -67,7 +78,7 @@ export class NetworkManager {
       return;
     }
     try {
-      const payload = await encryptJson(this.roomKey, message);
+      const payload = await encryptJson(this.roomKey, this._stamp(message));
       this.client.publish(topic, payload, opts);
     } catch (e) {
       console.warn('[CSMJ Network] 加密发送失败:', e.message);
@@ -79,6 +90,12 @@ export class NetworkManager {
     const data = await decryptJson(this.roomKey, payload);
     if (!data) {
       console.warn('[CSMJ Network] 收到无法解密的消息（密钥不匹配或非本协议载荷），已忽略');
+      return null;
+    }
+    // 幂等：QoS 1 是「至少一次」，重传/重连会让同一条消息到达多次 → 只处理第一次
+    if (!this.inboundFilter.accept(data.msgId, data.ts)) {
+      console.warn('[CSMJ Network] 重复消息已丢弃:', data.msgId);
+      return null;
     }
     return data;
   }
@@ -183,6 +200,15 @@ export class NetworkManager {
           if (onReady) onReady(this.roomCode);
         });
 
+        // 断线重连（P0-4）：clean session 会丢掉订阅，重连后必须补订阅，否则静默失聪
+        client.on('connect', () => {
+          if (!this.isHost || !this.roomCode) return;
+          client.subscribe(this._getTopic('host'), { qos: 1 }, () => {
+            console.log('[CSMJ Network] 房主重连完成，已恢复订阅并重新广播大厅状态');
+            this.broadcastLobbyState();
+          });
+        });
+
         // 监听来自访客的指令
         client.on('message', async (topic, payload) => {
           const data = await this._parsePayload(payload);
@@ -275,6 +301,42 @@ export class NetworkManager {
       if (s >= 1 && s <= 3) {
         this._revertSeatToAI(s);
       }
+    } else if (data.type === 'RECONNECT') {
+      // 掉线玩家重连：优先恢复原座位（可能刚被心跳看门狗降级成 AI）
+      const guestId = data.guestTempId || this.seatToGuest.get(data.seatId ?? data.fromSeatId);
+      const seat = data.seatId ?? data.fromSeatId;
+      if (!guestId || !(seat >= 1 && seat <= 3)) return;
+
+      const knownSeat = this.guestToSeat.get(guestId);
+      const seatTaken = this.seats[seat].isHuman && this.seats[seat].isConnected && knownSeat !== seat;
+      if (seatTaken) {
+        void this._publish(this._getTopic(`guest/${guestId}`), {
+          type: 'ROOM_FULL',
+          message: '原座位已被其他玩家占用，请重新加入房间'
+        });
+        return;
+      }
+
+      this.guestToSeat.set(guestId, seat);
+      this.seatToGuest.set(seat, guestId);
+      this.lastHeartbeat[seat] = Date.now();
+      this.seats[seat] = {
+        id: seat,
+        name: data.playerName || this.seats[seat].name,
+        isHost: false,
+        isHuman: true,
+        isConnected: true,
+        isReady: true
+      };
+      console.log(`[CSMJ Network] 座位 ${seat} 已由掉线玩家恢复`);
+      this.broadcastLobbyState();
+      void this._publish(this._getTopic(`guest/${guestId}`), {
+        type: 'JOIN_SUCCESS',
+        seatId: seat,
+        roomCode: this.roomCode,
+        seats: this.seats,
+        resumed: true
+      });
     } else {
       // 业务游戏指令 (DISCARD_ACTION, RESPOND_ACTION, ACK_STARTING_HU 等)
       const s = data.fromSeatId;
@@ -342,6 +404,30 @@ export class NetworkManager {
           }, 6000);
         });
 
+        // 断线重连（P0-4）：clean session 会丢掉订阅 → 补订阅；已落座的访客同时申请抢回原座位
+        client.on('connect', () => {
+          if (this.isHost || !this.roomCode) return;
+          if (hasJoined && this.mySeatId >= 1) {
+            client.subscribe(
+              [broadcastTopic, guestRespTopic, this._getTopic(`seat/${this.mySeatId}`)],
+              { qos: 1 },
+              () => {
+                console.log('[CSMJ Network] 访客重连完成，申请恢复原座位', this.mySeatId);
+                this.sendToHost({ type: 'RECONNECT', playerName: this.playerName });
+              }
+            );
+          } else {
+            client.subscribe([broadcastTopic, guestRespTopic], { qos: 1 }, () => {
+              console.log('[CSMJ Network] 访客重连完成，重新发起加入请求');
+              void this._publish(hostTopic, {
+                type: 'JOIN_REQUEST',
+                guestTempId: this.guestTempId,
+                playerName: this.playerName
+              });
+            });
+          }
+        });
+
         // 监听房主发来的消息
         client.on('message', async (topic, payload) => {
           const data = await this._parsePayload(payload);
@@ -350,9 +436,15 @@ export class NetworkManager {
           if (topic === guestRespTopic) {
             if (data.type === 'JOIN_SUCCESS') {
               hasJoined = true;
+              this.joined = true;
               if (this.joinTimeout) {
                 clearTimeout(this.joinTimeout);
                 this.joinTimeout = null;
+              }
+              // 重连恢复时不要重复启动心跳计时器（否则越连越多）
+              if (this.heartbeatTimer) {
+                clearInterval(this.heartbeatTimer);
+                this.heartbeatTimer = null;
               }
 
               this.mySeatId = data.seatId;
