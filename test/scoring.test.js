@@ -8,6 +8,7 @@ import {
   birdSeat,
   capAmount,
   nextDealerSeat,
+  drawDealerSeat,
   rollBirdDice,
   describeBirdHits,
   CAP_BASE_MULTIPLIER
@@ -250,6 +251,12 @@ console.log('\n=== 测试 6: 庄家轮换（胡者 / 放炮者 / 流局摸牌者
   eq(nextDealerSeat({ outcome: 'win', winnerSeat: 2 }), 2, '谁胡牌谁做庄（自摸与点炮相同）');
   eq(nextDealerSeat({ outcome: 'tongpao', discarderSeat: 3 }), 3, '通炮（一炮多响）：放炮者做庄');
   eq(nextDealerSeat({ outcome: 'draw', lastDrawerSeat: 1 }), 1, '流局：摸走最后一张牌的人做庄');
+  eq(drawDealerSeat({ lastDrawerSeat: 1, currentDealerSeat: 0 }), 1, '流局庄家 = 最后摸牌的座位（正常摸牌或开杠补牌）');
+  eq(drawDealerSeat({ lastDrawerSeat: 0, currentDealerSeat: 3 }), 0, '流局庄家与「当前庄」无关：庄自己摸走最后一张就继续做庄');
+  eq(drawDealerSeat({ lastDrawerSeat: null, currentDealerSeat: 2 }), 2, '本局从未有人摸过牌（异常路径）→ 退回当前庄，不顺移');
+  eq(drawDealerSeat({}), 0, '两个入参都缺省时不抛错，返回座位 0');
+  throws(() => drawDealerSeat({ lastDrawerSeat: 9 }), '流局庄家座位越界抛错');
+  throws(() => drawDealerSeat({ currentDealerSeat: -1 }), 'currentDealerSeat 越界抛错');
   throws(() => nextDealerSeat({ outcome: 'unknown' }), '未知 outcome 抛错（避免静默沿用旧庄）');
   throws(() => nextDealerSeat({ outcome: 'qishou' }), '起手胡/中途四喜不通过本函数改庄（结算不影响下一局庄）');
 }

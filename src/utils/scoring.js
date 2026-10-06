@@ -257,6 +257,23 @@ function otherSeats(seat) {
 }
 
 /**
+ * 流局（黄庄）庄家：规格 §二.4 —— 最后一张牌由谁摸，谁就是庄。
+ * 流局不计分，因此这里只决定下一局庄位。
+ * @param {{lastDrawerSeat?: number|null, currentDealerSeat?: number}} input
+ *   lastDrawerSeat = 本局最后一次从牌墙摸走牌的座位（正常摸牌与开杠补牌都算）；
+ *   currentDealerSeat = 本局的庄位，仅当「本局从未有人从牌墙摸过牌」这一异常路径才回退使用。
+ * @returns {number} 下一局庄位（0..3）
+ */
+export function drawDealerSeat({ lastDrawerSeat = null, currentDealerSeat = 0 }) {
+  if (!Number.isInteger(currentDealerSeat) || currentDealerSeat < 0 || currentDealerSeat > 3) {
+    throw new Error(`drawDealerSeat: currentDealerSeat 必须是 0..3 的整数（实际 ${JSON.stringify(currentDealerSeat)}）`);
+  }
+  const seat = (lastDrawerSeat === null || lastDrawerSeat === undefined) ? currentDealerSeat : lastDrawerSeat;
+  validateSeat('drawDealerSeat.lastDrawerSeat', seat);
+  return seat;
+}
+
+/**
  * 下一局庄家
  * · 'win'     谁胡牌谁做庄
  * · 'tongpao' 通炮（一炮多响）：放炮者做庄
