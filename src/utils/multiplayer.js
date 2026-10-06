@@ -3,6 +3,7 @@
 import mqtt from 'mqtt';
 import { deriveRoomKey, encryptJson, decryptJson } from './crypto.js';
 import { createMessageFilter, nextMessageId } from './dedupe.js';
+import { nextChannelOnRetry } from './invite.js';
 
 export const ROOM_PREFIX = 'csmj-v1-';
 
@@ -33,6 +34,7 @@ export class NetworkManager {
     this.inboundFilter = createMessageFilter();
     this.joined = false;   // 访客是否已成功落座
     this.reconnecting = false;
+    this.channelIndex = 0; // 本端实际所在的通信通道下标（0=主通道，1=备用通道）
     this.mySeatId = 0; // 0: 东(房主), 1: 南, 2: 西, 3: 北
     this.playerName = '我';
     this.guestTempId = '';
@@ -101,17 +103,23 @@ export class NetworkManager {
   }
 
   // 辅助方法：带自动故障转移的 MQTT 连接
-  _connectWithFallback(brokerList, options, onConnected, onFailed) {
+  // startIndex：从哪条通道开始试（邀请链接会把房主所在通道带过来，见 utils/invite.js）
+  _connectWithFallback(brokerList, options, onConnected, onFailed, startIndex = null) {
+    const total = brokerList.length;
+    const requested = startIndex === null ? (this._pendingStartChannel || 0) : startIndex;
+    const start = ((Number(requested) || 0) % total + total) % total;
+    const ordered = [...brokerList.slice(start), ...brokerList.slice(0, start)];
     let index = 0;
 
     const tryNext = () => {
-      if (index >= brokerList.length) {
+      if (index >= ordered.length) {
         if (onFailed) onFailed(new Error('无法连接到联机服务器，请检查网络设置'));
         return;
       }
 
-      const brokerUrl = brokerList[index];
-      console.log(`[CSMJ Network] 正在连接通信通道 (${index + 1}/${brokerList.length}):`, brokerUrl);
+      const brokerUrl = ordered[index];
+      const channelIndex = (start + index) % total;
+      console.log(`[CSMJ Network] 正在连接通信通道 (${channelIndex + 1}/${total}):`, brokerUrl);
 
       let isConnected = false;
       const client = mqtt.connect(brokerUrl, {
@@ -136,6 +144,7 @@ export class NetworkManager {
       client.on('connect', () => {
         isConnected = true;
         clearTimeout(timeoutTimer);
+        this.channelIndex = channelIndex; // 记录本端实际所在通道（邀请链接要带上它）
         console.log(`[CSMJ Network] 成功接入联机通道: ${brokerUrl}`);
         onConnected(client);
       });
@@ -155,7 +164,8 @@ export class NetworkManager {
   }
 
   // 1. 房主创建房间
-  async createRoom(roomCode, hostName = '房主', onReady = null, onError = null) {
+  // opts.channelIndex：优先尝试的通道（一般不用传，房主从主通道开始试）
+  async createRoom(roomCode, hostName = '房主', onReady = null, onError = null, opts = {}) {
     this.cleanup();
     this.isHost = true;
     this.roomCode = roomCode.toUpperCase().trim();
@@ -181,13 +191,14 @@ export class NetworkManager {
     // 房主掉线时自动向广播频道发送房间解散遗嘱（同样加密）
     const willTopic = this._getTopic('b');
     const willPayload = await encryptJson(this.roomKey, { type: 'ROOM_CLOSED', message: '房主已断开连接，房间已解散' });
+    // 想从哪条通道开始（邀请链接会带过来；房主一般从主通道开始）
+    this._pendingStartChannel = Number.isInteger(opts.channelIndex) ? opts.channelIndex : 0;
 
     this._connectWithFallback(
       BROKER_URLS,
       { will: { topic: willTopic, payload: willPayload, qos: 1, retain: false } },
       (client) => {
         this.client = client;
-
         // 订阅房主信箱
         const hostTopic = this._getTopic('host');
         client.subscribe(hostTopic, { qos: 1 }, (err) => {
@@ -350,7 +361,11 @@ export class NetworkManager {
   }
 
   // 2. 访客加入房间
-  async joinRoom(roomCode, playerName = '玩家', onJoined = null, onError = null) {
+  // opts.channelIndex：优先尝试的通道（来自邀请链接的 &b=，见 utils/invite.js）
+  // opts.allowChannelRetry：房主无响应时是否允许自动换到另一条通道再试一次（默认允许，只重试一次）
+  async joinRoom(roomCode, playerName = '玩家', onJoined = null, onError = null, opts = {}) {
+    const startChannel = Number.isInteger(opts.channelIndex) ? opts.channelIndex : 0;
+    const allowChannelRetry = opts.allowChannelRetry !== false;
     this.cleanup();
     this.isHost = false;
     this.roomCode = roomCode.toUpperCase().trim();
@@ -367,6 +382,8 @@ export class NetworkManager {
     }
 
     let hasJoined = false;
+    // 优先尝试的通道（邀请链接 &b= 指定；缺省主通道）
+    this._pendingStartChannel = startChannel;
 
     this._connectWithFallback(
       BROKER_URLS,
@@ -395,12 +412,24 @@ export class NetworkManager {
 
           // 启动 6 秒等待应答超时
           this.joinTimeout = setTimeout(() => {
-            if (!hasJoined) {
-              const err = new Error('未找到该房间或房主未在线，请检查房间号');
-              if (onError) onError(err);
-              if (this.onErrorCallback) this.onErrorCallback(err.message);
-              this.cleanup();
+            if (hasJoined) return;
+
+            // 两端可能落在不同通道（公共 broker 有主/备两条）：房主在主通道、访客超时落到备用通道，
+            // 双方都在线却永远收不到对方 —— 界面卡在「正在连接房主...」。这里自动换到另一条通道再试一次。
+            if (allowChannelRetry) {
+              const altChannel = nextChannelOnRetry(this.channelIndex, BROKER_URLS.length);
+              console.warn(`[CSMJ Network] 房主无响应，换通道 ${this.channelIndex + 1} → ${altChannel + 1} 重试加入`);
+              this.joinRoom(this.roomCode, this.playerName, onJoined, onError, {
+                channelIndex: altChannel,
+                allowChannelRetry: false
+              });
+              return;
             }
+
+            const err = new Error('未找到该房间或房主未在线，请检查房间号，或让房主发邀请链接');
+            if (onError) onError(err);
+            if (this.onErrorCallback) this.onErrorCallback(err.message);
+            this.cleanup();
           }, 6000);
         });
 
