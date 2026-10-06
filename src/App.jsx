@@ -1872,7 +1872,11 @@ export default function App() {
           handleRoundWin(0, 0, kongDrawState.drawnTiles[0], true, ['杠上开花']);
         }}
         onDiscardKongTiles={() => {
-          discardKongTilesToPool(0, kongDrawState.drawnTiles);
+          setKongDrawState({ isOpen: false, kongPlayer: null, drawnTiles: [], count: 2, canSelfHu: false });
+          const updatedHand = [...stateRef.current.playerHands[0], ...kongDrawState.drawnTiles];
+          if (config.autoSort) updatedHand.sort(compareTiles);
+          stateRef.current.playerHands[0] = updatedHand;
+          setPlayerHands([...stateRef.current.playerHands]);
         }}
       />
 
