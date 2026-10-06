@@ -19,6 +19,7 @@ import {
 } from './utils/mahjongLogic.js';
 import { nextDealerSeat, drawDealerSeat, scoreRound, rollBirdDice, secureRandomInt, normalizeScoreParams, huEntryFromTypes } from './utils/scoring.js';
 import { hasPendingResponse, resolveTimeoutAction, hostTurnWatchdogDelay } from './game/actions.js';
+import { resolveDiscardResponses } from './game/priority.js';
 import {
   chooseAiDiscard,
   decideAiResponse,
@@ -138,6 +139,8 @@ export default function App() {
   // 定时器引用
   const timerRef = useRef(null);
   const aiTurnRef = useRef(null); // 指向 triggerAiTurn（掉线托管时从网络回调里调用，避免闭包过期）
+  // P1-2：桌上还有真人能胡时，全部胡家（含 AI）先挂起等待真人决定，决定后再一次性结算
+  const pendingHuRef = useRef(null);
   // P0-5：倒计时回调里要读「当前是否处于响应窗口」与「超时该调用谁」，
   // 用 ref 同步（避免把处理器塞进 effect 依赖数组导致闭包读到旧状态）。
   const actionsRef = useRef({});
@@ -411,6 +414,8 @@ export default function App() {
   // 房主处理访客的胡碰吃过响应
   const handleGuestActionResponse = (seatId, action, payload = {}) => {
     if (action === 'hu') {
+      // P1-2：多人能胡时按通炮一次结算（含其他座位的胡家）
+      if (resolvePendingHu(seatId, true)) return;
       const isSelfDrawn = stateRef.current.currentTurn === seatId;
       const tile = isSelfDrawn
         ? stateRef.current.playerHands[seatId][stateRef.current.playerHands[seatId].length - 1]
@@ -427,6 +432,8 @@ export default function App() {
     } else if (action === 'siXi') {
       executeMidGameSiXi(seatId, payload.siXiOption);
     } else if (action === 'pass') {
+      // P1-2：这位访客「过」了，其他人（含电脑）的胡照常结算；都放弃了才轮到下家
+      if (resolvePendingHu(seatId, false)) return;
       // 访客点“过”，继续让后续玩家评估
       processAiResponses(stateRef.current.lastDiscard);
     }
@@ -798,69 +805,177 @@ export default function App() {
     processDiscardResponses(discardEvent);
   };
 
+  // P1-2：统一结算胡家 —— 一家 = 点炮，多家 = 一炮多响（通炮，逐家按各自番型、各自 k/n 结算）
+  const settleWinners = (winners, payer, tile, discardEvent) => {
+    pendingHuRef.current = null;
+    if (!winners || winners.length === 0) {
+      if (discardEvent) passToNextPlayer(discardEvent.fromPlayer);
+      return;
+    }
+    if (winners.length === 1) {
+      const w = winners[0];
+      handleRoundWin(w.seat, payer, tile, false, w.huTypes);
+      return;
+    }
+    const entries = winners.map(w => huEntryFromTypes(w.seat, w.huTypes));
+    handleRoundWin(entries[0].seat, payer, tile, false, entries[0].huTypes, {
+      method: 'tongpao',
+      winners: entries
+    });
+  };
+
+  // 真人胡家做决定（胡 / 过）。全部真人都决定完才结算 —— 期间电脑胡家一并挂起，
+  // 这样「真人过牌」不会吞掉别家的胡（ROADMAP P1-2 ③）。
+  // @returns {boolean} 是否消费了这次决定（true = 调用方不要再往下走）
+  const resolvePendingHu = (seat, accepted) => {
+    const pending = pendingHuRef.current;
+    if (!pending || !pending.pendingHumans.has(seat)) return false;
+
+    pending.pendingHumans.delete(seat);
+    if (accepted) pending.accepted.push(seat);
+    if (pending.pendingHumans.size > 0) return true; // 还有真人没决定，继续挂着
+
+    const winners = pending.winners.filter(w => !w.isHuman || pending.accepted.includes(w.seat));
+    const { discardEvent, payer } = pending;
+    pendingHuRef.current = null;
+    if (winners.length === 0) {
+      passToNextPlayer(discardEvent.fromPlayer);
+      return true;
+    }
+    settleWinners(winners, payer, discardEvent.tile, discardEvent);
+    return true;
+  };
+
+  // P1-2：一张牌的响应判定 —— 先把四家的选项一次算清，再按「胡 > 杠 > 碰 > 吃」定谁响应。
+  // 旧实现在这里「本地真人只要有选项就 return」，会让真人的碰/吃吞掉别家的胡（ROADMAP P1-2 ①③）。
   const processDiscardResponses = (discardEvent) => {
     const { tile, fromPlayer } = discardEvent;
     const mp = multiplayerRef.current;
+    const isLastTile = stateRef.current.wall.length === 0;
+    const isHumanSeat = (s) => s === 0 || (mp.isMultiplayer && mp.seats[s]?.isHuman === true);
 
-    // 1. 人类玩家优先判定
-    if (fromPlayer !== 0) {
-      const myHand = stateRef.current.playerHands[0];
-      const myMelds = stateRef.current.playerMelds[0];
+    const candidates = [];
+    for (let s = 0; s < 4; s++) {
+      if (s === fromPlayer) continue;
+      const hand = stateRef.current.playerHands[s];
+      const melds = stateRef.current.playerMelds[s];
+      if (!Array.isArray(hand) || hand.length === 0) continue;
 
-      const huRes = checkHu(myHand, myMelds, tile, false, { isKongDiscard: discardEvent.isKongDiscard, isLastTile: stateRef.current.wall.length === 0 });
-      const kOptions = getKongOptions(myHand, myMelds, tile, config);
-      const pAllowed = canPeng(myHand, tile);
-      const isFromPrev = (fromPlayer === 3);
-      const cOptions = isFromPrev ? getChiOptions(myHand, tile) : [];
+      const distance = (s - fromPlayer + 4) % 4; // 1 = 下家
+      const isFromPrev = distance === 1;         // 只有下家能吃
+      const huRes = checkHu(hand, melds, tile, false, { isKongDiscard: discardEvent.isKongDiscard, isLastTile });
+      const kOptions = getKongOptions(hand, melds, tile, config);
+      const pAllowed = canPeng(hand, tile);
+      const cOptions = isFromPrev ? getChiOptions(hand, tile) : [];
 
-      const canAct = huRes.canHu || kOptions.length > 0 || pAllowed || cOptions.length > 0;
-
-      if (canAct) {
-        setAvailableActions({
-          hu: huRes.canHu,
-          gang: kOptions.length > 0,
-          peng: pAllowed,
-          chi: cOptions.length > 0,
-          pass: true
+      let aiDecision = null;
+      let want;
+      if (isHumanSeat(s)) {
+        // 真人：只要有选项就是候选（弹不弹窗由优先级决定，不由检查顺序决定）
+        want = { hu: huRes.canHu, gang: kOptions.length > 0, peng: pAllowed, chi: cOptions.length > 0 };
+      } else {
+        // 电脑：尊重 AI 自己的意愿（它也可能选择不碰/不吃）
+        aiDecision = decideAiResponse(hand, melds, tile, isFromPrev, config, {
+          isKongDiscard: discardEvent.isKongDiscard,
+          isLastTile
         });
-        setChiOptions(cOptions);
-        setKongOptions(kOptions);
+        want = {
+          hu: aiDecision.action === 'hu',
+          gang: aiDecision.action === 'gang',
+          peng: aiDecision.action === 'peng',
+          chi: aiDecision.action === 'chi'
+        };
+      }
+
+      if (!want.hu && !want.gang && !want.peng && !want.chi) continue;
+      candidates.push({ seat: s, distance, isHuman: isHumanSeat(s), huTypes: huRes.huTypes, kOptions, cOptions, aiDecision, ...want });
+    }
+
+    const plan = resolveDiscardResponses(candidates);
+    const findCand = (seat) => candidates.find(c => c.seat === seat);
+
+    // 0. 谁都不能响应 → 轮到下家摸牌
+    if (plan.action === 'pass') {
+      passToNextPlayer(fromPlayer);
+      return;
+    }
+
+    // 1. 有人能胡 → 胡优先于一切吃碰杠；多家能胡即一炮多响
+    if (plan.action === 'hu') {
+      const winners = plan.winners.map(findCand).filter(Boolean);
+      const humanWinners = winners.filter(w => w.isHuman);
+      setChiOptions([]);
+      setKongOptions([]);
+      setAvailableActions({ hu: false, gang: false, peng: false, chi: false, pass: false });
+
+      if (humanWinners.length === 0) {
+        settleWinners(winners, fromPlayer, tile, discardEvent);
         return;
       }
-    }
 
-    // 2. 检查联机真人玩家是否有响应
-    if (mp.isMultiplayer && mp.isHost) {
-      for (let s = 1; s < 4; s++) {
-        if (s !== fromPlayer && mp.seats[s]?.isHuman) {
-          const guestHand = stateRef.current.playerHands[s];
-          const guestMelds = stateRef.current.playerMelds[s];
-          const huRes = checkHu(guestHand, guestMelds, tile, false, { isLastTile: stateRef.current.wall.length === 0 });
-          const kOptions = getKongOptions(guestHand, guestMelds, tile, config);
-          const pAllowed = canPeng(guestHand, tile);
-          const isFromPrev = ((fromPlayer + 1) % 4 === s);
-          const cOptions = isFromPrev ? getChiOptions(guestHand, tile) : [];
-
-          if (huRes.canHu || kOptions.length > 0 || pAllowed || cOptions.length > 0) {
-            network.sendToSeat(s, {
-              type: 'PROMPT_ACTION',
-              availableActions: {
-                hu: huRes.canHu,
-                gang: kOptions.length > 0,
-                peng: pAllowed,
-                chi: cOptions.length > 0,
-                pass: true
-              },
-              chiOptions: cOptions,
-              kongOptions: kOptions
-            });
-          }
+      // 有真人胡家：全部胡家（含电脑）先挂起，等真人决定；这期间不给任何人弹吃碰杠
+      pendingHuRef.current = {
+        discardEvent,
+        winners,
+        payer: fromPlayer,
+        pendingHumans: new Set(humanWinners.map(w => w.seat)),
+        accepted: []
+      };
+      humanWinners.forEach(w => {
+        if (w.seat === 0) {
+          setAvailableActions({ hu: true, gang: false, peng: false, chi: false, pass: true });
+          return;
         }
-      }
+        network.sendToSeat(w.seat, {
+          type: 'PROMPT_ACTION',
+          availableActions: { hu: true, gang: false, peng: false, chi: false, pass: true },
+          chiOptions: [],
+          kongOptions: []
+        });
+      });
+      return;
     }
 
-    // 3. AI 评估
-    processAiResponses(discardEvent);
+    // 2. 杠 / 碰 / 吃：同级按顺位，只由最近的一家响应
+    const claim = findCand(plan.seat);
+    if (!claim) {
+      passToNextPlayer(fromPlayer);
+      return;
+    }
+
+    if (claim.isHuman) {
+      const actions = { hu: false, gang: claim.gang, peng: claim.peng, chi: claim.chi, pass: true };
+      if (claim.seat === 0) {
+        setAvailableActions(actions);
+        setChiOptions(claim.cOptions);
+        setKongOptions(claim.kOptions);
+      } else {
+        network.sendToSeat(claim.seat, {
+          type: 'PROMPT_ACTION',
+          availableActions: actions,
+          chiOptions: claim.cOptions,
+          kongOptions: claim.kOptions
+        });
+      }
+      return;
+    }
+
+    if (plan.action === 'gang') {
+      showBubble(claim.seat, '杠！');
+      executeKong(claim.seat, claim.aiDecision?.kongOption || claim.kOptions[0], tile);
+      return;
+    }
+    if (plan.action === 'peng') {
+      showBubble(claim.seat, '碰！');
+      executePeng(claim.seat, tile, fromPlayer);
+      return;
+    }
+    if (plan.action === 'chi') {
+      showBubble(claim.seat, '吃！');
+      executeChi(claim.seat, claim.aiDecision?.tiles || claim.cOptions[0], tile, fromPlayer);
+      return;
+    }
+    passToNextPlayer(fromPlayer);
   };
 
   const processAiResponses = (discardEvent) => {
@@ -1571,6 +1686,9 @@ export default function App() {
     const myMelds = stateRef.current.playerMelds[0];
     const winningTile = isSelfDrawn ? drawnTile : stateRef.current.lastDiscard?.tile;
 
+    // P1-2：这一手若是「多家能胡」挂起的（含电脑胡家），一次把全部胡家结算掉（通炮）
+    if (!isSelfDrawn && resolvePendingHu(0, true)) return;
+
     const huRes = checkHu(myHand, myMelds, winningTile, isSelfDrawn, { isLastTile: stateRef.current.wall.length === 0 });
     handleRoundWin(0, isSelfDrawn ? 0 : stateRef.current.lastDiscard.fromPlayer, winningTile, isSelfDrawn, huRes.huTypes);
   };
@@ -1617,6 +1735,8 @@ export default function App() {
       network.sendToHost({ type: 'RESPOND_ACTION', action: 'pass' });
       return;
     }
+    // P1-2：真人「过」不吞掉别家的胡 —— 挂起的胡家里除自己以外照常结算
+    if (resolvePendingHu(0, false)) return;
     if (currentTurn !== 0 && stateRef.current.lastDiscard) {
       processAiResponses(stateRef.current.lastDiscard);
     }
