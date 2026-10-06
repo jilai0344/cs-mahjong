@@ -518,6 +518,12 @@ export class NetworkManager {
     this._revertSeatToAI(seatId);
   }
 
+  // 把座位降级为电脑 AI（心跳超时 / 房主看门狗托管）。对外公开，便于 App 侧超时接管。
+  revertSeatToAI(seatId) {
+    if (!this.isHost || !(seatId >= 1 && seatId <= 3)) return;
+    this._revertSeatToAI(seatId);
+  }
+
   _revertSeatToAI(seatId) {
     const guestId = this.seatToGuest.get(seatId);
     if (guestId) {
@@ -534,6 +540,13 @@ export class NetworkManager {
       isReady: true
     };
     this.broadcastLobbyState();
+    // 掉线托管（P0-4）：座位降级为 AI 只改了大厅状态，若此刻正轮到该座位出牌，牌局会永久卡住。
+    // 通知 App 层接管这一手（App 侧只在 PLAYING 且 currentTurn === seatId 时触发 AI 出牌）。
+    try {
+      this.onSeatRevertedToAI?.(seatId);
+    } catch {
+      // 托管回调失败不应影响网络层
+    }
   }
 
   // 房主向所有人广播数据 (例如开始游戏、打出牌、碰杠通知)
