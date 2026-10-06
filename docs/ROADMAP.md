@@ -102,40 +102,47 @@ AI 难度分级 / 战绩与积分统计 / 对局回放 / PWA 离线安装 / 好�
 
 ## 分工表（方舟 AgentPlan 可用模型 → 工作流）
 
-### 可用模型（来自本机 Hermes 的 AgentPlan 供应商配置，`api_mode: codex_responses`）
+### 可用模型与档位（本机实测）
 
-| 模型 ID | 上下文 | 定位判断 |
+端点实测（`https://ark.cn-beijing.volces.com/api/plan/v3`）：`GET /models` → **404**（plan 密钥不适用该端点）；`POST /responses` 与 `POST /chat/completions` → **200**。14 个已注册型号**全部可用（14/14）**，因此「前沿」只能按**档位**判定，不能按可用性判定。
+
+| 档位 | 型号 | 判定依据 |
 |---|---|---|
-| `deepseek-v4-pro` | 1 048 576 | 最强推理，用于规划/评审与规则仲裁 |
-| `deepseek-v4.1-flash` | 1 048 576 | 当前默认模型，快、通用 |
-| `deepseek-v4-flash` | 1 048 576 | 快、通用（delegation 默认） |
-| `glm-5.3` | 1 048 576 | 强推理/长文 |
-| `glm-5.3-flash` | 1 048 576 | 快 |
-| `kimi-k3` | 1 048 576 | 长上下文/代码 |
-| `kimi-k2.8-preview` | 1 048 576 | 预览版 |
-| `kimi-k2.7-code` | 262 144 | 代码专用 |
-| `doubao-seed-2.1-pro` | 1 048 576 | 通用强模型 |
-| `doubao-seed-2.1-lite` | 1 048 576 | 轻量 |
-| `doubao-seed-2.0-mini` | 262 144 | 极轻量 |
-| `doubao-seed-evolving` | 1 048 576 | 通用 |
-| `minimax-m3` | 1 048 576 | 通用 |
-| `ark-code-latest` | 262 144 | 代码（滚动最新） |
+| **前沿（只允许用这些）** | `deepseek-v4-pro`、`kimi-k3`、`glm-5.3`、`doubao-seed-2.1-pro`、`minimax-m3` | 同族顶配 / 最新代：DeepSeek 的 pro 档、Kimi k3 代、GLM 非 flash 版、豆包 2.1 的 pro 档、MiniMax 最新代 |
+| **降级（禁止使用）** | `deepseek-v4.1-flash`、`deepseek-v4-flash`、`glm-5.3-flash`、`doubao-seed-2.1-lite`、`doubao-seed-2.0-mini` | flash / lite / mini 均为同族降配 |
+| **非前沿（禁止使用）** | `kimi-k2.8-preview`、`kimi-k2.7-code` | 预览态 / 上一代 code 档 |
+| **待你定性（暂不使用）** | `doubao-seed-evolving`（持续演进别名，无固定版本号）、`ark-code-latest`（滚动 latest，版本不可固定） | 版本不可固定的滚动别名，宁可用版本可固定的顶配 |
 
-> 说明：AgentPlan 的 `GET /api/plan/v3/models` 在本地实测返回 **404**（`/api/v3/models` 返回 401，plan 专用密钥不适用该端点），因此以上清单来自本机 Hermes 的供应商模型注册表（`~/.hermes/config.yaml: custom_providers.ArkAgentPlan.models`），**不是**运行时接口枚举。
-> 本仓库没有任何「多模态/图像」模型通道：`delegate_task` 的子代理只能文本工作（无法看图），因此「UI 视觉」工作流的「模型」列填的是**执行者类型**，评审仍由多模态能力的模型（`doubao-seed-2.1-pro`，若其支持图像输入）或人工截图确认兜底。若要真做多模态视觉评审，需要你提供一个能读图的模型/通道。
-> **`delegate_task` 目前默认走全局 `delegation` 配置（`provider: custom` + `base_url: https://api.deepseek.com/v1` + `model: deepseek-v4-flash`），并不在 AgentPlan 端点上。** 要让下列分工真正落到 AgentPlan 模型，需要在 `delegation` 里切到 ArkAgentPlan（或为每个子任务显式指定模型）——**这一点需要你确认是否授权修改全局配置**。
+### 实际路由（已生效）
+
+子代理不再走降级的全局 delegation，已改为 **profile 级**、指向 AgentPlan 前沿模型（`~/.hermes/profiles/wxbot/config.yaml`）：
+
+```
+delegation.provider = custom
+delegation.base_url = https://ark.cn-beijing.volces.com/api/plan/v3
+delegation.api_mode = codex_responses
+delegation.model    = deepseek-v4-pro
+```
+
+回滚：`hermes --profile wxbot config set delegation.model deepseek-v4-flash`（再 `unset delegation.provider/base_url/api_mode/api_key` 即回落全局配置）。
+
+> `delegate_task` **一次调用内所有子代理共用同一个 `delegation.model`**。要按工作流使用不同前沿模型，两条路：
+> ① 该批任务前先 `hermes --profile wxbot config set delegation.model <前沿模型>`；
+> ② 以子进程方式跑专项任务：`hermes --profile wxbot -m kimi-k3 -q "<任务>"`（已实测 `hermes --profile wxbot -m deepseek-v4-pro -z "…"` 正常返回）。
+> 主会话（orchestrator）当前仍是 `model.default = deepseek-v4.1-flash`；要一并提到前沿只需一条命令 `hermes --profile wxbot config set model.default deepseek-v4-pro`，**需你确认**（会改变本会话后续所有回合）。
+> **读图通道**：本机没有任何可读图的模型通道，`delegate_task` 子代理只能文本工作 → 「UI 视觉」工作流只能是「代码 + 人工看截图」验收；若要真多模态评审，需要你提供一个能读图的模型/通道。
 
 ### 分工
 
-| 工作流 | 职责 | 模型（建议） |
+| 工作流 | 职责 | 模型（仅前沿档） |
 |---|---|---|
-| 规划/评审 | 拆任务、代码评审、合并把关 | `deepseek-v4-pro`（主会话模型，同为评审者） |
-| 规则引擎 | 胡牌判定、番型、算分、杠牌流转 | `deepseek-v4-pro` / `kimi-k2.7-code` |
-| 联机/后端 | 协议、房间、状态同步、服务端权威逻辑、安全 | `deepseek-v4-pro`（安全设计）+ `kimi-k2.7-code`（实现） |
-| Bug/测试 | 复现、修复、回归测试、随机对局与多客户端模拟 | `ark-code-latest` / `deepseek-v4.1-flash` |
-| UI 视觉 | 牌桌、牌面、动效、响应式、设计规范 | `doubao-seed-2.1-pro`（若支持读图）+ 人工截图验收 |
-| 交互体验 | 操作流程、提示、新手引导、音效节奏 | `doubao-seed-2.1-pro` / `kimi-k3` |
-| AI 对手 | 电脑玩家决策、托管、AI 补位、难度分级 | `glm-5.3` / `deepseek-v4-pro` |
-| 素材/文案 | 图标、牌面微调、规则说明文案 | `doubao-seed-2.1-lite` / `minimax-m3` |
+| 规划/评审 | 拆任务、代码评审、合并把关 | `deepseek-v4-pro` |
+| 规则引擎 | 胡牌判定、番型、算分、杠牌流转 | `deepseek-v4-pro` |
+| 联机/后端 | 协议、房间、状态同步、服务端权威逻辑、安全 | `deepseek-v4-pro`（设计/仲裁）+ `kimi-k3`（实现） |
+| Bug/测试 | 复现、修复、回归测试、随机对局与多客户端模拟 | `kimi-k3` |
+| UI 视觉 | 牌桌、牌面、动效、响应式、设计规范 | `doubao-seed-2.1-pro` + 人工截图验收（本机无可读图通道） |
+| 交互体验 | 操作流程、提示、新手引导、音效节奏 | `doubao-seed-2.1-pro` / `glm-5.3` |
+| AI 对手 | 电脑玩家决策、托管、AI 补位、难度分级 | `glm-5.3` |
+| 素材/文案 | 图标、牌面微调、规则说明文案 | `minimax-m3` / `doubao-seed-2.1-pro` |
 
-**执行与评审必须不同模型调用**：执行侧用上表右列，评审侧固定 `deepseek-v4-pro`（若某任务由它执行，则评审改用 `kimi-k3` 或 `glm-5.3`，避免自评自过）。
+**执行与评审必须不同模型调用**：同一批任务里，执行侧与评审侧用上表**不同的前沿型号**（例如规则引擎由 `deepseek-v4-pro` 执行、`kimi-k3` 评审），避免自评自过。**任何降级型号（flash / lite / mini / preview / 旧代 code）一律不得出现在分工里。**
