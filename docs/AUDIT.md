@@ -347,4 +347,4 @@ RESULT=第三方可完整读写广播频道/房主信箱/座位私密频道（�
 
 **N2 基线漂移的确认（说明上文无需重审）**：`git diff --stat 2facaeb..main` 显示自审计以来**规则层与 UI 层源码零改动** —— 变更仅 `docs/`、`package.json`（test 脚本串联新增测试）、新增 `src/utils/scoring.js` 与 `test/scoring.test.js`。因此 R1–R25 全部仍有效。
 
-**N3 环境（非项目缺陷，记录以免误判）**：本机 `gh` 的 keyring token 失效（`gh auth status` → `The token in keyring is invalid`）⇒ **无法用 `gh` 自动开 PR**；`git push` 的 osxkeychain 凭据仍有效（可推分支）。本机到 github.com 的 TLS 连接偶发 `SSL_ERROR_SYSCALL`（实测 3 次里 1 次成功），推送脚本需带重试。
+**N3 环境（非项目缺陷，记录以免误判）**：`gh auth status` 报告 keyring token 失效（`The token in keyring is invalid`），但**实测 `gh` 的 PR 能力可用** —— 本次复核文档即由 `gh pr create` 开出 PR #4，并以 `gh pr view 4` 回读确认 `state=OPEN`、`headRefName=docs/stage0-refresh` ⇒ 修正为「gh 可开 PR」。真实约束是**本机到 github.com 的 TLS 连接偶发失败**（`LibreSSL SSL_connect: SSL_ERROR_SYSCALL`，实测 3 次里 1 次成功）；`git push` 与 `gh` 均需**带 2–4 次重试**才稳定成功。
