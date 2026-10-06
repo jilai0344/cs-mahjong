@@ -62,7 +62,7 @@ export default function RoundResultModal({
   const winnerNames = winners.map(w => nameOf(w.seat)).join('、');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in select-none">
+    <div role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in select-none">
       <div className="relative w-full max-w-lg rounded-2xl bg-gradient-to-b from-slate-900 via-emerald-950/80 to-slate-900 border-2 border-emerald-500/40 p-6 shadow-2xl flex flex-col items-center max-h-[90vh] overflow-y-auto">
         {/* 顶部标题 */}
         {isHuangZhuang ? (

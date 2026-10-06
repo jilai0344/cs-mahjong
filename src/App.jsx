@@ -20,6 +20,7 @@ import {
 import { nextDealerSeat, drawDealerSeat, scoreRound, rollBirdDice, secureRandomInt, normalizeScoreParams, huEntryFromTypes } from './utils/scoring.js';
 import { hasPendingResponse, resolveTimeoutAction, hostTurnWatchdogDelay } from './game/actions.js';
 import { resolveDiscardResponses } from './game/priority.js';
+import { getLocalDisplayId } from './utils/localId.js';
 import {
   chooseAiDiscard,
   decideAiResponse,
@@ -83,12 +84,22 @@ export default function App() {
   const multiplayerRef = useRef(multiplayerState);
   multiplayerRef.current = multiplayerState;
 
+  // P2-6：胶囊牌原先写死占位符 39482 / djdodkj，这里改成「本机固定标识 + 真实昵称」。
+  // 标识首次进入时随机生成并存 localStorage（不跨设备，也不上传），生成逻辑抽到 utils/localId.js
+  // 用 useState 惰性初始化，避免在渲染期直接调用随机数（oxlint react(purity)）。
+  const [myDisplayId] = useState(getLocalDisplayId);
+
   // 相对本地视角的座位编号计算 (以我的视角为基准，我永远在底部)
   const mySeatId = multiplayerState.isMultiplayer ? multiplayerState.mySeatId : 0;
   const bottomSeatId = mySeatId;
   const rightSeatId = (mySeatId + 1) % 4;
   const topSeatId = (mySeatId + 2) % 4;
   const leftSeatId = (mySeatId + 3) % 4;
+
+  // P2-6：胶囊牌显示的昵称 —— 联机取自己座位的名字，单机取玩家在设置里保存的昵称
+  const myDisplayName = multiplayerState.isMultiplayer
+    ? (multiplayerState.seats[bottomSeatId]?.name || '我')
+    : ((typeof localStorage !== 'undefined' && localStorage.getItem('cs_player_name')) || '我');
 
   // 2. 牌局展示状态 (UI 驱动)
   const [gameState, setGameState] = useState('IDLE'); // 'IDLE' | 'DEALING' | 'STARTING_HU' | 'PLAYING' | 'KONG_DRAW' | 'ROUND_OVER'
@@ -1898,7 +1909,7 @@ export default function App() {
           {/* 音效开关 */}
           <button
             onClick={() => handleUpdateConfig({ ...config, soundEnabled: !config.soundEnabled })}
-            className="w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm"
+            className="relative w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm after:absolute after:-inset-1.5 after:content-['']"
             title="音效开关"
           >
             {config.soundEnabled ? <Volume2 className="w-4 h-4 text-amber-300" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
@@ -1907,7 +1918,7 @@ export default function App() {
           {/* 规则指南 */}
           <button
             onClick={() => setIsRulesOpen(true)}
-            className="w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm"
+            className="relative w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm after:absolute after:-inset-1.5 after:content-['']"
             title="玩法规则"
           >
             <BookOpen className="w-4 h-4 text-amber-300" />
@@ -1916,7 +1927,7 @@ export default function App() {
           {/* 规则设置 */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm"
+            className="relative w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm after:absolute after:-inset-1.5 after:content-['']"
             title="规则设置"
           >
             <Settings className="w-4 h-4 text-amber-300" />
@@ -2066,7 +2077,7 @@ export default function App() {
             )}
           </div>
 
-          {/* 6. 左下角：我方玩家黄金岛专属信息胶囊牌 (复刻原图 djdodkj / 39482) */}
+          {/* 6. 左下角：我方玩家信息胶囊牌（P2-6：占位符改为本机真实标识与昵称） */}
           <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-4 z-40 flex items-center gap-1.5 bg-gradient-to-b from-[#4a180e] via-[#2b0c07] to-[#140503] border-[1.5px] border-amber-400/90 rounded-full px-3 py-1 shadow-2xl">
             {dealerId === bottomSeatId && (
               <span className="w-4 h-4 rounded-full bg-gradient-to-tr from-red-700 to-red-500 border border-amber-300 text-white text-[10px] font-black flex items-center justify-center shadow-md">
@@ -2075,10 +2086,10 @@ export default function App() {
             )}
             <div className="flex items-center gap-1 text-red-500">
               <span className="text-xs">♥</span>
-              <span className="text-xs font-mono font-black text-yellow-300 tracking-tight">39482</span>
+              <span className="text-xs font-mono font-black text-yellow-300 tracking-tight">{myDisplayId}</span>
             </div>
             <span className="text-xs font-black text-amber-100 ml-1">
-              {multiplayerState.isMultiplayer ? (multiplayerState.seats[bottomSeatId]?.name || '我') : 'djdodkj'}
+              {myDisplayName}
             </span>
             <span className="text-[10px] font-black italic text-amber-300 bg-amber-950/80 px-1 py-0.2 rounded border border-amber-500/40">
               V8

@@ -16,7 +16,7 @@ export default function StartingHuModal({
   if (!startingHuEvents || startingHuEvents.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in select-none">
+    <div role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in select-none">
       <div className="relative w-full max-w-md rounded-2xl bg-gradient-to-b from-amber-950 via-slate-900 to-black border-2 border-amber-400/70 p-6 shadow-2xl flex flex-col items-center text-center animate-scale-up">
         {/* 顶部金光与奖杯 */}
         <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-600 to-yellow-300 flex items-center justify-center shadow-lg mb-3 ring-4 ring-amber-400/30">
