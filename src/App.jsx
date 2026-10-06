@@ -1389,6 +1389,8 @@ export default function App() {
     const mp = multiplayerRef.current;
     const winnerName = mp.isMultiplayer ? mp.seats[winnerId]?.name : PLAYERS[winnerId].name;
     const loserName = loserId !== null ? (mp.isMultiplayer ? mp.seats[loserId]?.name : PLAYERS[loserId].name) : '';
+    // 结算页需要四位座位名逐项展示明细（规格 §九.5）
+    const seatNames = [0, 1, 2, 3].map(i => (mp.isMultiplayer ? (mp.seats[i]?.name || PLAYERS[i].name) : PLAYERS[i].name));
 
     const finalResult = {
       isHuangZhuang: false,
@@ -1403,6 +1405,7 @@ export default function App() {
       isSelfDrawn: isSelfDrawn && !isTongPao,
       scoreChanges: changes,
       newDealerId: nextDealer,
+      seatNames,
       // 逐项明细（规格 §九.5）：番型与 k、B、F、每家 n 与乘数、封顶前后、应付、得失、骰子/鸟
       scoring: {
         method,
@@ -1439,15 +1442,18 @@ export default function App() {
     setDealerId(nextDealer);
     stateRef.current.dealerId = nextDealer;
 
+    const mp = multiplayerRef.current;
+    const seatNames = [0, 1, 2, 3].map(i => (mp.isMultiplayer ? (mp.seats[i]?.name || PLAYERS[i].name) : PLAYERS[i].name));
+
     const finalResult = {
       isHuangZhuang: true,
       scoreChanges: [0, 0, 0, 0],
       lastDrawerId: stateRef.current.lastDrawerId,
-      newDealerId: nextDealer
+      newDealerId: nextDealer,
+      seatNames
     };
     setRoundResult(finalResult);
 
-    const mp = multiplayerRef.current;
     if (mp.isMultiplayer && mp.isHost) {
       network.broadcast({
         type: 'ROUND_WIN_BROADCAST',
