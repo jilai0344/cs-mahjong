@@ -18,6 +18,7 @@ import {
   drawBirds
 } from './utils/mahjongLogic.js';
 import { nextDealerSeat, drawDealerSeat, scoreRound, rollBirdDice, secureRandomInt, normalizeScoreParams, huEntryFromTypes } from './utils/scoring.js';
+import { hasPendingResponse, resolveTimeoutAction } from './game/actions.js';
 import {
   chooseAiDiscard,
   decideAiResponse,
@@ -136,6 +137,10 @@ export default function App() {
 
   // 定时器引用
   const timerRef = useRef(null);
+  // P0-5：倒计时回调里要读「当前是否处于响应窗口」与「超时该调用谁」，
+  // 用 ref 同步（避免把处理器塞进 effect 依赖数组导致闭包读到旧状态）。
+  const actionsRef = useRef({});
+  const timeoutRef = useRef({});
 
   // 3. 【核心稳定基石】单一权威状态引用，彻底杜绝闭包过期引起的碰牌/出牌 BUG
   const stateRef = useRef({
@@ -630,8 +635,17 @@ export default function App() {
     timerRef.current = setInterval(() => {
       setTurnTimer(prev => {
         if (prev <= 1) {
-          if (stateRef.current.currentTurn === mySeatId) {
-            handleTimeoutAutoDiscard();
+          // P0-5：响应窗口也要有超时兜底，否则本地玩家不点「过」就整局卡死。
+          // 处理器经 ref 调用，避免把 handleHumanPass/handleTimeoutAutoDiscard 加进依赖数组。
+          const action = resolveTimeoutAction({
+            currentTurn: stateRef.current.currentTurn,
+            mySeatId,
+            pendingResponse: hasPendingResponse(actionsRef.current)
+          });
+          if (action === 'discard') {
+            timeoutRef.current.autoDiscard?.();
+          } else if (action === 'pass') {
+            timeoutRef.current.pass?.();
           }
           return 15;
         }
@@ -1606,6 +1620,18 @@ export default function App() {
       processAiResponses(stateRef.current.lastDiscard);
     }
   };
+
+  // P0-5：把「当前可用操作」与「超时处理器」同步进 ref，供倒计时兜底使用
+  useEffect(() => {
+    actionsRef.current = availableActions;
+  }, [availableActions]);
+
+  useEffect(() => {
+    timeoutRef.current = {
+      autoDiscard: handleTimeoutAutoDiscard,
+      pass: handleHumanPass
+    };
+  });
 
   // 获得座位对应的展示信息 (单机或联机)
   const currentSeatPlayers = useMemo(() => {
