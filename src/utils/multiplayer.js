@@ -2,7 +2,7 @@
 // 适配国内移动网络 (4G/5G/Wi-Fi/跨运营商)，无需公网 IP 与穿透中继
 import mqtt from 'mqtt';
 import { deriveRoomKey, encryptJson, decryptJson } from './crypto.js';
-import { createMessageFilter, createSequenceTracker, nextMessageId } from './dedupe.js';
+import { createMessageFilter, createSequenceTracker, nextMessageId, sequenceKey } from './dedupe.js';
 import { nextChannelOnRetry } from './invite.js';
 
 export const ROOM_PREFIX = 'csmj-v1-';
@@ -101,15 +101,16 @@ export class NetworkManager {
   }
 
   // 辅助方法：解密入站载荷（密钥不对/被篡改/旧版明文 → null，直接忽略）
-  async _parsePayload(payload) {
+  // topic 必传：序号追踪按「发送者+话题」计数（跨话题不保证顺序，见 dedupe.js 的 sequenceKey 注释）
+  async _parsePayload(payload, topic = '') {
     const data = await decryptJson(this.roomKey, payload);
     if (!data) {
       console.warn('[CSMJ Network] 收到无法解密的消息（密钥不匹配或非本协议载荷），已忽略');
       return null;
     }
-    // 幂等与顺序（P0-4③）：先按发送者丢乱序/重放，再按 msgId 丢重复投递
-    if (!this.inboundSeq.accept(data.senderId, data.seq)) {
-      console.warn('[CSMJ Network] 乱序/过期消息已丢弃:', data.senderId, data.seq);
+    // 幂等与顺序（P0-4③）：先在同一话题内丢乱序/重放，再按 msgId 丢重复投递
+    if (!this.inboundSeq.accept(sequenceKey(data.senderId, topic), data.seq)) {
+      console.warn('[CSMJ Network] 乱序/过期消息已丢弃:', data.senderId, topic, data.seq);
       return null;
     }
     if (!this.inboundFilter.accept(data.msgId, data.ts)) {
@@ -243,7 +244,7 @@ export class NetworkManager {
 
         // 监听来自访客的指令
         client.on('message', async (topic, payload) => {
-          const data = await this._parsePayload(payload);
+          const data = await this._parsePayload(payload, topic);
           if (!data) return;
 
           if (topic === hostTopic) {
@@ -483,7 +484,7 @@ export class NetworkManager {
 
         // 监听房主发来的消息
         client.on('message', async (topic, payload) => {
-          const data = await this._parsePayload(payload);
+          const data = await this._parsePayload(payload, topic);
           if (!data) return;
 
           if (topic === guestRespTopic) {
