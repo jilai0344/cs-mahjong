@@ -100,7 +100,9 @@ export default function RulesGuideModal({ isOpen, onClose }) {
               </div>
             </div>
             <p className="text-[11px] text-emerald-400/80 mt-2">
-              注：小胡判定亮牌后直接计分（每项每家付2分），随后牌局继续正常摸打。
+              注：小胡判定亮牌后按【小胡自摸】独立计分（底分 2B，逐家算中鸟、封顶 42B、另加 2F），随后牌局继续正常摸打。
+              <br />
+              规格外的 6 种起手胡默认关闭，可在「规则设置」里打开。
             </p>
           </div>
 
@@ -111,7 +113,7 @@ export default function RulesGuideModal({ isOpen, onClose }) {
               经典大胡番种
             </h3>
             <p>
-              大胡可乱将（不必遵循258将限制），计 6 番：
+              大胡可乱将（不必遵循258将限制），每成立一个番型算一个：底分 = 7B × k（<strong>线性相加，不是翻番</strong>）。
               <br />
               · <strong>清一色</strong>：全手牌为同一花色。
               <br />
@@ -121,7 +123,11 @@ export default function RulesGuideModal({ isOpen, onClose }) {
               <br />
               · <strong>全求人</strong>：吃碰杠亮出4副牌，手里剩1张牌单吊点炮胡牌。
               <br />
-              · <strong>杠上开花 / 杠上炮</strong>：开杠摸牌自摸或打出被他人胡牌。
+              · <strong>杠上开花 / 杠上炮</strong>：开杠摸牌自摸或打出被他人胡牌（杠上炮支持一炮多响，逐家结算）。
+              <br />
+              <br />
+              <strong>计分：</strong>小胡底分 2B；每家应付 = min(底分 × (n+1), 42B) + 2F —— 单家封顶 <strong>42B</strong>，2F 不参与翻番也不受封顶。
+              自摸三家各按自己的中鸟数 n 付；点炮<strong>只有放炮者付</strong>；通炮每位胡牌者按各自番型与 n 单独结算。
             </p>
           </div>
         </div>

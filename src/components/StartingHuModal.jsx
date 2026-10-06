@@ -47,33 +47,50 @@ export default function StartingHuModal({
                 <span className="text-xs bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-400/30 font-semibold flex items-center gap-1.5">
                   <span>共胡 <strong className="text-amber-200 text-sm">{evt.huList.length}</strong> 把</span>
                   <span className="text-amber-400/50">|</span>
-                  <span>+{evt.huList.length * 2 * 3}分</span>
-                  <span className="text-[10px] text-amber-300/70">(每家付{evt.huList.length * 2}分)</span>
+                  {/* 金额一律取权威端算出的结果（规格 §九.2），不再硬编码 */}
+                  <span>+{evt.scoreChanges ? evt.scoreChanges[evt.player.id] : evt.huList.length * 2 * 3}分</span>
                 </span>
               </div>
 
-              {evt.huList.map((hu, hIdx) => (
-                <div key={hIdx} className="w-full text-left">
-                  <div className="text-amber-400 font-bold text-sm">
-                    {hu.name}
-                  </div>
-                  <div className="text-slate-300 text-xs mt-0.5">
-                    {hu.desc}
-                  </div>
-                  {hu.tiles && hu.tiles.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2 justify-center">
-                      {hu.tiles.slice(0, 8).map((tile, tIdx) => (
-                        <MahjongTile key={tIdx} tile={tile} size="sm" />
-                      ))}
-                      {hu.tiles.length > 8 && (
-                        <span className="text-xs text-slate-400 self-center">
-                          +{hu.tiles.length - 8}张
-                        </span>
-                      )}
+              {evt.huList.map((hu, hIdx) => {
+                const sc = (evt.perHuScores || [])[hIdx];
+                return (
+                  <div key={hIdx} className="w-full text-left">
+                    <div className="text-amber-400 font-bold text-sm">
+                      {hu.name}
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div className="text-slate-300 text-xs mt-0.5">
+                      {hu.desc}
+                    </div>
+                    {sc && (
+                      <div className="text-slate-300 text-[11px] mt-1.5 space-y-0.5 leading-tight">
+                        <div>
+                          抓鸟骰子：{(sc.birdValues || []).length > 0 ? sc.birdValues.join('、') : '不抓鸟'}
+                          {' → 逐家 n = '}{sc.details.map(d => d.n).join(' / ')}
+                          {'（乘数 '}{sc.details.map(d => d.multiplier).join(' / ')}{'）'}
+                        </div>
+                        <div>
+                          每家应付：
+                          {sc.details.map(d => ` ${d.P}（${d.capped}${d.cappedHit ? ' 已封顶' : ''} + 2F ${d.fixed}）`).join('，')}
+                          {' · 封顶上限 '}{sc.cap}
+                        </div>
+                      </div>
+                    )}
+                    {hu.tiles && hu.tiles.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2 justify-center">
+                        {hu.tiles.slice(0, 8).map((tile, tIdx) => (
+                          <MahjongTile key={tIdx} tile={tile} size="sm" />
+                        ))}
+                        {hu.tiles.length > 8 && (
+                          <span className="text-xs text-slate-400 self-center">
+                            +{hu.tiles.length - 8}张
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
