@@ -1,6 +1,7 @@
 // 基于 MQTT over WebSocket 的超高可用、零配置多人实时联机管理器
 // 适配国内移动网络 (4G/5G/Wi-Fi/跨运营商)，无需公网 IP 与穿透中继
 import mqtt from 'mqtt';
+import { deriveRoomKey, encryptJson, decryptJson } from './crypto.js';
 
 export const ROOM_PREFIX = 'csmj-v1-';
 
@@ -10,11 +11,11 @@ export const BROKER_URLS = [
   'wss://broker.hivemq.com:8884/mqtt',   // HiveMQ 国际高可用公共集群 (备选容灾通道)
 ];
 
-// 生成 4 位大写字母/数字房间号
+// 生成 6 位房间号（P0-3 ②：旧版 4 位可被暴力枚举）
 export function generateRoomCode() {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   let code = '';
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 6; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return code;
@@ -25,6 +26,7 @@ export class NetworkManager {
     this.client = null;
     this.isHost = false;
     this.roomCode = '';
+    this.roomKey = null; // 房间密钥（由房间号派生，见 utils/crypto.js）
     this.mySeatId = 0; // 0: 东(房主), 1: 南, 2: 西, 3: 北
     this.playerName = '我';
     this.guestTempId = '';
@@ -57,14 +59,28 @@ export class NetworkManager {
     return `csmj/v1/${this.roomCode}/${sub}`;
   }
 
-  // 辅助方法：安全解析 JSON 消息
-  _parsePayload(payload) {
-    try {
-      return JSON.parse(payload.toString());
-    } catch (e) {
-      console.error('[CSMJ Network] JSON parse error:', e);
-      return null;
+  // 辅助方法：发布消息（一律加密后再上路，公共 broker 上只有密文）
+  async _publish(topic, message, opts = { qos: 1 }) {
+    if (!this.client || !this.client.connected) return;
+    if (!this.roomKey) {
+      console.warn('[CSMJ Network] 房间密钥未就绪，消息未发送');
+      return;
     }
+    try {
+      const payload = await encryptJson(this.roomKey, message);
+      this.client.publish(topic, payload, opts);
+    } catch (e) {
+      console.warn('[CSMJ Network] 加密发送失败:', e.message);
+    }
+  }
+
+  // 辅助方法：解密入站载荷（密钥不对/被篡改/旧版明文 → null，直接忽略）
+  async _parsePayload(payload) {
+    const data = await decryptJson(this.roomKey, payload);
+    if (!data) {
+      console.warn('[CSMJ Network] 收到无法解密的消息（密钥不匹配或非本协议载荷），已忽略');
+    }
+    return data;
   }
 
   // 辅助方法：带自动故障转移的 MQTT 连接
@@ -122,12 +138,21 @@ export class NetworkManager {
   }
 
   // 1. 房主创建房间
-  createRoom(roomCode, hostName = '房主', onReady = null, onError = null) {
+  async createRoom(roomCode, hostName = '房主', onReady = null, onError = null) {
     this.cleanup();
     this.isHost = true;
     this.roomCode = roomCode.toUpperCase().trim();
     this.playerName = hostName;
     this.mySeatId = 0;
+
+    // 房间密钥由房间号派生（P0-2 缓解）：此后所有载荷都是密文，公共 broker 上的旁听者读不到
+    try {
+      this.roomKey = await deriveRoomKey(this.roomCode);
+    } catch (e) {
+      if (onError) onError(e);
+      if (this.onErrorCallback) this.onErrorCallback(e.message);
+      return;
+    }
 
     this.seats = [
       { id: 0, name: hostName, isHost: true, isHuman: true, isConnected: true, isReady: true },
@@ -136,9 +161,9 @@ export class NetworkManager {
       { id: 3, name: '电脑 AI 3', isHost: false, isHuman: false, isConnected: true, isReady: true }
     ];
 
-    // 房主掉线时自动向广播频道发送房间解散遗嘱
+    // 房主掉线时自动向广播频道发送房间解散遗嘱（同样加密）
     const willTopic = this._getTopic('b');
-    const willPayload = JSON.stringify({ type: 'ROOM_CLOSED', message: '房主已断开连接，房间已解散' });
+    const willPayload = await encryptJson(this.roomKey, { type: 'ROOM_CLOSED', message: '房主已断开连接，房间已解散' });
 
     this._connectWithFallback(
       BROKER_URLS,
@@ -159,8 +184,8 @@ export class NetworkManager {
         });
 
         // 监听来自访客的指令
-        client.on('message', (topic, payload) => {
-          const data = this._parsePayload(payload);
+        client.on('message', async (topic, payload) => {
+          const data = await this._parsePayload(payload);
           if (!data) return;
 
           if (topic === hostTopic) {
@@ -209,10 +234,10 @@ export class NetworkManager {
 
       if (assignSeat === -1) {
         // 房间已满
-        this.client.publish(guestRespTopic, JSON.stringify({
+        void this._publish(guestRespTopic, {
           type: 'ROOM_FULL',
           message: '房间人数已满（最多4人）'
-        }), { qos: 1 });
+        });
         return;
       }
 
@@ -231,12 +256,12 @@ export class NetworkManager {
       };
 
       // 回复该访客加入成功
-      this.client.publish(guestRespTopic, JSON.stringify({
+      void this._publish(guestRespTopic, {
         type: 'JOIN_SUCCESS',
         seatId: assignSeat,
         roomCode: this.roomCode,
         seats: this.seats
-      }), { qos: 1 });
+      });
 
       // 广播更新大厅状态
       this.broadcastLobbyState();
@@ -263,12 +288,21 @@ export class NetworkManager {
   }
 
   // 2. 访客加入房间
-  joinRoom(roomCode, playerName = '玩家', onJoined = null, onError = null) {
+  async joinRoom(roomCode, playerName = '玩家', onJoined = null, onError = null) {
     this.cleanup();
     this.isHost = false;
     this.roomCode = roomCode.toUpperCase().trim();
     this.playerName = playerName;
     this.guestTempId = 'g_' + Math.random().toString(36).substring(2, 9);
+
+    // 与房主同一房间号 → 同一把密钥（P0-2 缓解：载荷在公共 broker 上只以密文出现）
+    try {
+      this.roomKey = await deriveRoomKey(this.roomCode);
+    } catch (e) {
+      if (onError) onError(e);
+      if (this.onErrorCallback) this.onErrorCallback(e.message);
+      return;
+    }
 
     let hasJoined = false;
 
@@ -291,11 +325,11 @@ export class NetworkManager {
           }
 
           // 向房主发送加入请求
-          client.publish(hostTopic, JSON.stringify({
+          void this._publish(hostTopic, {
             type: 'JOIN_REQUEST',
             guestTempId: this.guestTempId,
             playerName: this.playerName
-          }), { qos: 1 });
+          });
 
           // 启动 6 秒等待应答超时
           this.joinTimeout = setTimeout(() => {
@@ -309,8 +343,8 @@ export class NetworkManager {
         });
 
         // 监听房主发来的消息
-        client.on('message', (topic, payload) => {
-          const data = this._parsePayload(payload);
+        client.on('message', async (topic, payload) => {
+          const data = await this._parsePayload(payload);
           if (!data) return;
 
           if (topic === guestRespTopic) {
@@ -413,27 +447,24 @@ export class NetworkManager {
   // 房主向所有人广播数据 (例如开始游戏、打出牌、碰杠通知)
   broadcast(message) {
     if (this.isHost && this.client && this.client.connected) {
-      const topic = this._getTopic('b');
-      this.client.publish(topic, JSON.stringify(message), { qos: 1 });
+      void this._publish(this._getTopic('b'), message);
     }
   }
 
   // 房主向特定座位发送私密消息 (例如发专属暗手牌、摸牌通知)
   sendToSeat(seatId, message) {
     if (this.isHost && this.client && this.client.connected) {
-      const topic = this._getTopic(`seat/${seatId}`);
-      this.client.publish(topic, JSON.stringify(message), { qos: 1 });
+      void this._publish(this._getTopic(`seat/${seatId}`), message);
     }
   }
 
   // 访客向房主发送动作指令 (打牌、碰杠胡确认、心跳)
   sendToHost(message) {
     if (!this.isHost && this.client && this.client.connected) {
-      const topic = this._getTopic('host');
-      this.client.publish(topic, JSON.stringify({
+      void this._publish(this._getTopic('host'), {
         ...message,
         fromSeatId: this.mySeatId
-      }), { qos: 1 });
+      });
     }
   }
 
@@ -468,11 +499,9 @@ export class NetworkManager {
     if (this.client) {
       try {
         if (this.isHost && this.roomCode && this.client.connected) {
-          const topic = this._getTopic('b');
-          this.client.publish(topic, JSON.stringify({ type: 'ROOM_CLOSED', message: '房主已解散房间' }), { qos: 1 });
+          void this._publish(this._getTopic('b'), { type: 'ROOM_CLOSED', message: '房主已解散房间' });
         } else if (!this.isHost && this.roomCode && this.client.connected) {
-          const topic = this._getTopic('host');
-          this.client.publish(topic, JSON.stringify({ type: 'LEAVE', fromSeatId: this.mySeatId }), { qos: 1 });
+          void this._publish(this._getTopic('host'), { type: 'LEAVE', fromSeatId: this.mySeatId });
         }
         this.client.end(true);
       } catch (_) {}
@@ -484,6 +513,7 @@ export class NetworkManager {
     this.lastHeartbeat = [0, 0, 0, 0];
     this.isHost = false;
     this.roomCode = '';
+    this.roomKey = null;
   }
 }
 
