@@ -635,25 +635,26 @@ export function analyzeTingCards(handTiles, melds = [], config = {}, allKnownTil
  * 
  * @param {Array} wall 牌墙
  * @param {number} birdCount 抓鸟数量 (0, 2, 4)
- * @param {number} winnerId 赢家方位 (0~3)
- * @returns {{ birds: Array<{ tile: Object, hitsWinner: boolean, seat: number }>, hitCount: number }}
+ * @param {number} dealerSeat 本次结算的庄位（自摸/点炮 = 胡牌者，通炮 = 放炮者）
+ * @returns {{ birds: Array<{ tile: Object, targetSeat: number, hitsWinner: boolean }>, birdValues: number[], hitCount: number, source: 'tail' }}
  */
-export function drawBirds(wall, birdCount = 2, winnerId = 0) {
+export function drawBirds(wall, birdCount = 2, dealerSeat = 0) {
   if (birdCount <= 0 || !wall || wall.length === 0) {
-    return { birds: [], hitCount: 0 };
+    return { birds: [], birdValues: [], hitCount: 0, source: 'tail' };
   }
 
   const birds = [];
   const actualCount = Math.min(birdCount, wall.length);
   let hitCount = 0;
 
-  for (let i = 0; i < actualCount; i++) {
+  // 规格 §五 + S2 裁定：终局仍翻牌墙，但取「末尾」并移除（与开杠补牌同侧），
+  // 避免与后续摸牌重复用到同一张牌；座位基准是「本次结算的庄位」。
+  for (let i = wall.length - actualCount; i < wall.length; i++) {
     const tile = wall[i];
-    // 鸟的座位分配：以赢家为基准算 1,5,9
     const val = tile.value;
-    const hitOffset = (val - 1) % 4; // 0: 赢家, 1: 下家, 2: 对家, 3: 上家
-    const targetSeat = (winnerId + hitOffset) % 4;
-    const hitsWinner = (targetSeat === winnerId);
+    const hitOffset = (val - 1) % 4; // 0: 庄位, 1: 下家, 2: 对家, 3: 上家
+    const targetSeat = (dealerSeat + hitOffset) % 4;
+    const hitsWinner = (targetSeat === dealerSeat);
 
     if (hitsWinner) {
       hitCount++;
@@ -666,7 +667,12 @@ export function drawBirds(wall, birdCount = 2, winnerId = 0) {
     });
   }
 
-  return { birds, hitCount };
+  return {
+    birds,
+    birdValues: birds.map(b => b.tile.value),
+    hitCount,
+    source: 'tail'
+  };
 }
 
 /**
