@@ -2,7 +2,7 @@
 // 适配国内移动网络 (4G/5G/Wi-Fi/跨运营商)，无需公网 IP 与穿透中继
 import mqtt from 'mqtt';
 import { deriveRoomKey, encryptJson, decryptJson } from './crypto.js';
-import { createMessageFilter, nextMessageId } from './dedupe.js';
+import { createMessageFilter, createSequenceTracker, nextMessageId } from './dedupe.js';
 import { nextChannelOnRetry } from './invite.js';
 
 export const ROOM_PREFIX = 'csmj-v1-';
@@ -32,6 +32,8 @@ export class NetworkManager {
     // 幂等与重连（P0-4）
     this.connId = 'c' + Math.random().toString(36).slice(2, 8); // 本连接的 id 前缀，避免与他端撞号
     this.inboundFilter = createMessageFilter();
+    this.inboundSeq = createSequenceTracker(); // P0-4③：按发送者丢弃乱序/重放消息
+    this.outSeq = 0;       // 本端出站消息的单调序号
     this.joined = false;   // 访客是否已成功落座
     this.reconnecting = false;
     this.channelIndex = 0; // 本端实际所在的通信通道下标（0=主通道，1=备用通道）
@@ -67,9 +69,17 @@ export class NetworkManager {
     return `csmj/v1/${this.roomCode}/${sub}`;
   }
 
-  // 辅助方法：给消息打上唯一 id 与时间戳（用于接收端幂等去重）
+  // 辅助方法：给消息打上唯一 id、单调序号与时间戳（接收端据此去重 + 丢弃乱序/重放）
   _stamp(message) {
-    return { ...message, msgId: nextMessageId(this.connId), ts: Date.now() };
+    this.outSeq += 1;
+    return {
+      ...message,
+      msgId: nextMessageId(this.connId),
+      seq: this.outSeq,
+      // senderId 带会话标识：客户端刷新后是全新会话，序号从 1 重新开始，不会被当成旧消息丢掉
+      senderId: `${this.isHost ? 'host' : 'guest'}:${this.connId}`,
+      ts: Date.now()
+    };
   }
 
   // 辅助方法：发布消息（一律加密后再上路，公共 broker 上只有密文）
@@ -97,7 +107,11 @@ export class NetworkManager {
       console.warn('[CSMJ Network] 收到无法解密的消息（密钥不匹配或非本协议载荷），已忽略');
       return null;
     }
-    // 幂等：QoS 1 是「至少一次」，重传/重连会让同一条消息到达多次 → 只处理第一次
+    // 幂等与顺序（P0-4③）：先按发送者丢乱序/重放，再按 msgId 丢重复投递
+    if (!this.inboundSeq.accept(data.senderId, data.seq)) {
+      console.warn('[CSMJ Network] 乱序/过期消息已丢弃:', data.senderId, data.seq);
+      return null;
+    }
     if (!this.inboundFilter.accept(data.msgId, data.ts)) {
       console.warn('[CSMJ Network] 重复消息已丢弃:', data.msgId);
       return null;
