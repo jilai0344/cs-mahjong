@@ -77,7 +77,7 @@ export default function MultiplayerModal({
   // 2. 点击加入房间
   const handleJoinRoom = () => {
     if (!roomCodeInput.trim()) {
-      setErrorMessage('请输入4位房间号');
+      setErrorMessage('请输入 6 位房间号');
       return;
     }
 
@@ -235,14 +235,14 @@ export default function MultiplayerModal({
             {activeTab === 'join' && (
               <div className="p-4 rounded-xl bg-slate-800/40 border border-emerald-500/20 space-y-3">
                 <label className="block text-xs font-bold text-teal-300">
-                  输入4位房间号
+                  输入 6 位房间号
                 </label>
                 <input
                   type="text"
                   value={roomCodeInput}
                   onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
                   maxLength={6}
-                  placeholder="例如：8899"
+                  placeholder="例如：A7XK29"
                   className="w-full px-4 py-3 rounded-xl bg-black/60 border-2 border-teal-500/40 text-center font-mono font-black text-2xl tracking-widest text-amber-300 focus:outline-hidden focus:border-teal-400"
                 />
 
