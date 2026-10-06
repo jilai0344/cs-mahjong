@@ -80,7 +80,7 @@ export default function OpponentHand({
         {melds.length > 0 && (
           <div
             className={`flex gap-1.5 p-1 rounded-xl bg-black/60 border border-amber-500/30 shrink-0 ${
-              isTop ? 'flex-row' : 'flex-row items-center justify-center'
+              isTop ? 'flex-row' : 'flex-col items-center justify-center'
             }`}
           >
             {melds.map((meld, mIdx) => (

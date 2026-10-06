@@ -432,11 +432,11 @@ export default function MahjongTile({
 
   // 牌张物理尺寸精确适配：手牌布满下方屏幕三分之二，对局空间开阔不遮挡
   const sizeMap = {
-    // 玩家手牌 (巨幅超清，布满下方屏幕的三分之二) — 竖屏时缩小至32px以适配窄屏
-    hand: 'w-[32px] h-[44px] landscape:w-[48px] landscape:h-[66px] sm:w-[60px] sm:h-[82px] md:w-[70px] md:h-[96px] lg:w-[80px] lg:h-[110px] xl:w-[88px] xl:h-[120px] 2xl:w-[94px] 2xl:h-[128px]',
-    // 碰吃杠面子牌 (对应同步大号化) — 竖屏时缩小
-    meld: 'w-[28px] h-[38px] landscape:w-[38px] landscape:h-[52px] sm:w-[46px] sm:h-[64px] md:w-[54px] md:h-[74px] lg:w-[60px] lg:h-[82px]',
-    // 弃牌池牌张 (对家与自己出牌，一行12张)
+    // 玩家手牌 (巨幅超清，布满下方屏幕的三分之二) — 必须比出牌区大1.5倍
+    hand: 'w-[48px] h-[66px] landscape:w-[60px] landscape:h-[82px] sm:w-[60px] sm:h-[82px] md:w-[70px] md:h-[96px] lg:w-[80px] lg:h-[110px] xl:w-[88px] xl:h-[120px] 2xl:w-[94px] 2xl:h-[128px]',
+    // 碰吃杠面子牌 (比手牌略小)
+    meld: 'w-[40px] h-[55px] landscape:w-[48px] landscape:h-[66px] sm:w-[46px] sm:h-[64px] md:w-[54px] md:h-[74px] lg:w-[60px] lg:h-[82px]',
+    // 弃牌池牌张 (对家与自己出牌，一行12张) — 手牌的2/3大小
     discard: 'w-[32px] h-[44px] sm:w-[38px] sm:h-[52px] md:w-[44px] md:h-[60px] lg:w-[48px] lg:h-[66px] xl:w-[52px] xl:h-[72px]',
     // 侧边出牌 (用于上家与下家竖排纵向成列出牌)
     'discard-side': 'w-[28px] h-[38px] sm:w-[32px] sm:h-[44px]',
