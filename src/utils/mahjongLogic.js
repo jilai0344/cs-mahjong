@@ -447,12 +447,17 @@ export function checkHu(handTiles, melds = [], winningTile = null, isSelfDrawn =
     const counts = countTiles(allTilesInHand);
     let pairCount = 0;
     let tripletCount = 0;
+    let singleCount = 0;
     counts.forEach(({ count }) => {
       if (count === 2) pairCount++;
       else if (count === 3) tripletCount++;
-      else if (count === 4) { tripletCount += 2; } // 4张占4格，两组计入长度
+      // 4 张同牌且没开杠：只能拆成「1 个刻子 + 1 张散牌」，**不能**记成两个刻子（P1-6）。
+      // 旧实现按 2 个刻子记账（3 张/刻子 → 记 6 张），多记的 2 张会与真实散牌数量相互抵消，
+      // 于是「AAAA BBB CCC DD E F」这类根本拆不出 4 刻子+1 对的手牌会被误判成碰碰胡。
+      else if (count === 4) { tripletCount++; singleCount++; }
+      else singleCount += count;
     });
-    if (pairCount === 1 && (tripletCount * 3 + 2 === allTilesInHand.length)) {
+    if (pairCount === 1 && singleCount === 0 && (tripletCount * 3 + 2 === allTilesInHand.length)) {
       isPengPengHu = true;
     }
   }
