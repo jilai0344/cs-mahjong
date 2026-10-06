@@ -1,0 +1,32 @@
+src/App.jsx:206:9 warning react(set-state-in-effect): Calling setState synchronously within an effect can trigger cascading renders
+src/App.jsx:215:33 warning eslint(no-unused-vars): Parameter 'fromSeatId' is declared but never used. Unused parameters should start with a '_'.
+src/App.jsx:219:11 warning react(immutability): Cannot access variable while it is being initialized
+src/App.jsx:221:11 warning react(immutability): Cannot access variable while it is being initialized
+src/App.jsx:221:11 warning react-hooks(exhaustive-deps): React Hook useEffect has missing dependencies: 'executeDiscard', 'handleAcknowledgeStartingHu', 'handleGuestActionResponse', 'playerMelds'
+src/App.jsx:223:11 warning react(immutability): Cannot access variable while it is being initialized
+src/App.jsx:31:8 warning eslint(no-unused-vars): Identifier 'MahjongTile' is imported but never used.
+src/App.jsx:35:8 warning eslint(no-unused-vars): Identifier 'DiscardPool' is imported but never used.
+src/App.jsx:45:48 warning eslint(no-unused-vars): Identifier 'Sparkles' is imported but never used.
+src/App.jsx:45:64 warning eslint(no-unused-vars): Identifier 'RotateCcw' is imported but never used.
+src/App.jsx:45:82 warning eslint(no-unused-vars): Identifier 'Wifi' is imported but never used.
+src/App.jsx:45:88 warning eslint(no-unused-vars): Identifier 'Globe' is imported but never used.
+src/App.jsx:578:9 warning react(immutability): Cannot access variable while it is being initialized
+src/App.jsx:578:9 warning react-hooks(exhaustive-deps): React Hook useCallback has a missing dependency: 'enterPlayingState'
+src/App.jsx:64:16 warning eslint(no-unused-vars): Catch parameter 'e' is caught but never used.
+src/App.jsx:84:17 warning react(refs): Cannot access refs during render
+src/App.jsx:8:3 warning eslint(no-unused-vars): Identifier 'isJiangTile' is imported but never used.
+src/components/DiscardPool.jsx:14:3 warning eslint(no-unused-vars): Parameter 'playerId' is declared but never used. Unused parameters should start with a '_'.
+src/components/MultiplayerModal.jsx:10:3 warning eslint(no-unused-vars): Parameter 'currentRoom' is declared but never used. Unused parameters should start with a '_'.
+src/components/MultiplayerModal.jsx:31:9 warning react(set-state-in-effect): Calling setState synchronously within an effect can trigger cascading renders
+src/components/MultiplayerModal.jsx:69:8 warning eslint(no-unused-vars): Parameter 'code' is declared but never used. Unused parameters should start with a '_'.
+src/components/OpponentHand.jsx:25:9 warning eslint(no-unused-vars): Variable 'isRight' is declared but never used. Unused variables should start with a '_'.
+src/components/TableCenter.jsx:17:3 warning eslint(no-unused-vars): Parameter 'statusText' is declared but never used. Unused parameters should start with a '_'.
+src/components/TableCenter.jsx:40:9 warning eslint(no-unused-vars): Variable 'relTurn' is declared but never used. Unused variables should start with a '_'.
+src/utils/aiPlayer.js:2:35 warning eslint(no-unused-vars): Identifier 'compareTiles' is imported but never used.
+src/utils/mahjongLogic.js:2:43 warning eslint(no-unused-vars): Identifier 'JIANG_NUMBERS' is imported but never used.
+src/utils/mahjongLogic.js:2:83 warning eslint(no-unused-vars): Identifier 'compareTiles' is imported but never used.
+src/utils/multiplayer.js:144:44 warning eslint(no-unused-vars): Catch parameter '_' is caught but never used.
+src/utils/multiplayer.js:162:44 warning eslint(no-unused-vars): Catch parameter '_' is caught but never used.
+src/utils/multiplayer.js:651:16 warning eslint(no-unused-vars): Catch parameter '_' is caught but never used.
+test/mahjongLogic.test.js:7:3 warning eslint(no-unused-vars): Identifier 'canPeng' is imported but never used.
+test/mahjongLogic.test.js:8:3 warning eslint(no-unused-vars): Identifier 'getChiOptions' is imported but never used.
