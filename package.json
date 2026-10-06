@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node test/mahjongLogic.test.js && node test/scoring.test.js"
+    "test": "node test/mahjongLogic.test.js && node test/scoring.test.js && node test/simulation.test.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
