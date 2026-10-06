@@ -273,6 +273,36 @@ console.log('\n=== 测试 7: 骰子抓鸟（随机源可注入，联机由服务
 }
 
 // ------------------------------------------------------------------
+console.log('\n=== 测试 8: 回归用例（外部审计发现的 2 处缺陷）===');
+{
+  // 缺陷 1：通炮缺 k 兜底（与点炮/自摸口径一致）
+  const r = scoreRound({ method: 'tongpao', B: 1, F: 1, discarderSeat: 0, winners: [{ seat: 1, isBigHu: true }] });
+  eq([r.details[0].k, r.winners[0].k], [1, 1], '通炮缺 k 时兜底为 1（details 与 winners 一致，不再出现 undefined）');
+  eq([r.details[0].base, r.details[0].P], [7, 9], '通炮缺 k 时按 k=1 计：7B + 2F = 9');
+  assert(r.zeroSum, '通炮缺 k 结算零和');
+
+  const small = scoreRound({ method: 'tongpao', B: 1, F: 1, discarderSeat: 0, winners: [{ seat: 1 }] });
+  eq([small.winners[0].isBigHu, small.winners[0].k, small.winners[0].receives], [false, 0, 4], '通炮未标 isBigHu 按小胡（k=0，放炮者付 2B+2F=4）');
+
+  throws(() => scoreRound({ method: 'tongpao', B: 1, F: 1, discarderSeat: 0, winners: [{ seat: 1, isBigHu: true, k: 0 }] }), '大胡 k=0 抛错（k 必须 >= 1）');
+  throws(() => scoreRound({ method: 'tongpao', B: 1, F: 1, discarderSeat: 0, winners: [{ seat: 1, isBigHu: true, k: 1.5 }] }), '大胡 k 非整数抛错');
+
+  // 缺陷 2：越界座位抛错，而非静默写坏 changes 数组
+  throws(() => scoreRound({ method: 'zimo', B: 1, F: 1, winner: { seat: 7 } }), '自摸 winner.seat=7 抛错');
+  throws(() => scoreRound({ method: 'zimo', B: 1, F: 1, winner: { seat: -1 } }), 'winner.seat 负数抛错');
+  throws(() => scoreRound({ method: 'zimo', B: 1, F: 1, winner: { seat: 1.5 } }), 'winner.seat 非整数抛错');
+  throws(() => scoreRound({ method: 'dianpao', B: 1, F: 1, winner: { seat: 0 }, discarderSeat: 9 }), '点炮 discarderSeat=9 抛错');
+  throws(() => scoreRound({ method: 'zimo', B: 1, F: 1, winner: { seat: 0 }, dealerSeat: 5 }), 'dealerSeat=5 抛错');
+  throws(() => scoreRound({ method: 'tongpao', B: 1, F: 1, discarderSeat: 0, winners: [{ seat: 7, isBigHu: true }] }), '通炮 winner.seat=7 抛错');
+  throws(() => nextDealerSeat({ outcome: 'win', winnerSeat: 8 }), 'nextDealerSeat win winnerSeat=8 抛错');
+  throws(() => nextDealerSeat({ outcome: 'draw', lastDrawerSeat: -1 }), 'nextDealerSeat draw lastDrawerSeat=-1 抛错');
+
+  let msg = '';
+  try { scoreRound({ method: 'zimo', B: 1, F: 1, winner: { seat: 7 } }); } catch (e) { msg = e.message; }
+  assert(msg.includes('winner.seat') && msg.includes('7'), `越界错误信息含字段名与实际值（实际消息：${msg}）`);
+}
+
+// ------------------------------------------------------------------
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);
 if (failures.length > 0) {
   console.error('\n失败列表:');

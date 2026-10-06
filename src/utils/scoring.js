@@ -129,11 +129,19 @@ export function scoreRound({
   const isTongPao = method === 'tongpao';
   const isDiscardMethod = method === 'dianpao' || isTongPao;
 
-  const list = isTongPao ? (winners || []) : [normalizeWinner(winner, method)];
-  if (list.length === 0) throw new Error(`scoreRound: method=${method} 缺少赢家`);
   if (isDiscardMethod && discarderSeat === null) {
     throw new Error(`scoreRound: method=${method} 必须提供 discarderSeat（放炮者）`);
   }
+  if (discarderSeat !== null) {
+    validateSeat('discarderSeat', discarderSeat);
+  }
+  if (dealerSeat !== null) {
+    validateSeat('dealerSeat', dealerSeat);
+  }
+
+  // 统一走 normalizeWinner：非通炮与通炮共用同一套 k / isBigHu 兜底与校验
+  const list = (isTongPao ? winners : [winner]).map((w) => normalizeWinner(w, method));
+  if (list.length === 0) throw new Error(`scoreRound: method=${method} 缺少赢家`);
 
   // 计分庄位：通炮 = 放炮者；其余 = 胡牌者 / 触发者
   const effectiveDealerSeat = isTongPao
@@ -215,17 +223,32 @@ export function scoreRound({
   };
 }
 
-function normalizeWinner(winner, method) {
-  if (!winner || !Number.isFinite(winner.seat)) {
-    throw new Error(`scoreRound: method=${method} 缺少 winner`);
+function validateSeat(name, value) {
+  if (!Number.isInteger(value) || value < 0 || value > 3) {
+    throw new Error(`scoreRound: ${name} 必须是 0..3 的整数（实际 ${JSON.stringify(value)}）`);
   }
+}
+
+function normalizeWinner(winner, method) {
+  if (!winner || !Number.isInteger(winner.seat)) {
+    throw new Error(`scoreRound: method=${method} 缺少有效的 winner.seat（0..3 的整数，实际 ${JSON.stringify(winner && winner.seat)}）`);
+  }
+  validateSeat('winner.seat', winner.seat);
   // 起手胡 / 中途四喜 按小胡（自摸口径）结算
   const forceSmall = method === 'qishou' || method === 'siji';
+  const isBigHu = forceSmall ? false : !!winner.isBigHu;
+  let k = 0;
+  if (isBigHu) {
+    k = (winner.k === undefined || winner.k === null) ? 1 : winner.k;
+    if (!Number.isInteger(k) || k < 1) {
+      throw new Error(`scoreRound: 大胡的 k 必须是 >= 1 的整数（实际 ${JSON.stringify(k)}）`);
+    }
+  }
   return {
     seat: winner.seat,
-    isBigHu: forceSmall ? false : !!winner.isBigHu,
-    k: forceSmall ? 0 : (winner.k || 1),
-    huTypes: winner.huTypes || (forceSmall ? [] : ['平胡'])
+    isBigHu,
+    k,
+    huTypes: Array.isArray(winner.huTypes) ? winner.huTypes : (isBigHu || forceSmall ? [] : ['平胡'])
   };
 }
 
@@ -241,9 +264,9 @@ function otherSeats(seat) {
  * · 起手胡 / 中途四喜 的结算**不影响**下一局庄，调用方不应使用本函数更新
  */
 export function nextDealerSeat({ outcome, winnerSeat = null, discarderSeat = null, lastDrawerSeat = null }) {
-  if (outcome === 'win') return winnerSeat;
-  if (outcome === 'tongpao') return discarderSeat;
-  if (outcome === 'draw') return lastDrawerSeat;
+  if (outcome === 'win') { validateSeat('winnerSeat', winnerSeat); return winnerSeat; }
+  if (outcome === 'tongpao') { validateSeat('discarderSeat', discarderSeat); return discarderSeat; }
+  if (outcome === 'draw') { validateSeat('lastDrawerSeat', lastDrawerSeat); return lastDrawerSeat; }
   throw new Error(`nextDealerSeat: 未知 outcome=${outcome}`);
 }
 
