@@ -15,7 +15,9 @@ export default function OpponentHand({
   actionBubble = null,
   score = 1000,
   isDealer = false,
-  visualPosition = null
+  visualPosition = null,
+  isAi = false,      // P2-3：这个座位现在是电脑在打（AI 补位或掉线托管）
+  aiLabel = '电脑'   // 「电脑」（一开始就是补位）或「托管」（真人掉线被接管）
 }) {
   const { name = '' } = player || {};
 
@@ -58,6 +60,16 @@ export default function OpponentHand({
         <span className="text-xs font-mono font-black text-yellow-300 ml-1">
           {score}分
         </span>
+
+        {/* P2-3：电脑/托管标识（联机时该座位已不是真人在打） */}
+        {isAi && (
+          <span
+            className="text-[10px] font-black text-slate-200 bg-slate-700/90 px-1.5 py-0.2 rounded border border-slate-400/40 whitespace-nowrap"
+            title={aiLabel === '托管' ? '该座位真人掉线，已由电脑接管' : '该座位由电脑补位'}
+          >
+            {aiLabel}
+          </span>
+        )}
 
         {/* 思考光圈 */}
         {isCurrentTurn && (
