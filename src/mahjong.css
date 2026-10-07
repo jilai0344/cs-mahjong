@@ -88,6 +88,31 @@
   animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ---------------------------------------------------------------------------
+ * 出牌 / 摸牌节奏动效（P2-1 收口）
+ * 规范（docs/DESIGN.md §7）：出牌/摸牌 150–200ms ease-out；不得出现「超过 300ms 才能继续操作」的阻塞动画。
+ * 这里只动 transform + opacity（不触发布局，避免掉帧），时长取自 --motion-* token（不写裸毫秒）；
+ * 在 @media (prefers-reduced-motion: reduce) 下由 index.css 统一压到 0.001ms ⇒ 直接到位、不留残影。
+ * test/motion.test.js 会守住「时长来自 token、不超 300ms、只动 transform/opacity、组件真的挂上了」。
+ * ------------------------------------------------------------------------- */
+@keyframes tileDraw {
+  from { opacity: 0; transform: translateX(18px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes tileDiscard {
+  from { opacity: 0.35; transform: translateY(-8px) scale(1.12); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-tile-draw {
+  animation: tileDraw var(--motion-base) var(--motion-ease-out) both;
+}
+
+.animate-tile-discard {
+  animation: tileDiscard var(--motion-base) var(--motion-ease-out) both;
+}
+
 /* 自定义纤细滚动条 */
 ::-webkit-scrollbar {
   width: 6px;

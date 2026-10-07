@@ -45,6 +45,13 @@
   /* 衬线字体族（P2-2 / D7）：index.html 早就预加载了 Noto Serif SC，但此前没有任何地方用，
    * 等于白下载 —— 结算页主视觉要求「≥22px 衬线」，这里给 font-serif 补上中文字族。 */
   --font-serif: "Noto Serif SC", ui-serif, Georgia, "Songti SC", "SimSun", serif;
+
+  /* 动效时长与曲线（P2-1 收口 / DESIGN.md §7）：出牌与摸牌统一 150–200ms ease-out。
+   * 规范禁止「超过 300ms 才能继续操作」的阻塞动画，所以新增动效一律复用这两个 token，
+   * 不要在组件里写裸毫秒；并通过 @media (prefers-reduced-motion: reduce) 整体退化。 */
+  --motion-fast: 150ms;
+  --motion-base: 180ms;
+  --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ---------------------------------------------------------------------------

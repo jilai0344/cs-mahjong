@@ -21,6 +21,11 @@ export function PlayerDiscardTray({
   const isHorizontal = position === 'top' || position === 'bottom';
   const isLeft = position === 'left';
 
+  // P2-1 节奏动效：每家门前「最新一张」带一次落桌动效。
+  // 注意不能用 lastDiscard 当判据 —— 它表示「刚打出、并且你可以吃碰胡的那张」（用于可操作高亮），
+  // 自己打出的牌不会写进它，那样自己的出牌就没有节奏反馈了。这里按各自出牌序列的最后一张算。
+  const newestId = discards.length ? discards[discards.length - 1].id : null;
+
   // 1. 上下横排 (一行6张，紧贴成行)
   if (isHorizontal) {
     return (
@@ -33,11 +38,13 @@ export function PlayerDiscardTray({
           <div className="inline-grid grid-cols-6 gap-[1.5px] sm:gap-[2px] items-center justify-center p-0.5">
             {discards.map((tile, idx) => {
               const isLatest = lastDiscard && lastDiscard.tile?.id === tile.id;
+              const isNewest = newestId !== null && tile.id === newestId;
               const isMatchHover = hoveredKey && getTileKey(tile) === hoveredKey;
               const tileRotation = position === 'top' ? 180 : 0;
 
               return (
-                <div key={tile.id || idx} className="relative flex items-center justify-center shrink-0">
+                /* P2-1 节奏动效：「刚打出的那张」带一次落桌动效（180ms ease-out）；只挂本家最新那张 */
+                <div key={tile.id || idx} className={`relative flex items-center justify-center shrink-0${isNewest ? ' animate-tile-discard' : ''}`}>
                   <MahjongTile
                     tile={tile}
                     size="discard"
@@ -70,13 +77,14 @@ export function PlayerDiscardTray({
         <div className="grid grid-flow-col grid-rows-6 gap-[1.5px] sm:gap-[2px] items-center justify-center p-0.5">
           {discards.map((tile, idx) => {
             const isLatest = lastDiscard && lastDiscard.tile?.id === tile.id;
+            const isNewest = newestId !== null && tile.id === newestId;
             const isMatchHover = hoveredKey && getTileKey(tile) === hoveredKey;
             const tileRotation = isLeft ? 90 : 270;
 
             return (
               <div
                 key={tile.id || idx}
-                className="w-[36px] h-[26px] sm:w-[42px] sm:h-[30px] flex items-center justify-center relative shrink-0"
+                className={`w-[36px] h-[26px] sm:w-[42px] sm:h-[30px] flex items-center justify-center relative shrink-0${isNewest ? ' animate-tile-discard' : ''}`}
               >
                 <MahjongTile
                   tile={tile}
