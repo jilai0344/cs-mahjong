@@ -5,12 +5,13 @@ import React from 'react';
  * - 八角流金紫晶罗盘
  * - 东南西北四方位指示
  * - 醒目翠绿流光倒计时指向箭头 (高度拟真黄金岛原画)
- * - 桌面底纹金印 (无字无花 长沙麻将 / 新手区 20)
+ * - 桌面底纹金印 (无字无花 长沙麻将 / 房间或模式标识)
  */
 export default function TableCenter({
   currentTurn = 0,
   dealerId = 0,
   wallRemaining = 108,
+  roomLabel = '单机练习',
   turnTimer = 15,
   diceValues = [3, 4],
   isRollingDice = false,
@@ -141,10 +142,10 @@ export default function TableCenter({
         </div>
       </div>
 
-      {/* 3. 罗盘下方底纹：新手区 20 + 剩余牌数 */}
+      {/* 3. 罗盘下方底纹：房间/模式标识 + 剩余牌数（P2-2 / D3：原先写死一个假的区服编号，改为真实信息） */}
       <div className="mt-2 flex flex-col items-center gap-0.5 opacity-60">
         <span className="text-[11px] font-black text-amber-400/80 tracking-widest [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
-          新手区 20
+          {roomLabel}
         </span>
         <div className="flex items-center gap-1 text-[11px] font-bold text-amber-200/80 bg-black/50 px-2.5 py-0.5 rounded-full border border-amber-500/20">
           <span>余</span>

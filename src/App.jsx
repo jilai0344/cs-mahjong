@@ -20,6 +20,7 @@ import {
 import { nextDealerSeat, drawDealerSeat, scoreRound, rollBirdDice, secureRandomInt, normalizeScoreParams, huEntryFromTypes } from './utils/scoring.js';
 import { hasPendingResponse, resolveTimeoutAction, hostTurnWatchdogDelay } from './game/actions.js';
 import { resolveDiscardResponses } from './game/priority.js';
+import { isRankedMatch, loadRecord, recordRound } from './game/record.js';
 import { getLocalDisplayId } from './utils/localId.js';
 import {
   chooseAiDiscard,
@@ -152,6 +153,9 @@ export default function App() {
   const aiTurnRef = useRef(null); // 指向 triggerAiTurn（掉线托管时从网络回调里调用，避免闭包过期）
   // P1-2：桌上还有真人能胡时，全部胡家（含 AI）先挂起等待真人决定，决定后再一次性结算
   const pendingHuRef = useRef(null);
+  // 战绩裁定（2026-10）：只有「4 个真人满座且全程无托管」的对局才计入本机记录；刷 AI 不计
+  const rankedRoundRef = useRef(false);
+  const [myRecord, setMyRecord] = useState(() => loadRecord());
   // P0-5：倒计时回调里要读「当前是否处于响应窗口」与「超时该调用谁」，
   // 用 ref 同步（避免把处理器塞进 effect 依赖数组导致闭包读到旧状态）。
   const actionsRef = useRef({});
@@ -469,6 +473,9 @@ export default function App() {
   // -------------------------------------------------------------------------
   const startNewRound = useCallback((overrideMp = null) => {
     const mp = overrideMp || multiplayerRef.current;
+    // 战绩裁定：开局的四个座位必须全是真人（有 AI 补位/单机练习 → 本局不计入本机记录）。
+    // 本局一旦出现托管（掉线/看门狗接管），下面会在接管回调里把它置回 false。
+    rankedRoundRef.current = isRankedMatch({ seats: mp.seats || [], tookOver: false });
     sound.init();
     sound.playDice();
 
@@ -1548,6 +1555,12 @@ export default function App() {
       ? { method, B, F, winners: winnerList, discarderSeat: loserId, birdValues: birdResult.birdValues }
       : { method, B, F, winner: winnerList[0], discarderSeat: method === 'dianpao' ? loserId : null, birdValues: birdResult.birdValues });
     const changes = scored.changes;
+    // 战绩裁定：只有四人对战（4 真人、全程无托管）才记入本机记录；单机/托管局一律不计
+    if (rankedRoundRef.current) {
+      setMyRecord(recordRound(typeof localStorage !== 'undefined' ? localStorage : null, {
+        scoreDelta: changes[multiplayerState.mySeatId] || 0
+      }));
+    }
 
     setPlayerScores(prev => prev.map((s, idx) => s + changes[idx]));
     // 规格 §二.1/§二.3：谁胡牌谁做庄；通炮时放炮者做庄
@@ -1615,6 +1628,11 @@ export default function App() {
 
     const mp = multiplayerRef.current;
     const seatNames = [0, 1, 2, 3].map(i => (mp.isMultiplayer ? (mp.seats[i]?.name || PLAYERS[i].name) : PLAYERS[i].name));
+
+    // 战绩裁定：流局也算打过一局（净变化 0），但同样只计四人对战
+    if (rankedRoundRef.current) {
+      setMyRecord(recordRound(typeof localStorage !== 'undefined' ? localStorage : null, { scoreDelta: 0 }));
+    }
 
     const finalResult = {
       isHuangZhuang: true,
@@ -1777,6 +1795,8 @@ export default function App() {
   // 立刻由 AI 接管这一手 —— 否则牌局会永久停在「等一个已经不在的人出牌」。
   useEffect(() => {
     network.onSeatRevertedToAI = (seatId) => {
+      // 有人被托管 → 本局不再算「四人对战」，不计入本机记录
+      rankedRoundRef.current = false;
       if (stateRef.current.gameState !== 'PLAYING') return;
       if (stateRef.current.currentTurn !== seatId) return;
       console.log(`[CSMJ] 托管接管：座位 ${seatId} 改由电脑 AI 出牌`);
@@ -2032,6 +2052,7 @@ export default function App() {
                 diceValues={diceValues}
                 isRollingDice={isRollingDice}
                 mySeatId={bottomSeatId}
+                roomLabel={multiplayerState.isMultiplayer ? `房间 ${multiplayerState.roomCode}` : '单机练习（不计记录）'}
               />
 
               {/* 下家出牌 (罗盘正右方：6张一列竖排面对下家) */}
@@ -2091,8 +2112,12 @@ export default function App() {
             <span className="text-xs font-black text-amber-100 ml-1">
               {myDisplayName}
             </span>
-            <span className="text-[10px] font-black italic text-amber-300 bg-amber-950/80 px-1 py-0.2 rounded border border-amber-500/40">
-              V8
+            {/* 本机战绩（裁定：只有 4 真人满座、全程无托管的对局才计入；刷电脑不涨） */}
+            <span
+              className="text-[10px] font-black text-amber-200 bg-amber-950/80 px-1.5 py-0.2 rounded border border-amber-500/40 whitespace-nowrap"
+              title="本机记录：只统计 4 个真人满座、全程无 AI 托管的对局；打电脑不计入"
+            >
+              净胜 {myRecord.netScore > 0 ? '+' : ''}{myRecord.netScore} · {myRecord.matches} 局
             </span>
           </div>
 

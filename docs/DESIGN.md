@@ -183,7 +183,7 @@
 | ~~D1~~ | ~~自定义色值未 token 化（组件层）~~ | ✅ **已完成**：22 个 token 落在 `src/index.css` 的 `@theme`；App.jsx / mahjong.css / TableCenter / OpponentHand 的硬编码色值全部改为 token 或 `var(--color-*)` | `test/designTokens.test.js` 断言：白名单之外硬编码色值 = 0（已进 `npm test` 与 CI） |
 | D1b | 牌面艺术色仍硬编码 | `MahjongTile.jsx` 101 处、`TileWall.jsx` 30 处（SVG 渐变/描边细密层次） | 守卫测试锁定上限只减不增；逐批迁移后下调上限，最终同样归零 |
 | ~~D2~~ | ~~牌尺寸断点不一致~~ | ✅ **已完成**：六场景各自补齐 `sm/md/lg/xl` 明确尺寸，并**移除 `landscape:` 变体**（实测它会在横屏下压过宽度断点，桌面 1440 手牌一直只有 60×82） | 守卫测试断言六场景都含 `sm/md/lg/xl` 且不含 `landscape:`；实测 812/1024/1440 三档尺寸随宽度递增且无溢出 |
-| D3 | 硬编码徽标 | `V1/V5/V8/V32`、`新手区 20`（占位） | 替换为真实数据（等级/分数/房间名）或按规范删除；`grep -rn "V[0-9]\{1,2\}\b" src/App.jsx` 为 0 |
+| ~~D3~~ | ~~硬编码徽标~~ | ✅ **已完成**：删除对手席位的假等级徽标 `V1/V5/V32` 与自己的假 `V8`；「新手区 20」改为真实信息（联机显示「房间 XXXXXX」、单机显示「单机练习（不计记录）」）；自己席位改显示**本机真实战绩**（净胜分 · 场次） | 守卫测试断言 `App.jsx` 不再出现 `V8` 等假徽标字样；`grep -rn "新手区" src` 为 0；`npm test` 覆盖战绩记账规则（见下） |
 | D4 | 安全区未处理 | 无 `safe-area-inset` | 横屏手机截图四角不遮挡；`grep -rn "safe-area-inset" src` 非空 |
 | D5 | 动效未适配减少动态 | 无 `prefers-reduced-motion` | 开启系统「减少动态效果」后无位移动画；`grep -rn "prefers-reduced-motion" src` 非空 |
 | D6 | 桌面大屏留白 | 1440 下桌心偏空（基线截图可见） | 桌心增加「剩余张数/牌墙进度/庄家」等信息密度（不新增装饰纹理） |
