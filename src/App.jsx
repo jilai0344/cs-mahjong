@@ -156,6 +156,10 @@ export default function App() {
   // 战绩裁定（2026-10）：只有「4 个真人满座且全程无托管」的对局才计入本机记录；刷 AI 不计
   const rankedRoundRef = useRef(false);
   const [myRecord, setMyRecord] = useState(() => loadRecord());
+  // D6：桌心要显示「第 N 局 / 庄家 / 牌墙进度」——局数只在同一场里递增，从大厅重新开局归 1
+  const [roundNumber, setRoundNumber] = useState(0);
+  const roundNoRef = useRef(0);
+  const [wallTotal, setWallTotal] = useState(108);
   // P0-5：倒计时回调里要读「当前是否处于响应窗口」与「超时该调用谁」，
   // 用 ref 同步（避免把处理器塞进 effect 依赖数组导致闭包读到旧状态）。
   const actionsRef = useRef({});
@@ -476,6 +480,9 @@ export default function App() {
     // 战绩裁定：开局的四个座位必须全是真人（有 AI 补位/单机练习 → 本局不计入本机记录）。
     // 本局一旦出现托管（掉线/看门狗接管），下面会在接管回调里把它置回 false。
     rankedRoundRef.current = isRankedMatch({ seats: mp.seats || [], tookOver: false });
+    // D6 局数：结算后再开一局 → 递增；从大厅重新开一场 → 归 1
+    roundNoRef.current = stateRef.current.gameState === 'ROUND_OVER' ? roundNoRef.current + 1 : 1;
+    setRoundNumber(roundNoRef.current);
     sound.init();
     sound.playDice();
 
@@ -511,6 +518,7 @@ export default function App() {
       setIsRollingDice(false);
 
       const newDeck = generateDeck();
+      setWallTotal(newDeck.length);
       const hands = [[], [], [], []];
       for (let i = 0; i < 4; i++) {
         const count = i === dealerId ? 14 : 13;
@@ -2053,6 +2061,9 @@ export default function App() {
                 isRollingDice={isRollingDice}
                 mySeatId={bottomSeatId}
                 roomLabel={multiplayerState.isMultiplayer ? `房间 ${multiplayerState.roomCode}` : '单机练习（不计记录）'}
+                wallTotal={wallTotal}
+                roundNumber={roundNumber}
+                dealerName={multiplayerState.seats?.[dealerId]?.name || PLAYERS[dealerId]?.name || ''}
               />
 
               {/* 下家出牌 (罗盘正右方：6张一列竖排面对下家) */}
