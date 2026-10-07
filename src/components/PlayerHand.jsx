@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import MahjongTile from './MahjongTile.jsx';
 import { sound } from '../utils/audio.js';
+import { createDiscardGuard, discardHint } from '../game/discardGuard.js';
 
 export default function PlayerHand({
   handTiles = [],
@@ -13,20 +14,48 @@ export default function PlayerHand({
   showJiangBadge = false
 }) {
   const [selectedTileId, setSelectedTileId] = useState(null);
+  const [tooFast, setTooFast] = useState(false);
+  // P2-1 防误触：第一次点击只选中；再点同一张必须间隔 ≥250ms（双击不会误打出）；
+  // 也可以用显式「打出」按钮，点哪张打哪张。状态机用 useState 惰性创建（稳定实例，且避免
+  // 在 render 里直接 new 对象触发 react(purity)）。
+  const [guard] = useState(() => createDiscardGuard());
+  const tooFastTimerRef = useRef(null);
+
+  const doDiscard = (tile) => {
+    if (onDiscard) onDiscard(tile);
+    guard.clear();
+    setSelectedTileId(null);
+    setTooFast(false);
+  };
 
   const handleTileClick = (tile) => {
     if (!isMyTurn) return;
 
     sound.playTileTouch();
 
-    if (selectedTileId === tile.id) {
-      if (onDiscard) {
-        onDiscard(tile);
-        setSelectedTileId(null);
+    // 这里是事件处理函数（不是 render）：状态机只在这里被调用，纯函数逻辑本身在
+    // src/game/discardGuard.js 里由 test/discardGuard.test.js 覆盖。
+    // oxlint 的 react(purity) 无法识别「工厂返回对象的成员方法」，故显式豁免。
+    // eslint-disable-next-line react/purity
+    const res = guard.select(tile.id, Date.now());
+    if (res.action === 'discard') {
+      if (res.allowed) {
+        doDiscard(tile);
+      } else {
+        // 手滑保护：连点/双击不打出，给出明确反馈
+        setTooFast(true);
+        if (tooFastTimerRef.current) clearTimeout(tooFastTimerRef.current);
+        tooFastTimerRef.current = setTimeout(() => setTooFast(false), 1500);
       }
     } else {
       setSelectedTileId(tile.id);
     }
+  };
+
+  const handleExplicitDiscard = () => {
+    const id = guard.selected();
+    const tile = handTiles.find((t) => t.id === id) || (drawnTile && drawnTile.id === id ? drawnTile : null);
+    if (tile && guard.requestExplicit(id).allowed) doDiscard(tile);
   };
 
   const handleMouseEnter = (tile) => {
@@ -126,10 +155,22 @@ export default function PlayerHand({
         )}
       </div>
 
-      {/* 出牌提示条 */}
+      {/* 出牌提示条 + 显式「打出」按钮（P2-1：说清怎么打，并防手滑） */}
       {isMyTurn && (
-        <div className="text-sm sm:text-base text-emerald-200/90 font-bold mt-1.5 animate-pulse">
-          {selectedTileId ? '✦ 再次点击打出选中的牌' : '✦ 点击选择一张牌打出'}
+        <div className="flex items-center gap-3 mt-1.5">
+          <div className={`text-sm sm:text-base font-bold ${tooFast ? 'text-amber-300' : 'text-emerald-200/90'}`}>
+            {discardHint(selectedTileId, tooFast)}
+          </div>
+          {selectedTileId && (
+            <button
+              type="button"
+              onClick={handleExplicitDiscard}
+              className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-sm font-black shadow-md border border-emerald-300/60 active:scale-95 transition-all"
+              title="打出当前选中的这张牌（不会误打别的牌）"
+            >
+              打出
+            </button>
+          )}
         </div>
       )}
     </div>

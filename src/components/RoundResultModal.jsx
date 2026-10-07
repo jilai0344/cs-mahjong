@@ -47,6 +47,7 @@ export default function RoundResultModal({
     isSelfDrawn = false,
     scoreChanges = [0, 0, 0, 0],
     newDealerId = null,
+    roundDealerId = null,
     scoring = null
   } = result;
 
@@ -135,6 +136,14 @@ export default function RoundResultModal({
             <div className="text-sm font-black text-white flex items-center justify-center gap-1">
               <Crown className="w-3.5 h-3.5 text-amber-400" />
               {Number.isInteger(newDealerId) ? nameOf(newDealerId) : '—'}
+              {Number.isInteger(newDealerId) && newDealerId === roundDealerId && (
+                <span
+                  className="text-[10px] font-black text-amber-300 bg-amber-950/70 px-1.5 py-0.2 rounded border border-amber-500/40"
+                  title="本局庄继续坐庄"
+                >
+                  连庄
+                </span>
+              )}
             </div>
           </div>
         </div>

@@ -1657,6 +1657,7 @@ export default function App() {
       isSelfDrawn: isSelfDrawn && !isTongPao,
       scoreChanges: changes,
       newDealerId: nextDealer,
+      roundDealerId: stateRef.current.dealerId, // P2-1：本局庄，用于结算页标注「连庄」
       seatNames,
       // 逐项明细（规格 §九.5）：番型与 k、B、F、每家 n 与乘数、封顶前后、应付、得失、骰子/鸟
       scoring: {
@@ -1707,6 +1708,7 @@ export default function App() {
       scoreChanges: [0, 0, 0, 0],
       lastDrawerId: stateRef.current.lastDrawerId,
       newDealerId: nextDealer,
+      roundDealerId: stateRef.current.dealerId,
       seatNames
     };
     setRoundResult(finalResult);
