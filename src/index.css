@@ -41,6 +41,10 @@
   /* 金与正文 */
   --color-gold-200: #fde047;
   --color-body: #f1f5f9;
+
+  /* 衬线字体族（P2-2 / D7）：index.html 早就预加载了 Noto Serif SC，但此前没有任何地方用，
+   * 等于白下载 —— 结算页主视觉要求「≥22px 衬线」，这里给 font-serif 补上中文字族。 */
+  --font-serif: "Noto Serif SC", ui-serif, Georgia, "Songti SC", "SimSun", serif;
 }
 
 :root {
@@ -55,4 +59,41 @@ html, body, #root {
   padding: 0;
   overflow: hidden;
   background-color: var(--color-page);
+}
+
+/* ---------------------------------------------------------------------------
+ * 安全区（P2-2 / D4）
+ * 横屏刘海屏/圆角屏左右各有约 44–59px 不可用区（刘海+圆角），底部有手势条。
+ * 统一从 env() 取到 CSS 变量，组件用 .safe-* 工具类引用；测试里替换变量即可验证接线。
+ * （此前只有手牌区一处 inline env(safe-area-inset-bottom)，顶栏与四角徽标都没处理。）
+ * ------------------------------------------------------------------------- */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+.safe-pad {
+  padding-top: var(--safe-top);
+  padding-right: var(--safe-right);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+}
+.safe-pad-x { padding-left: var(--safe-left); padding-right: var(--safe-right); }
+.safe-pad-bottom { padding-bottom: var(--safe-bottom); }
+
+/* ---------------------------------------------------------------------------
+ * 减少动态效果（P2-2 / D5）
+ * 系统开启「减少动态效果」后，位移动画/过渡降到不可感知，只保留终态。
+ * （否则倒计时箭头、骰子滚动、弹窗上浮、脉冲按钮都会继续动。）
+ * ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-pulse, .animate-bounce, .animate-spin { animation: none !important; }
 }
