@@ -10,7 +10,7 @@
     "lint:check": "node scripts/check-lint.mjs",
     "lint:baseline": "node scripts/check-lint.mjs --update",
     "preview": "vite preview",
-    "test": "node test/mahjongLogic.test.js && node test/scoring.test.js && node test/simulation.test.js && node test/actions.test.js && node test/crypto.test.js && node test/dedupe.test.js && node test/invite.test.js && node test/priority.test.js && node test/lintgate.test.js && node test/modalA11y.test.js && node test/designTokens.test.js && node test/record.test.js && node test/rules.test.js && node test/latency.test.js"
+    "test": "node test/mahjongLogic.test.js && node test/scoring.test.js && node test/simulation.test.js && node test/actions.test.js && node test/crypto.test.js && node test/dedupe.test.js && node test/invite.test.js && node test/priority.test.js && node test/lintgate.test.js && node test/modalA11y.test.js && node test/designTokens.test.js && node test/record.test.js && node test/rules.test.js && node test/latency.test.js && node test/discardGuard.test.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
