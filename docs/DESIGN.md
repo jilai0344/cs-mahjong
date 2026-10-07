@@ -189,9 +189,12 @@
 
 | 场景 | 时长 | 曲线 | 现状 |
 |---|---|---|---|
-| 出牌/摸牌 | 150–200ms | ease-out | `transition-all duration-150` |
+| 出牌/摸牌 | 150–200ms | ease-out | ✅ 已实现：`tileDraw`（摸牌滑入+淡入）/ `tileDiscard`（出牌落桌）两个 keyframes，时长与曲线取自 token `--motion-base`（180ms）+ `--motion-ease-out`；只动 `transform`/`opacity`，`.animate-tile-draw` 挂在以牌 id 为 key 的包裹层（每摸一张重播）、`.animate-tile-discard` 挂在出牌池「最新一张」；守卫测试 `test/motion.test.js` |
 | 弹窗出现 | 200–250ms | scale+fade | `fadeIn`/`scaleUp` |
-| 分数变动 | 300ms 数字滚动（可选） | ease-out | 未实现（P2-1 体验项） |
+| 分数变动 | 300ms 数字滚动（可选） | ease-out | 未实现（**可选**体验项，不计入验收） |
+
+**动效 token**（`src/index.css` 的 `@theme`）：`--motion-fast: 150ms`、`--motion-base: 180ms`、`--motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1)`。
+新增动效一律复用这三个 token，不要在组件或 CSS 里写裸毫秒 —— `test/motion.test.js` 会拦「裸毫秒」与「>300ms 的阻塞动效」，并断言两个节奏动效确实挂在了对应组件上。
 
 **必做**：所有动效在 `@media (prefers-reduced-motion: reduce)` 下退化为即时切换。
 **禁止**：阻塞操作的动画（超过 300ms 才能继续点击）、自动播放的循环大动画（干扰读牌）。

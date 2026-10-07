@@ -136,9 +136,11 @@ export default function PlayerHand({
           })}
         </div>
 
-        {/* 右侧：单张摸入的手牌 (与常规手牌拉开微距) */}
+        {/* 右侧：单张摸入的手牌 (与常规手牌拉开微距)
+            P2-1 节奏动效：以牌 id 为 key ⇒ 每次摸到新牌都重播一次「右侧滑入 + 淡入」（180ms ease-out）。
+            只作用于这个包裹层，避免与 MahjongTile 自身的选中/听牌 transform 打架。 */}
         {drawnTile && (
-          <div className="flex items-end pl-3 shrink-0">
+          <div key={drawnTile.id} className="flex items-end pl-3 shrink-0 animate-tile-draw">
             <MahjongTile
               tile={drawnTile}
               size="hand"
