@@ -218,8 +218,8 @@ html, body, #root {
 /* 操作按钮：紧贴手牌上方（相对底部容器顶部 +12px），不再悬空 */
 [data-layout="portrait"] .action-controls { bottom: calc(100% + 0.75rem); }
 
-/* 手牌行：一排、不换行、不滚动 */
-[data-layout="portrait"] .ph-row { flex-wrap: nowrap; overflow-x: visible; overflow-y: visible; gap: 2px; }
+/* 手牌行：一排、不换行、不滚动；必须显式 width:100%（Safari 下 flex-basis:0 的子项在不定宽容器里会塌缩到不可见） */
+[data-layout="portrait"] .ph-row { width: 100%; flex-wrap: nowrap; overflow-x: visible; overflow-y: visible; gap: 2px; }
 /* 副露容器打散：副露牌、手牌直接参与外层 flex 均分 */
 [data-layout="portrait"] .ph-melds-wrap,
 [data-layout="portrait"] .ph-meld-group,
