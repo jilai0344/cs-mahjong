@@ -16,7 +16,7 @@ function SvgWan({ value }) {
         y="37"
         textAnchor="middle"
         dominantBaseline="central"
-        fill="#1e40af"
+        fill="var(--art-tong-800)"
         fontSize="37"
         fontWeight="bold"
         fontFamily={hjdFont}
@@ -31,7 +31,7 @@ function SvgWan({ value }) {
         y="73"
         textAnchor="middle"
         dominantBaseline="central"
-        fill="#dc2626"
+        fill="var(--art-wan-500)"
         fontSize="36"
         fontWeight="bold"
         fontFamily={hjdFont}
@@ -45,9 +45,9 @@ function SvgWan({ value }) {
 // -------------------------------------------------------------
 // 2. 条子牌纯矢量 SVG 渲染 - 黄金岛经典饱满粗节竹节 + 正统国标幺鸡
 // -------------------------------------------------------------
-function SvgBamboo({ x, y, width = 11.5, height = 26, color = '#15803d', hasRedJoint = false, isAngled = 0 }) {
+function SvgBamboo({ x, y, width = 11.5, height = 26, color = 'var(--art-tiao-600)', hasRedJoint = false, isAngled = 0 }) {
   const rx = width / 2;
-  const gradId = color === '#dc2626' ? 'bambooRedGrad' : color === '#1d4ed8' || color === '#2563eb' ? 'bambooBlueGrad' : 'bambooGreenGrad';
+  const gradId = color === 'var(--art-wan-500)' ? 'bambooRedGrad' : color === 'var(--art-tong-600)' || color === 'var(--art-tong-500)' ? 'bambooBlueGrad' : 'bambooGreenGrad';
 
   return (
     <g transform={isAngled ? `rotate(${isAngled}, ${x}, ${y + height/2})` : undefined}>
@@ -73,7 +73,7 @@ function SvgBamboo({ x, y, width = 11.5, height = 26, color = '#15803d', hasRedJ
         width={width + 2}
         height={2.4}
         rx="1"
-        fill={hasRedJoint ? '#dc2626' : '#fef08a'}
+        fill={hasRedJoint ? 'var(--art-wan-500)' : 'var(--art-gold-200)'}
         stroke="rgba(0,0,0,0.35)"
         strokeWidth="0.6"
       />
@@ -83,7 +83,7 @@ function SvgBamboo({ x, y, width = 11.5, height = 26, color = '#15803d', hasRedJ
         width={width + 2}
         height={2.4}
         rx="1"
-        fill={hasRedJoint ? '#dc2626' : '#fef08a'}
+        fill={hasRedJoint ? 'var(--art-wan-500)' : 'var(--art-gold-200)'}
         stroke="rgba(0,0,0,0.35)"
         strokeWidth="0.6"
       />
@@ -108,54 +108,54 @@ function SvgTiao({ value }) {
     return (
       <g transform="translate(36, 48) scale(0.92)">
         {/* 底部竹栖木 (绿竹竿与红节) */}
-        <rect x="-24" y="27" width="48" height="8.5" rx="4.25" fill="url(#bambooGreenGrad)" stroke="#065f46" strokeWidth="0.8" />
-        <rect x="-3" y="26" width="6" height="10.5" rx="1.2" fill="#dc2626" />
+        <rect x="-24" y="27" width="48" height="8.5" rx="4.25" fill="url(#bambooGreenGrad)" stroke="var(--art-tiao-900)" strokeWidth="0.8" />
+        <rect x="-3" y="26" width="6" height="10.5" rx="1.2" fill="var(--art-wan-500)" />
         
         {/* 鸡爪 (金爪双抓稳立) */}
-        <path d="M-9 20 L-9 27 M-13 27 L-5 27" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" />
-        <path d="M8 20 L8 27 M4 27 L12 27" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M-9 20 L-9 27 M-13 27 L-5 27" stroke="var(--art-gold-600)" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M8 20 L8 27 M4 27 L12 27" stroke="var(--art-gold-600)" strokeWidth="2.2" strokeLinecap="round" />
 
         {/* 饱满翡翠鸡身 */}
-        <ellipse cx="-1" cy="5" rx="17" ry="19" fill="url(#bambooGreenGrad)" stroke="#047857" strokeWidth="1" />
-        <ellipse cx="2" cy="7" rx="11" ry="13" fill="#fef9c3" opacity="0.9" />
+        <ellipse cx="-1" cy="5" rx="17" ry="19" fill="url(#bambooGreenGrad)" stroke="var(--art-tiao-700)" strokeWidth="1" />
+        <ellipse cx="2" cy="7" rx="11" ry="13" fill="var(--art-gold-100)" opacity="0.9" />
 
         {/* 鸡胸羽纹 */}
-        <path d="M-6 0 C-4 8 4 8 6 0" stroke="#047857" strokeWidth="1.2" fill="none" opacity="0.6" />
-        <path d="M-5 6 C-3 12 3 12 5 6" stroke="#047857" strokeWidth="1.2" fill="none" opacity="0.6" />
+        <path d="M-6 0 C-4 8 4 8 6 0" stroke="var(--art-tiao-700)" strokeWidth="1.2" fill="none" opacity="0.6" />
+        <path d="M-5 6 C-3 12 3 12 5 6" stroke="var(--art-tiao-700)" strokeWidth="1.2" fill="none" opacity="0.6" />
 
         {/* 展翘五彩翠绿赤红尾羽 */}
-        <path d="M-14 3 C-26 -4 -30 -18 -24 -26 C-22 -14 -12 -7 -8 -3 Z" fill="#15803d" stroke="#14532d" strokeWidth="0.8" />
-        <path d="M-12 9 C-22 7 -28 -3 -24 -13 C-20 -5 -10 1 -6 5 Z" fill="#dc2626" />
-        <path d="M-10 13 C-18 15 -24 7 -20 -1 C-16 3 -8 7 -4 9 Z" fill="#2563eb" />
+        <path d="M-14 3 C-26 -4 -30 -18 -24 -26 C-22 -14 -12 -7 -8 -3 Z" fill="var(--art-tiao-600)" stroke="var(--art-tiao-800)" strokeWidth="0.8" />
+        <path d="M-12 9 C-22 7 -28 -3 -24 -13 C-20 -5 -10 1 -6 5 Z" fill="var(--art-wan-500)" />
+        <path d="M-10 13 C-18 15 -24 7 -20 -1 C-16 3 -8 7 -4 9 Z" fill="var(--art-tong-500)" />
 
         {/* 鸡翅膀 (层叠分色羽) */}
-        <ellipse cx="-1" cy="3" rx="8" ry="11" fill="#15803d" stroke="#065f46" strokeWidth="0.8" />
-        <path d="M-7 3 C-3 13 5 11 7 1" fill="#dc2626" opacity="0.9" />
+        <ellipse cx="-1" cy="3" rx="8" ry="11" fill="var(--art-tiao-600)" stroke="var(--art-tiao-900)" strokeWidth="0.8" />
+        <path d="M-7 3 C-3 13 5 11 7 1" fill="var(--art-wan-500)" opacity="0.9" />
 
         {/* 鸡颈与头 (昂首向右) */}
-        <path d="M3 -9 C6 -19 10 -23 17 -23 C24 -23 26 -15 20 -7 C15 -1 9 1 5 3 Z" fill="url(#bambooGreenGrad)" stroke="#047857" strokeWidth="0.8" />
-        <circle cx="16" cy="-17" r="9.2" fill="url(#bambooGreenGrad)" stroke="#047857" strokeWidth="0.8" />
+        <path d="M3 -9 C6 -19 10 -23 17 -23 C24 -23 26 -15 20 -7 C15 -1 9 1 5 3 Z" fill="url(#bambooGreenGrad)" stroke="var(--art-tiao-700)" strokeWidth="0.8" />
+        <circle cx="16" cy="-17" r="9.2" fill="url(#bambooGreenGrad)" stroke="var(--art-tiao-700)" strokeWidth="0.8" />
 
         {/* 灵动黑白眼 */}
-        <circle cx="19" cy="-19" r="3.2" fill="#ffffff" />
-        <circle cx="19.8" cy="-19" r="1.6" fill="#18181b" />
-        <circle cx="20.4" cy="-19.6" r="0.6" fill="#ffffff" />
+        <circle cx="19" cy="-19" r="3.2" fill="var(--art-white)" />
+        <circle cx="19.8" cy="-19" r="1.6" fill="var(--art-ink)" />
+        <circle cx="20.4" cy="-19.6" r="0.6" fill="var(--art-white)" />
 
         {/* 金色利喙 */}
-        <polygon points="23,-18 32,-16 23,-13" fill="#f59e0b" stroke="#d97706" strokeWidth="0.8" />
+        <polygon points="23,-18 32,-16 23,-13" fill="var(--art-gold-500)" stroke="var(--art-gold-600)" strokeWidth="0.8" />
 
         {/* 鲜红三叠大鸡冠 (黄金岛幺鸡标志特征) */}
-        <path d="M12 -24 C11 -33 16 -33 17 -26 C18 -33 23 -32 22 -24 C24 -29 28 -27 26 -21 Z" fill="#dc2626" stroke="#b91c1c" strokeWidth="0.8" />
+        <path d="M12 -24 C11 -33 16 -33 17 -26 C18 -33 23 -32 22 -24 C24 -29 28 -27 26 -21 Z" fill="var(--art-wan-500)" stroke="var(--art-wan-600)" strokeWidth="0.8" />
 
         {/* 鲜红下颚肉垂 */}
-        <ellipse cx="20" cy="-11" rx="2.5" ry="4" fill="#dc2626" />
+        <ellipse cx="20" cy="-11" rx="2.5" ry="4" fill="var(--art-wan-500)" />
       </g>
     );
   }
 
-  const green = '#15803d';
-  const red = '#dc2626';
-  const blue = '#2563eb';
+  const green = 'var(--art-tiao-600)';
+  const red = 'var(--art-wan-500)';
+  const blue = 'var(--art-tong-500)';
 
   switch (value) {
     // 2条：上下两根粗绿竹
@@ -244,8 +244,8 @@ function SvgTiao({ value }) {
             fill="none"
           />
           {/* 中轴朱红竖线 */}
-          <line x1="36" y1="28" x2="36" y2="72" stroke="#dc2626" strokeWidth="3" strokeLinecap="round" />
-          <circle cx="36" cy="50" r="3" fill="#dc2626" stroke="#991b1b" strokeWidth="0.8" />
+          <line x1="36" y1="28" x2="36" y2="72" stroke="var(--art-wan-500)" strokeWidth="3" strokeLinecap="round" />
+          <circle cx="36" cy="50" r="3" fill="var(--art-wan-500)" stroke="var(--art-wan-700)" strokeWidth="0.8" />
         </g>
       );
     // 9条：3排3列 (上3红，中3蓝，下3绿)
@@ -273,46 +273,46 @@ function SvgTiao({ value }) {
 // -------------------------------------------------------------
 // 3. 筒子牌纯矢量 SVG 渲染 - 黄金岛同心大铜钱与饱满梅花圆盘
 // -------------------------------------------------------------
-function SvgDot({ cx, cy, r = 9.5, color = '#1d4ed8' }) {
-  const isRed = color === '#dc2626';
-  const isGreen = color === '#15803d';
+function SvgDot({ cx, cy, r = 9.5, color = 'var(--art-tong-600)' }) {
+  const isRed = color === 'var(--art-wan-500)';
+  const isGreen = color === 'var(--art-tiao-600)';
   const fillGrad = isRed ? 'url(#dotRedGrad)' : isGreen ? 'url(#dotGreenGrad)' : 'url(#dotBlueGrad)';
 
   return (
     <g>
       <circle cx={cx} cy={cy} r={r} fill={fillGrad} stroke="rgba(0,0,0,0.35)" strokeWidth="1" />
       <circle cx={cx} cy={cy} r={r * 0.72} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1" strokeDasharray="2,1.5" />
-      <circle cx={cx - r * 0.3} cy={cy} r={r * 0.22} fill="#ffffff" opacity="0.9" />
-      <circle cx={cx + r * 0.3} cy={cy} r={r * 0.22} fill="#ffffff" opacity="0.9" />
-      <circle cx={cx} cy={cy - r * 0.3} r={r * 0.22} fill="#ffffff" opacity="0.9" />
-      <circle cx={cx} cy={cy + r * 0.3} r={r * 0.22} fill="#ffffff" opacity="0.9" />
-      <circle cx={cx} cy={cy} r={r * 0.24} fill={isRed ? '#fef08a' : '#dc2626'} stroke="rgba(0,0,0,0.2)" strokeWidth="0.5" />
+      <circle cx={cx - r * 0.3} cy={cy} r={r * 0.22} fill="var(--art-white)" opacity="0.9" />
+      <circle cx={cx + r * 0.3} cy={cy} r={r * 0.22} fill="var(--art-white)" opacity="0.9" />
+      <circle cx={cx} cy={cy - r * 0.3} r={r * 0.22} fill="var(--art-white)" opacity="0.9" />
+      <circle cx={cx} cy={cy + r * 0.3} r={r * 0.22} fill="var(--art-white)" opacity="0.9" />
+      <circle cx={cx} cy={cy} r={r * 0.24} fill={isRed ? 'var(--art-gold-200)' : 'var(--art-wan-500)'} stroke="rgba(0,0,0,0.2)" strokeWidth="0.5" />
     </g>
   );
 }
 
 function SvgTong({ value }) {
-  const blue = '#1d4ed8';
-  const green = '#15803d';
-  const red = '#dc2626';
+  const blue = 'var(--art-tong-600)';
+  const green = 'var(--art-tiao-600)';
+  const red = 'var(--art-wan-500)';
 
   // 1筒：黄金岛传世大花轮 (大饼)
   if (value === 1) {
     return (
       <g transform="translate(36, 48)">
-        <circle cx="0" cy="0" r="31" fill="#dc2626" stroke="#991b1b" strokeWidth="1.2" />
-        <circle cx="0" cy="0" r="25" fill="#fef9c3" stroke="#ca8a04" strokeWidth="0.8" />
+        <circle cx="0" cy="0" r="31" fill="var(--art-wan-500)" stroke="var(--art-wan-700)" strokeWidth="1.2" />
+        <circle cx="0" cy="0" r="25" fill="var(--art-gold-100)" stroke="var(--art-gold-700)" strokeWidth="0.8" />
 
         {[...Array(12)].map((_, i) => {
           const angle = (i * Math.PI) / 6;
           const px = Math.cos(angle) * 17.5;
           const py = Math.sin(angle) * 17.5;
-          return <circle key={i} cx={px} cy={py} r="4.2" fill="#15803d" stroke="#14532d" strokeWidth="0.6" />;
+          return <circle key={i} cx={px} cy={py} r="4.2" fill="var(--art-tiao-600)" stroke="var(--art-tiao-800)" strokeWidth="0.6" />;
         })}
 
-        <circle cx="0" cy="0" r="12" fill="#1d4ed8" stroke="#1e40af" strokeWidth="1.2" />
-        <circle cx="0" cy="0" r="5" fill="#f59e0b" />
-        <circle cx="0" cy="0" r="2.2" fill="#dc2626" />
+        <circle cx="0" cy="0" r="12" fill="var(--art-tong-600)" stroke="var(--art-tong-800)" strokeWidth="1.2" />
+        <circle cx="0" cy="0" r="5" fill="var(--art-gold-500)" />
+        <circle cx="0" cy="0" r="2.2" fill="var(--art-wan-500)" />
       </g>
     );
   }
@@ -467,22 +467,22 @@ export default function MahjongTile({
         <svg viewBox="0 0 72 96" className="w-full h-full drop-shadow-md">
           <defs>
             <linearGradient id="goldBackGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#fef08a" />
-              <stop offset="25%" stopColor="#f59e0b" />
-              <stop offset="70%" stopColor="#d97706" />
-              <stop offset="100%" stopColor="#78350f" />
+              <stop offset="0%" stopColor="var(--art-gold-200)" />
+              <stop offset="25%" stopColor="var(--art-gold-500)" />
+              <stop offset="70%" stopColor="var(--art-gold-600)" />
+              <stop offset="100%" stopColor="var(--art-brown-900)" />
             </linearGradient>
             <linearGradient id="goldEdgeGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#78350f" />
-              <stop offset="100%" stopColor="#451a03" />
+              <stop offset="0%" stopColor="var(--art-brown-900)" />
+              <stop offset="100%" stopColor="var(--art-brown-950)" />
             </linearGradient>
           </defs>
           {/* 3D牌身厚底边 */}
           <rect x="2" y="8" width="68" height="86" rx="8" fill="url(#goldEdgeGrad)" />
           {/* 牌背流金主面板 */}
-          <rect x="2" y="2" width="68" height="86" rx="8" fill="url(#goldBackGrad)" stroke="#fef08a" strokeWidth="1.2" strokeOpacity="0.8" />
-          <rect x="8" y="8" width="56" height="74" rx="6" fill="none" stroke="#fef08a" strokeWidth="1" strokeOpacity="0.45" />
-          <polygon points="36,36 44,48 36,60 28,48" fill="#ffffff" fillOpacity="0.3" />
+          <rect x="2" y="2" width="68" height="86" rx="8" fill="url(#goldBackGrad)" stroke="var(--art-gold-200)" strokeWidth="1.2" strokeOpacity="0.8" />
+          <rect x="8" y="8" width="56" height="74" rx="6" fill="none" stroke="var(--art-gold-200)" strokeWidth="1" strokeOpacity="0.45" />
+          <polygon points="36,36 44,48 36,60 28,48" fill="var(--art-white)" fillOpacity="0.3" />
         </svg>
       </div>
     );
@@ -504,48 +504,48 @@ export default function MahjongTile({
       <svg viewBox="0 0 72 96" className="w-full h-full drop-shadow-md overflow-visible">
         <defs>
           <linearGradient id="ivoryGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="70%" stopColor="#fcfbf7" />
-            <stop offset="100%" stopColor="#f3efe4" />
+            <stop offset="0%" stopColor="var(--art-white)" />
+            <stop offset="70%" stopColor="var(--art-face)" />
+            <stop offset="100%" stopColor="var(--art-face-shade)" />
           </linearGradient>
           <linearGradient id="tileBaseGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#d97706" />
-            <stop offset="100%" stopColor="#78350f" />
+            <stop offset="0%" stopColor="var(--art-gold-600)" />
+            <stop offset="100%" stopColor="var(--art-brown-900)" />
           </linearGradient>
 
           <linearGradient id="bambooGreenGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#14532d" />
-            <stop offset="35%" stopColor="#22c55e" />
-            <stop offset="70%" stopColor="#15803d" />
-            <stop offset="100%" stopColor="#14532d" />
+            <stop offset="0%" stopColor="var(--art-tiao-800)" />
+            <stop offset="35%" stopColor="var(--art-tiao-500)" />
+            <stop offset="70%" stopColor="var(--art-tiao-600)" />
+            <stop offset="100%" stopColor="var(--art-tiao-800)" />
           </linearGradient>
           <linearGradient id="bambooRedGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#991b1b" />
-            <stop offset="35%" stopColor="#ef4444" />
-            <stop offset="70%" stopColor="#dc2626" />
-            <stop offset="100%" stopColor="#991b1b" />
+            <stop offset="0%" stopColor="var(--art-wan-700)" />
+            <stop offset="35%" stopColor="var(--art-wan-400)" />
+            <stop offset="70%" stopColor="var(--art-wan-500)" />
+            <stop offset="100%" stopColor="var(--art-wan-700)" />
           </linearGradient>
           <linearGradient id="bambooBlueGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#1e3a8a" />
-            <stop offset="35%" stopColor="#3b82f6" />
-            <stop offset="70%" stopColor="#1d4ed8" />
-            <stop offset="100%" stopColor="#1e3a8a" />
+            <stop offset="0%" stopColor="var(--art-tong-900)" />
+            <stop offset="35%" stopColor="var(--art-tong-400)" />
+            <stop offset="70%" stopColor="var(--art-tong-600)" />
+            <stop offset="100%" stopColor="var(--art-tong-900)" />
           </linearGradient>
 
           <radialGradient id="dotRedGrad" cx="35%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="#f87171" />
-            <stop offset="40%" stopColor="#dc2626" />
-            <stop offset="100%" stopColor="#991b1b" />
+            <stop offset="0%" stopColor="var(--art-wan-300)" />
+            <stop offset="40%" stopColor="var(--art-wan-500)" />
+            <stop offset="100%" stopColor="var(--art-wan-700)" />
           </radialGradient>
           <radialGradient id="dotGreenGrad" cx="35%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="#4ade80" />
-            <stop offset="40%" stopColor="#15803d" />
-            <stop offset="100%" stopColor="#14532d" />
+            <stop offset="0%" stopColor="var(--art-tiao-300)" />
+            <stop offset="40%" stopColor="var(--art-tiao-600)" />
+            <stop offset="100%" stopColor="var(--art-tiao-800)" />
           </radialGradient>
           <radialGradient id="dotBlueGrad" cx="35%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="#60a5fa" />
-            <stop offset="40%" stopColor="#1d4ed8" />
-            <stop offset="100%" stopColor="#1e3a8a" />
+            <stop offset="0%" stopColor="var(--art-tong-300)" />
+            <stop offset="40%" stopColor="var(--art-tong-600)" />
+            <stop offset="100%" stopColor="var(--art-tong-900)" />
           </radialGradient>
         </defs>
 
@@ -558,7 +558,7 @@ export default function MahjongTile({
             height="86"
             rx="7"
             fill="url(#ivoryGrad)"
-            stroke="#d1ccba"
+            stroke="var(--art-face-edge)"
             strokeWidth="1.2"
           />
           <rect
@@ -577,7 +577,7 @@ export default function MahjongTile({
           {tile.suit === SUITS.TONG && <SvgTong value={tile.value} />}
 
           {showJiangBadge && isJiang && (
-            <circle cx="12" cy="12" r="5" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.2" />
+            <circle cx="12" cy="12" r="5" fill="var(--art-gold-500)" stroke="var(--art-white)" strokeWidth="1.2" />
           )}
         </g>
       </svg>
