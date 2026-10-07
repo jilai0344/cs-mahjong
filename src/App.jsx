@@ -23,6 +23,7 @@ import { resolveDiscardResponses } from './game/priority.js';
 import { isRankedMatch, loadRecord, recordRound } from './game/record.js';
 import { pickMatchRules, applyHostRules, rulesEqual, describeRules } from './game/rules.js';
 import { getLocalDisplayId } from './utils/localId.js';
+import { networkStatusText, statusTone } from './utils/latency.js';
 import {
   chooseAiDiscard,
   decideAiResponse,
@@ -168,6 +169,9 @@ export default function App() {
   // 网络事件分发 effect 故意不随依赖重注册（见文件里既有的 aiTurnRef/actionsRef 模式），
   // 所以用 ref 暴露给分发器，避免新增 exhaustive-deps 告警。
   const hostRulesRef = useRef(null);
+  // P2-3：网络状况（往返延迟 + 连接状态），联机时显示在顶栏
+  const [netLatency, setNetLatency] = useState(null);
+  const [netConn, setNetConn] = useState('disconnected');
   const applyHostRulesIfAny = useCallback((incoming) => {
     if (!incoming) return;
     setRoomRulesState(incoming);
@@ -219,6 +223,12 @@ export default function App() {
     multiplayerRef.current = backToSingle;
     setMultiplayerState(backToSingle);
     setGameState('IDLE');
+  }, []);
+
+  // P2-3：订阅网络状况（延迟为最近 5 次 PING/PONG 往返平均，连接状态来自 MQTT 生命周期）
+  useEffect(() => {
+    network.setOnConnectionState(setNetConn);
+    network.setOnLatency((avg) => setNetLatency(avg));
   }, []);
 
   const showBubble = (playerId, text, duration = 1200) => {
@@ -1965,6 +1975,26 @@ export default function App() {
 
         {/* 右侧工具按钮 (黄金岛金质圆形快捷功能组) */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* P2-3：联机时的网络状况（延迟 + 连接状态） */}
+          {multiplayerState.isMultiplayer && (
+            <div
+              data-testid="net-status"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/50 border border-emerald-500/30 text-[11px] font-bold text-slate-200"
+              title={`联机网络：${networkStatusText({ latency: netLatency, connection: netConn })}（延迟取最近 5 次往返平均）`}
+            >
+              <span
+                className={`inline-block w-1.5 h-1.5 rounded-full ${
+                  { ok: 'bg-emerald-400', warn: 'bg-amber-400', bad: 'bg-red-500' }[
+                    statusTone({ latency: netLatency, connection: netConn })
+                  ] || 'bg-slate-500'
+                }`}
+              />
+              <span className="font-mono whitespace-nowrap">
+                {networkStatusText({ latency: netLatency, connection: netConn })}
+              </span>
+            </div>
+          )}
+
           {/* 多人联机 */}
           <button
             onClick={() => setIsMultiplayerOpen(true)}
@@ -2215,6 +2245,7 @@ export default function App() {
         rules={pickMatchRules(config)}
         onHostRules={applyHostRulesIfAny}
         onLeaveRoom={handleLeaveRoom}
+        netStatus={{ latency: netLatency, connection: netConn }}
       />
 
       {/* 弹窗 2: 规则设置 */}

@@ -4,6 +4,7 @@ import mqtt from 'mqtt';
 import { deriveRoomKey, encryptJson, decryptJson } from './crypto.js';
 import { createMessageFilter, createSequenceTracker, nextMessageId, sequenceKey } from './dedupe.js';
 import { nextChannelOnRetry } from './invite.js';
+import { createLatencyTracker } from './latency.js';
 
 export const ROOM_PREFIX = 'csmj-v1-';
 
@@ -56,6 +57,14 @@ export class NetworkManager {
     this.onErrorCallback = null;
     // 房间规则（规格 §一：房主自定、联机同步、开局锁定）—— 由 App 通过 setRoomRules 注入
     this.roomRules = null;
+
+    // P2-3：网络状况（延迟往返 + 连接状态），供顶栏指示器显示
+    this.latency = createLatencyTracker({ window: 5 });
+    this.connectionState = 'disconnected';
+    this.onLatencyCallback = null;
+    this.onConnectionStateCallback = null;
+    this.pingTimer = null;
+    this.pendingPings = new Map();
 
     // 房间座位状态
     this.seats = [
@@ -169,8 +178,15 @@ export class NetworkManager {
         clearTimeout(timeoutTimer);
         this.channelIndex = channelIndex; // 记录本端实际所在通道（邀请链接要带上它）
         console.log(`[CSMJ Network] 成功接入联机通道: ${brokerUrl}`);
+        this._setConnectionState('connected');
         onConnected(client);
       });
+
+      // P2-3：把 MQTT 客户端的连接生命周期映射成给玩家看的状态
+      client.on('reconnect', () => this._setConnectionState('reconnecting'));
+      client.on('close', () => this._setConnectionState('disconnected'));
+      client.on('offline', () => this._setConnectionState('reconnecting'));
+      client.on('disconnect', () => this._setConnectionState('disconnected'));
 
       client.on('error', (err) => {
         console.warn(`[CSMJ Network] 节点 ${brokerUrl} 异常:`, err.message);
@@ -233,11 +249,13 @@ export class NetworkManager {
           }
           console.log('[CSMJ Network] 房主已就绪，房间号:', this.roomCode);
           if (onReady) onReady(this.roomCode);
+          this._startPingLoop(); // P2-3：房主对真人访客做往返测速（首次连接时 connect 钩子可能已过）
         });
 
         // 断线重连（P0-4）：clean session 会丢掉订阅，重连后必须补订阅，否则静默失聪
         client.on('connect', () => {
           if (!this.isHost || !this.roomCode) return;
+          this._startPingLoop(); // P2-3：房主负责测真人访客的往返延迟
           client.subscribe(this._getTopic('host'), { qos: 1 }, () => {
             console.log('[CSMJ Network] 房主重连完成，已恢复订阅并重新广播大厅状态');
             this.broadcastLobbyState();
@@ -331,6 +349,11 @@ export class NetworkManager {
       if (s >= 1 && s <= 3) {
         this.lastHeartbeat[s] = Date.now();
       }
+    } else if (data.type === 'PING') {
+      // 访客测速：原样回一个 PONG，让访客自己算往返
+      this.sendToSeat(data.fromSeatId, { type: 'PONG', id: data.id });
+    } else if (data.type === 'PONG') {
+      this._onPong(data.id);
     } else if (data.type === 'LEAVE') {
       const s = data.fromSeatId;
       if (s >= 1 && s <= 3) {
@@ -463,6 +486,7 @@ export class NetworkManager {
         // 断线重连（P0-4）：clean session 会丢掉订阅 → 补订阅；已落座的访客同时申请抢回原座位
         client.on('connect', () => {
           if (this.isHost || !this.roomCode) return;
+          this._startPingLoop(); // P2-3：访客测到房主的往返延迟
           if (hasJoined && this.mySeatId >= 1) {
             client.subscribe(
               [broadcastTopic, guestRespTopic, this._getTopic(`seat/${this.mySeatId}`)],
@@ -518,6 +542,7 @@ export class NetworkManager {
                 this.heartbeatTimer = setInterval(() => {
                   this.sendToHost({ type: 'HEARTBEAT' });
                 }, 3000);
+                this._startPingLoop(); // P2-3：对房主做往返测速（首次连接时 connect 钩子可能已过）
 
                 if (onJoined) onJoined(data.seatId, data.seats);
                 if (this.onLobbyChangeCallback) this.onLobbyChangeCallback(data.seats);
@@ -539,6 +564,11 @@ export class NetworkManager {
             } else if (data.type === 'KICKED') {
               if (this.onErrorCallback) this.onErrorCallback('您已被房主移出房间');
               this.cleanup();
+            } else if (data.type === 'PING') {
+              // 房主测速：原样回一个 PONG
+              this.sendToHost({ type: 'PONG', id: data.id });
+            } else if (data.type === 'PONG') {
+              this._onPong(data.id);
             } else {
               // 业务游戏事件分发
               if (this.onMessageCallback) {
@@ -559,6 +589,74 @@ export class NetworkManager {
   setRoomRules(rules) {
     this.roomRules = rules || null;
     if (this.isHost) this.broadcastLobbyState();
+  }
+
+  // ---------------------------------------------------------------------------
+  // P2-3 网络状况：往返延迟（PING/PONG）+ 连接状态
+  // ---------------------------------------------------------------------------
+  setOnLatency(cb) {
+    this.onLatencyCallback = cb;
+    if (cb) cb(this.latency.value(), this.latency.classify());
+  }
+
+  setOnConnectionState(cb) {
+    this.onConnectionStateCallback = cb;
+    if (cb) cb(this.connectionState);
+  }
+
+  _setConnectionState(state) {
+    if (this.connectionState === state) return;
+    this.connectionState = state;
+    if (state !== 'connected') {
+      this.latency.reset();               // 断开期间旧样本没意义
+      this.pendingPings.clear();
+    }
+    if (this.onConnectionStateCallback) this.onConnectionStateCallback(state);
+    if (this.onLatencyCallback) this.onLatencyCallback(null, 'unknown');
+  }
+
+  /** 开始周期性测速：房主逐个测真人访客，访客只测房主 */
+  _startPingLoop() {
+    if (this.pingTimer) return;
+    const ping = () => {
+      if (!this.client || !this.client.connected) return;
+      if (this.isHost) {
+        const targets = this.seats.filter((s) => s.id >= 1 && s.id <= 3 && s.isHuman).map((s) => s.id);
+        for (const seat of targets) {
+          const id = nextMessageId('ping');
+          this.pendingPings.set(id, Date.now());
+          this.sendToSeat(seat, { type: 'PING', id, fromSeatId: this.mySeatId });
+        }
+      } else if (this.roomCode) {
+        const id = nextMessageId('ping');
+        this.pendingPings.set(id, Date.now());
+        this.sendToHost({ type: 'PING', id });
+      }
+      // 超时的探测丢弃，避免 Map 无限增长
+      const cutoff = Date.now() - 15000;
+      for (const [id, t] of this.pendingPings) {
+        if (t < cutoff) this.pendingPings.delete(id);
+      }
+    };
+    ping();
+    this.pingTimer = setInterval(ping, 5000);
+  }
+
+  _stopPingLoop() {
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
+    this.pendingPings.clear();
+  }
+
+  _onPong(id) {
+    const sentAt = this.pendingPings.get(id);
+    if (!sentAt) return;
+    this.pendingPings.delete(id);
+    const rtt = Date.now() - sentAt;
+    const avg = this.latency.record(rtt);
+    if (this.onLatencyCallback) this.onLatencyCallback(avg, this.latency.classify());
   }
 
   // 房主广播大厅座位变化
@@ -664,6 +762,8 @@ export class NetworkManager {
       clearInterval(this.presenceCheckTimer);
       this.presenceCheckTimer = null;
     }
+    this._stopPingLoop();
+    this._setConnectionState('disconnected');
 
     if (this.client) {
       try {
