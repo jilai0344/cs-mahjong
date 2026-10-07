@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { X, Users, Copy, Check, Play, UserPlus, Bot, Shield, Loader2, Sparkles, RefreshCw } from 'lucide-react';
 import { generateRoomCode, network, BROKER_URLS } from '../utils/multiplayer.js';
 import { buildInviteUrl, parseInviteParams } from '../utils/invite.js';
+import { describeRules } from '../game/rules.js';
 import { useModalA11y } from '../hooks/useModalA11y.js';
 
 export default function MultiplayerModal({
   isOpen,
   onClose,
   onStartMultiplayerGame, // (roomConfig) => void
-  currentRoom = null // { inRoom: boolean, isHost: boolean, roomCode: string, mySeatId: number, seats: [] }
+  currentRoom = null, // { inRoom: boolean, isHost: boolean, roomCode: string, mySeatId: number, seats: [] }
+  rules = null,        // 房主当前的房间规则（B/F/开杠/起手胡/抓鸟）
+  onHostRules = () => {}, // 客人收到房主规则时回调（App 据此套用并锁定）
+  onLeaveRoom = () => {}  // 退出房间（App 据此回到单机并解锁规则）
 }) {
   const [activeTab, setActiveTab] = useState('create'); // 'create' | 'join'
   const [roomCodeInput, setRoomCodeInput] = useState('');
@@ -37,14 +41,21 @@ export default function MultiplayerModal({
   }, []);
 
   useEffect(() => {
-    network.setOnLobbyChange((updatedSeats) => {
+    network.setOnLobbyChange((updatedSeats, roomRules) => {
       setLobbySeats([...updatedSeats]);
+      // 规格 §一：房主的房间规则随大厅状态一起下发，客人据此套用（开局后锁定）
+      if (roomRules) onHostRules(roomRules);
     });
     network.setOnError((errText) => {
       setErrorMessage(errText);
       setIsConnecting(false);
     });
-  }, []);
+  }, [onHostRules]);
+
+  // 房主：规则一有变化（或刚建好房）就登记到网络层，随后随 LOBBY_STATE 广播给所有人
+  useEffect(() => {
+    if (network.isHost && rules) network.setRoomRules(rules);
+  }, [rules, inLobby]);
 
   // 弹窗无障碍（P2-6）：Esc 关闭 + role/aria + 焦点循环。必须放在提前 return 之前。
   const modalA11y = useModalA11y(onClose);
@@ -120,7 +131,8 @@ export default function MultiplayerModal({
     if (network.isHost) {
       network.broadcast({
         type: 'GAME_STARTED',
-        seats: network.seats
+        seats: network.seats,
+        rules // 规格 §一：开局时把规则一并下发，客人据此锁定
       });
       onStartMultiplayerGame({
         isHost: true,
@@ -312,6 +324,19 @@ export default function MultiplayerModal({
               复制链接直接发微信/QQ好友，好友在浏览器中打开即可自动进入本房间！
             </p>
 
+            {/* 房间规则（规格 §一）：房主自定、联机同步给所有人、开局后锁定 */}
+            <div className="p-3 rounded-xl bg-black/40 border border-emerald-500/20">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-black text-emerald-200">房间规则</span>
+                <span className="text-[10px] font-bold text-amber-300/80">
+                  {network.isHost ? '你设定 · 开局后锁定' : '房主设定 · 开局后锁定'}
+                </span>
+              </div>
+              <div className="text-[11px] font-mono text-amber-200/90 leading-relaxed">
+                {describeRules(network.isHost ? (rules || {}) : (network.roomRules || rules || {}))}
+              </div>
+            </div>
+
             {/* 4 个座位席位卡片 */}
             <div className="grid grid-cols-2 gap-2.5">
               {lobbySeats.map((seat) => {
@@ -388,6 +413,7 @@ export default function MultiplayerModal({
             <button
               onClick={() => {
                 network.cleanup();
+                onLeaveRoom();
                 setInLobby(false);
                 setErrorMessage('');
               }}

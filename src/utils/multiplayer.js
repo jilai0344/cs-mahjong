@@ -54,6 +54,8 @@ export class NetworkManager {
     this.onMessageCallback = null;
     this.onLobbyChangeCallback = null;
     this.onErrorCallback = null;
+    // 房间规则（规格 §一：房主自定、联机同步、开局锁定）—— 由 App 通过 setRoomRules 注入
+    this.roomRules = null;
 
     // 房间座位状态
     this.seats = [
@@ -529,7 +531,8 @@ export class NetworkManager {
           } else if (topic === broadcastTopic || topic === this._getTopic(`seat/${this.mySeatId}`)) {
             if (data.type === 'LOBBY_STATE') {
               this.seats = data.seats;
-              if (this.onLobbyChangeCallback) this.onLobbyChangeCallback(data.seats);
+              if (data.rules) this.roomRules = data.rules;
+              if (this.onLobbyChangeCallback) this.onLobbyChangeCallback(data.seats, data.rules || null);
             } else if (data.type === 'ROOM_CLOSED') {
               if (this.onErrorCallback) this.onErrorCallback(data.message || '房主已解散房间');
               this.cleanup();
@@ -552,13 +555,20 @@ export class NetworkManager {
     );
   }
 
+  /** 房主登记房间规则（B/F/开杠/起手胡/抓鸟）：变更后立即广播给大厅里的所有人 */
+  setRoomRules(rules) {
+    this.roomRules = rules || null;
+    if (this.isHost) this.broadcastLobbyState();
+  }
+
   // 房主广播大厅座位变化
   broadcastLobbyState() {
     if (!this.isHost) return;
     this.broadcast({
       type: 'LOBBY_STATE',
       seats: this.seats,
-      roomCode: this.roomCode
+      roomCode: this.roomCode,
+      rules: this.roomRules
     });
     if (this.onLobbyChangeCallback) {
       this.onLobbyChangeCallback(this.seats);

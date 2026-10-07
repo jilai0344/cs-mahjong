@@ -21,6 +21,7 @@ import { nextDealerSeat, drawDealerSeat, scoreRound, rollBirdDice, secureRandomI
 import { hasPendingResponse, resolveTimeoutAction, hostTurnWatchdogDelay } from './game/actions.js';
 import { resolveDiscardResponses } from './game/priority.js';
 import { isRankedMatch, loadRecord, recordRound } from './game/record.js';
+import { pickMatchRules, applyHostRules, rulesEqual, describeRules } from './game/rules.js';
 import { getLocalDisplayId } from './utils/localId.js';
 import {
   chooseAiDiscard,
@@ -160,6 +161,25 @@ export default function App() {
   const [roundNumber, setRoundNumber] = useState(0);
   const roundNoRef = useRef(0);
   const [wallTotal, setWallTotal] = useState(108);
+  // 规格 §一：B/F 等房间规则联机时由房主同步、开局后锁定；客人离开房间后恢复自己的规则
+  const [rulesLocked, setRulesLocked] = useState(false);
+  const [roomRules, setRoomRulesState] = useState(null);
+  const preMatchConfigRef = useRef(null);
+  // 网络事件分发 effect 故意不随依赖重注册（见文件里既有的 aiTurnRef/actionsRef 模式），
+  // 所以用 ref 暴露给分发器，避免新增 exhaustive-deps 告警。
+  const hostRulesRef = useRef(null);
+  const applyHostRulesIfAny = useCallback((incoming) => {
+    if (!incoming) return;
+    setRoomRulesState(incoming);
+    setConfig((prev) => {
+      if (rulesEqual(prev, incoming)) return prev;
+      if (!preMatchConfigRef.current) preMatchConfigRef.current = prev; // 记住客人自己的规则，离房后还原
+      return applyHostRules(prev, incoming);
+    });
+    setRulesLocked(true);
+    console.log(`[CSMJ] 已套用房主规则：${describeRules(incoming)}`);
+  }, []);
+  hostRulesRef.current = applyHostRulesIfAny;
   // P0-5：倒计时回调里要读「当前是否处于响应窗口」与「超时该调用谁」，
   // 用 ref 同步（避免把处理器塞进 effect 依赖数组导致闭包读到旧状态）。
   const actionsRef = useRef({});
@@ -180,10 +200,26 @@ export default function App() {
   });
 
   const handleUpdateConfig = (newConfig) => {
-    setConfig(newConfig);
-    sound.enabled = newConfig.soundEnabled;
-    localStorage.setItem('cs_mahjong_config', JSON.stringify(newConfig));
+    // 规格 §一：联机且开局后锁定 → 房间规则字段一律以房主的为准，本机只能改偏好（理牌/音效/AI 速度）
+    const next = rulesLocked ? { ...newConfig, ...pickMatchRules(config) } : newConfig;
+    setConfig(next);
+    sound.enabled = next.soundEnabled;
+    localStorage.setItem('cs_mahjong_config', JSON.stringify(next));
   };
+
+  // 离开联机房间 → 回到单机：解开规则锁定并还原客人自己的规则（否则会把房主的规则永久留在本机）
+  const handleLeaveRoom = useCallback(() => {
+    setRulesLocked(false);
+    setRoomRulesState(null);
+    if (preMatchConfigRef.current) {
+      setConfig(preMatchConfigRef.current);
+      preMatchConfigRef.current = null;
+    }
+    const backToSingle = { isMultiplayer: false, isHost: false, roomCode: '', mySeatId: 0, seats: PLAYERS };
+    multiplayerRef.current = backToSingle;
+    setMultiplayerState(backToSingle);
+    setGameState('IDLE');
+  }, []);
 
   const showBubble = (playerId, text, duration = 1200) => {
     setActionBubbles(prev => {
@@ -254,11 +290,14 @@ export default function App() {
           multiplayerRef.current = nextMp;
           setMultiplayerState(nextMp);
           setIsMultiplayerOpen(false);
+          hostRulesRef.current?.(data.rules);
           setGameState('DEALING');
           setIsRollingDice(true);
           sound.playDice();
         } else if (data.type === 'DEAL_HAND') {
           setIsRollingDice(false);
+          // 规格 §一：开局这一份载荷带房主的房间规则，客人据此锁定（B/F/抓鸟/开杠/起手胡）
+          hostRulesRef.current?.(data.rules);
           setGameState('PLAYING');
           stateRef.current.gameState = 'PLAYING';
           setDealerId(data.dealerId);
@@ -543,7 +582,8 @@ export default function App() {
               type: 'DEAL_HAND',
               myHand: hands[s],
               dealerId,
-              wallRemaining: newDeck.length
+              wallRemaining: newDeck.length,
+              rules: pickMatchRules(config)
             });
           }
         }
@@ -2172,6 +2212,9 @@ export default function App() {
         onClose={() => setIsMultiplayerOpen(false)}
         onStartMultiplayerGame={handleStartMultiplayerGame}
         currentRoom={multiplayerState}
+        rules={pickMatchRules(config)}
+        onHostRules={applyHostRulesIfAny}
+        onLeaveRoom={handleLeaveRoom}
       />
 
       {/* 弹窗 2: 规则设置 */}
@@ -2179,6 +2222,8 @@ export default function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         config={config}
+        rulesLocked={rulesLocked}
+        lockNote={rulesLocked ? `联机中：规则由房主设定，开局后锁定 · ${describeRules(roomRules || config)}` : ''}
         onUpdateConfig={handleUpdateConfig}
       />
 

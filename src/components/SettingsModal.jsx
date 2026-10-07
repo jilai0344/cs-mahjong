@@ -6,7 +6,9 @@ export default function SettingsModal({
   isOpen,
   onClose,
   config,
-  onUpdateConfig
+  onUpdateConfig,
+  rulesLocked = false, // 联机中：房间规则由房主设定，开局后锁定（不允许在本机改）
+  lockNote = ''
 }) {
   // 弹窗无障碍（P2-6）：Esc 关闭 + role/aria + 焦点循环
   const modalA11y = useModalA11y(onClose);
@@ -215,6 +217,11 @@ export default function SettingsModal({
           </div>
 
           {/* 3.5 基础分 B / 固定分 F（规格 §一：小胡 2B、大胡 7B×k、封顶 42B） */}
+          {lockNote ? (
+            <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-950/40 px-3 py-2 text-[11px] font-bold text-amber-200 leading-tight">
+              🔒 {lockNote}
+            </div>
+          ) : null}
           <div className="p-4 rounded-xl bg-slate-800/40 border border-emerald-500/20">
             <div className="flex items-center justify-between mb-2">
               <span className="font-bold text-white">基础分 B / 固定分 F</span>
@@ -229,9 +236,10 @@ export default function SettingsModal({
                   type="number"
                   min="1"
                   max="100"
+                  disabled={rulesLocked}
                   value={config.baseScore ?? 1}
                   onChange={e => handleSetBaseScore(e.target.value)}
-                  className="w-16 px-1.5 py-1 rounded-md bg-slate-800 text-emerald-200 font-mono text-xs text-right border border-slate-600 focus:border-emerald-400 focus:outline-none"
+                  className="w-16 px-1.5 py-1 rounded-md bg-slate-800 text-emerald-200 font-mono text-xs text-right border border-slate-600 focus:border-emerald-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </label>
               <label className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/60 border border-slate-700">
@@ -240,9 +248,10 @@ export default function SettingsModal({
                   type="number"
                   min="0"
                   max="100"
+                  disabled={rulesLocked}
                   value={config.fixedScore ?? 1}
                   onChange={e => handleSetFixedScore(e.target.value)}
-                  className="w-16 px-1.5 py-1 rounded-md bg-slate-800 text-emerald-200 font-mono text-xs text-right border border-slate-600 focus:border-emerald-400 focus:outline-none"
+                  className="w-16 px-1.5 py-1 rounded-md bg-slate-800 text-emerald-200 font-mono text-xs text-right border border-slate-600 focus:border-emerald-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </label>
             </div>
