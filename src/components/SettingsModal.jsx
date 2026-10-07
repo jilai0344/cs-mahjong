@@ -287,6 +287,48 @@ export default function SettingsModal({
             </div>
           </div>
 
+          {/* 4.5 牌桌主题（P0-8 / D8 双主题：纯本机显示偏好，不随联机同步） */}
+          <div className="p-4 rounded-xl bg-slate-800/40 border border-emerald-500/20">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span className="font-bold text-white">牌桌主题</span>
+              </div>
+              <span className="text-xs text-emerald-300/70">
+                {config.theme === 'jade' ? '翡翠清澈' : '红绒经典'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mb-3">
+              只改变本机牌桌配色，不影响规则与联机对局。
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => onUpdateConfig({ ...config, theme: 'red' })}
+                className={`py-2 px-3 rounded-lg border font-semibold flex items-center justify-center gap-2 transition-all ${
+                  config.theme !== 'jade'
+                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/40'
+                    : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:border-slate-500'
+                }`}
+              >
+                <span className="theme-swatch-red w-5 h-5 rounded-full border border-black/40 shadow-inner" aria-hidden="true" />
+                <span>红绒经典</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onUpdateConfig({ ...config, theme: 'jade' })}
+                className={`py-2 px-3 rounded-lg border font-semibold flex items-center justify-center gap-2 transition-all ${
+                  config.theme === 'jade'
+                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/40'
+                    : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:border-slate-500'
+                }`}
+              >
+                <span className="theme-swatch-jade w-5 h-5 rounded-full border border-black/40 shadow-inner" aria-hidden="true" />
+                <span>翡翠清澈</span>
+              </button>
+            </div>
+          </div>
+
           {/* 5. 辅助与音效设置 */}
           <div className="grid grid-cols-2 gap-3">
             <label className="flex items-center justify-between p-3 rounded-xl bg-slate-800/40 border border-emerald-500/20 cursor-pointer">

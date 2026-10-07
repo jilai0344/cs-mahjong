@@ -64,6 +64,9 @@ export const DEFAULT_CONFIG = {
   autoSort: true,
   showHints: true,
   soundEnabled: true,
+  // 牌桌主题（P0-8 / D8 双主题）：'red'（皇家红绒，默认）| 'jade'（翡翠毛毡）。
+  // 纯本机显示偏好：不进 pickMatchRules，不随联机同步、不被房主规则覆盖。
+  theme: 'red',
   aiSpeed: 700 // 毫秒
 };
 

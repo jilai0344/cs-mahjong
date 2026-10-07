@@ -1918,7 +1918,10 @@ export default function App() {
   }, [multiplayerState]);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden flex flex-col bg-panel text-slate-100 select-none safe-pad">
+    <div
+      className="relative w-screen h-screen overflow-hidden flex flex-col bg-panel text-slate-100 select-none safe-pad"
+      data-theme={config.theme === 'jade' ? 'jade' : undefined} /* P0-8 双主题：jade 时覆盖 --color-* token */
+    >
       {/* 竖屏提示遮罩 (仅在竖屏时显示) */}
       {isPortrait && (
       <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-[100] flex flex-col items-center justify-center p-8">
