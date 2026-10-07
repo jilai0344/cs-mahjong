@@ -147,6 +147,19 @@ console.log('\n=== 测试 4: 牌张尺寸六场景断点齐全（D2）===');
   }
 }
 
+console.log('\n=== 测试 5: 假等级徽标与占位文案已清理（D3）===');
+{
+  const app = readFileSync(join(ROOT, 'src/App.jsx'), 'utf8');
+  const opp = readFileSync(join(ROOT, 'src/components/OpponentHand.jsx'), 'utf8');
+  const center = readFileSync(join(ROOT, 'src/components/TableCenter.jsx'), 'utf8');
+
+  assert(!/vipRank|>V8</.test(app), 'App.jsx 里没有假等级徽标（vipRank / V8）');
+  assert(!/vipRank|'V1'|'V5'|'V32'/.test(opp), 'OpponentHand.jsx 里没有假等级徽标（V1/V5/V32）');
+  assert(!/新手区/.test(center), 'TableCenter.jsx 里没有写死的「新手区 20」');
+  assert(/roomLabel/.test(center), '牌桌中心显示的是传入的真实标识（房间号 / 单机练习）');
+  assert(/myRecord\.netScore/.test(app), '左下角胶囊显示的是本机真实战绩（净胜分）');
+}
+
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);
 if (failures.length > 0) {
   console.error('\n失败列表:');

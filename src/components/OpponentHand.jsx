@@ -17,15 +17,15 @@ export default function OpponentHand({
   isDealer = false,
   visualPosition = null
 }) {
-  const { id = 0, name = '' } = player || {};
+  const { name = '' } = player || {};
 
   const finalPos = visualPosition || player?.position || 'top';
   const isTop = finalPos === 'top';
   const isLeft = finalPos === 'left';
   const isRight = finalPos === 'right';
 
-  // 虚拟 VIP 等级 (高度还原黄金岛 V1, V5, V32 视觉元素)
-  const vipRank = id === 2 ? 'V1' : id === 3 ? 'V5' : 'V32';
+  // 原先这里有个写死的虚拟 VIP 等级（V1/V5/V32）——P2-2 / D3 已删除：
+  // 没有服务端就没有可信等级，别人家的等级本机无从得知，展示假数据只会误导（裁定见 docs/DESIGN.md §10 D3）
 
   return (
     <div
@@ -52,11 +52,6 @@ export default function OpponentHand({
         {/* 玩家昵称 */}
         <span className="text-xs sm:text-sm font-black text-amber-100 tracking-wide drop-shadow-sm">
           {name}
-        </span>
-
-        {/* VIP 标识金章 */}
-        <span className="text-[10px] sm:text-[11px] font-black italic text-amber-300 bg-amber-950/80 px-1 py-0.2 rounded border border-amber-500/40">
-          {vipRank}
         </span>
 
         {/* 分数 */}
