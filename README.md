@@ -75,23 +75,28 @@ npm run dev
 ```bash
 npm test
 ```
-串跑 9 个测试文件、共 **386 条断言**（`mahjongLogic` 63 · `scoring` 129 · `simulation` 17 · `actions` 35 · `crypto` 18 · `dedupe` 44 · `invite` 23 · `priority` 39 · `lintgate` 18），
+串跑 **16 个测试文件、共 711 条断言**（`mahjongLogic` 63 · `scoring` 129 · `simulation` 17 · `actions` 35 ·
+`crypto` 18 · `dedupe` 53 · `invite` 23 · `priority` 39 · `lintgate` 18 · `modalA11y` 25 ·
+`designTokens` 122 · `record` 30 · `rules` 51 · `latency` 45 · `discardGuard` 24 · `secrets` 19），
 覆盖起手胡、开杠/含杠手牌可胡、平胡 258 将校验、大胡番型与叠加（k）、扎鸟与封顶 42B、
-响应优先级（胡>杠>碰>吃、一炮多响）、庄家轮换、断线托管、传输加密、消息幂等与乱序丢弃，
-以及 1000 局随机对局模拟（零和守恒）。
+响应优先级（胡>杠>碰>吃、一炮多响）、庄家轮换、断线托管、传输加密、消息幂等与乱序丢弃、
+房间规则同步与开局锁定、网络延迟分档、出牌防误触、战绩只认四人对战、设计 token 守卫、
+仓库无密钥，以及 1000 局随机对局模拟（零和守恒）。
 
-### 2b. lint 基线门禁
+### 2b. 两道 CI 门禁
 ```bash
 npm run lint:check     # 与 scripts/lint-baseline.txt 比对，有新增告警则退出码 1（CI 同款）
 npm run lint:baseline  # 确认无害时收紧/更新基线（需要评审 diff）
+npm run secrets:check  # 扫 git 跟踪文件里的密钥形态，命中即退出码 1（CI 同款）
 ```
-`deploy.yml` 在 `npm ci` 之后、`npm test` 之前会跑 `npm run lint:check`，所以**新告警进不了 main**。
+`deploy.yml` 会依次跑 `lint:check → secrets:check → test → build`，任一关不过就**不会发布**。
 
 ### 3. 构建发布包
 ```bash
 npm run build
 ```
-构建产物输出至 `dist/` 目录。
+构建产物输出至 `dist/` 目录（`base: './'`，可部署到任意子路径）。
+**部署细节、环境变量清单、联机为何无需服务端、容量与排障**：见 [`docs/DEPLOY.md`](docs/DEPLOY.md)。
 
 # 特性与交互约定
 

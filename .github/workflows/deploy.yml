@@ -36,6 +36,9 @@ jobs:
       - name: Lint (no new warnings vs baseline)
         run: npm run lint:check
 
+      - name: Secret scan (仓库内不得有密钥)
+        run: npm run secrets:check
+
       - name: Run Tests
         run: npm test
 

@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# 本地机密（P2-4）：.env 一律不入库，模板除外
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
