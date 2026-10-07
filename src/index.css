@@ -195,6 +195,53 @@ html, body, #root {
 .theme-swatch-jade { background: radial-gradient(circle at 35% 35%, #319e64, #145c38); }
 
 /* ---------------------------------------------------------------------------
+ * 竖屏专用布局（P0-7 / D9：用户 2026-10-07 拍板选 B）
+ * 方向：PC 版四方布局直接适配竖屏（等效 90° 旋转），不砍信息；
+ * 手牌一排全见、无横滑（流式缩小）；`data-layout="portrait"` 由 App 根容器按
+ * isPortrait 设置。未列出的组件（罗盘、牌河、牌墙、两侧对家）沿用原有绝对
+ * 定位，竖屏下经截图验证无重叠。
+ * 实现说明：手牌用 display:contents 把副露组打散，所有牌直接参与外层 flex
+ * 均分（flex:1 1 0 + aspect-ratio 3/4），14 张以内一排全见；SVG 牌面为矢量，
+ * 缩小后依然清晰。
+ * ------------------------------------------------------------------------- */
+/* 顶栏压缩：隐藏徽章与规则副标题、标题不换行、多人按钮收紧 */
+[data-layout="portrait"] .hdr-badge,
+[data-layout="portrait"] .hdr-sub { display: none; }
+[data-layout="portrait"] .hdr-title { font-size: 0.875rem; white-space: nowrap; }
+[data-layout="portrait"] .hdr-multi { padding: 0.375rem 0.5rem; font-size: 11px; white-space: nowrap; }
+[data-layout="portrait"] > header { padding-left: 0.5rem; padding-right: 0.5rem; }
+
+/* 我方胶囊：从左下角移到牌桌右上角（竖屏底部是手牌区，左上角会和对家胶囊重叠） */
+[data-layout="portrait"] .my-capsule { top: 0.5rem; bottom: auto; left: auto; right: 0.5rem; }
+[data-layout="portrait"] .my-capsule .capsule-record { display: none; }
+
+/* 操作按钮：紧贴手牌上方（相对底部容器顶部 +12px），不再悬空 */
+[data-layout="portrait"] .action-controls { bottom: calc(100% + 0.75rem); }
+
+/* 手牌行：一排、不换行、不滚动 */
+[data-layout="portrait"] .ph-row { flex-wrap: nowrap; overflow-x: visible; overflow-y: visible; gap: 2px; }
+/* 副露容器打散：副露牌、手牌直接参与外层 flex 均分 */
+[data-layout="portrait"] .ph-melds-wrap,
+[data-layout="portrait"] .ph-meld-group,
+[data-layout="portrait"] .ph-hand { display: contents; }
+/* 副露文字徽标在竖屏隐藏（牌型由牌面自述，省宽度） */
+[data-layout="portrait"] .ph-meld-badge { display: none; }
+/* 流式牌：按可用宽度均分，一排全见；aspect-ratio 保持 3:4，SVG 矢量自适应 */
+[data-layout="portrait"] .ph-tile { flex: 1 1 0; min-width: 0; width: auto; height: auto; aspect-ratio: 3 / 4; }
+/* 摸牌：同样占一份，间距收紧 */
+[data-layout="portrait"] .ph-drawn { flex: 1 1 0; min-width: 0; padding-left: 4px; }
+[data-layout="portrait"] .ph-drawn .ph-tile { flex: none; width: 100%; }
+
+/* 对家（顶部）：副露 + 牌背打散后一起流式均分，一排全见不裁切 */
+[data-layout="portrait"] .opp-top-row { width: min(94vw, 380px); }
+[data-layout="portrait"] .opp-top-row .opp-melds-box,
+[data-layout="portrait"] .opp-top-row .opp-meld-group,
+[data-layout="portrait"] .opp-top-row .opp-backs-top { display: contents; }
+[data-layout="portrait"] .opp-top-row .opp-tile-wrap { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; }
+[data-layout="portrait"] .opp-top-row .opp-tile-wrap > .ph-tile { flex: none; width: 100%; height: auto; aspect-ratio: 3 / 4; }
+/* 注：牌背 .ph-tile 走通用流式规则（[data-layout="portrait"] .ph-tile），与副露牌均分 */
+
+/* ---------------------------------------------------------------------------
  * 减少动态效果（P2-2 / D5）
  * 系统开启「减少动态效果」后，位移动画/过渡降到不可感知，只保留终态。
  * （否则倒计时箭头、骰子滚动、弹窗上浮、脉冲按钮都会继续动。）

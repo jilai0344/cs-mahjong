@@ -72,7 +72,7 @@ export default function PlayerHand({
     : handTiles;
 
   return (
-    <div className="flex flex-col items-center justify-end w-full px-2 select-none">
+    <div className="player-hand flex flex-col items-center justify-end w-full px-2 select-none">
       {/* 听牌详情提示气泡 */}
       {selectedTileId && tingMap.has(selectedTileId) && (
         <div className="mb-2 px-5 py-2.5 rounded-2xl bg-slate-900/95 border-2 border-amber-400/60 shadow-2xl backdrop-blur-md flex items-center gap-3 text-sm sm:text-base text-amber-200 animate-fade-in">
@@ -87,12 +87,12 @@ export default function PlayerHand({
         </div>
       )}
 
-      <div className="flex items-end justify-center gap-4 max-w-full overflow-x-auto pb-1">
+      <div className="ph-row flex items-end justify-center gap-4 max-w-full overflow-x-auto pb-1">
         {/* 左侧：已亮出的吃碰杠面子 (副露) */}
         {melds.length > 0 && (
-          <div className="flex items-end gap-2 pr-3 border-r-2 border-emerald-400/30 shrink-0">
+          <div className="ph-melds-wrap flex items-end gap-2 pr-3 border-r-2 border-emerald-400/30 shrink-0">
             {melds.map((meld, mIdx) => (
-              <div key={mIdx} className="flex items-end bg-black/40 p-1.5 rounded-lg border border-emerald-500/30 gap-1 shadow-md">
+              <div key={mIdx} className="ph-meld-group flex items-end bg-black/40 p-1.5 rounded-lg border border-emerald-500/30 gap-1 shadow-md">
                 {meld.tiles.map((tile, tIdx) => (
                   <MahjongTile
                     key={tIdx}
@@ -100,10 +100,10 @@ export default function PlayerHand({
                     size="meld"
                     showJiangBadge={showJiangBadge}
                     isBack={meld.type === 'an_gang' && tIdx > 0 && tIdx < 3}
-                    className={meld.type === 'chi' && tIdx === 1 ? 'ring-2 ring-amber-400 rounded-md shadow-md' : ''}
+                    className={`ph-tile ${meld.type === 'chi' && tIdx === 1 ? 'ring-2 ring-amber-400 rounded-md shadow-md' : ''}`}
                   />
                 ))}
-                <span className="text-xs sm:text-sm text-emerald-300 font-black ml-1 self-center bg-emerald-900/60 px-1.5 py-0.5 rounded">
+                <span className="ph-meld-badge text-xs sm:text-sm text-emerald-300 font-black ml-1 self-center bg-emerald-900/60 px-1.5 py-0.5 rounded">
                   {meld.type === 'chi' ? '吃' : meld.type === 'peng' ? '碰' : '杠'}
                 </span>
               </div>
@@ -112,7 +112,7 @@ export default function PlayerHand({
         )}
 
         {/* 中间：立手牌 (使用 hand 尺寸，大而清澈) */}
-        <div className="flex items-end gap-1 shrink-0">
+        <div className="ph-hand flex items-end gap-1 shrink-0">
           {regularTiles.map(tile => {
             const isSelected = selectedTileId === tile.id;
             const tingInfo = tingMap.get(tile.id);
@@ -131,6 +131,7 @@ export default function PlayerHand({
                 onClick={() => handleTileClick(tile)}
                 onMouseEnter={() => handleMouseEnter(tile)}
                 onMouseLeave={handleMouseLeave}
+                className="ph-tile"
               />
             );
           })}
@@ -140,7 +141,7 @@ export default function PlayerHand({
             P2-1 节奏动效：以牌 id 为 key ⇒ 每次摸到新牌都重播一次「右侧滑入 + 淡入」（180ms ease-out）。
             只作用于这个包裹层，避免与 MahjongTile 自身的选中/听牌 transform 打架。 */}
         {drawnTile && (
-          <div key={drawnTile.id} className="flex items-end pl-3 shrink-0 animate-tile-draw">
+          <div key={drawnTile.id} className="ph-drawn flex items-end pl-3 shrink-0 animate-tile-draw">
             <MahjongTile
               tile={drawnTile}
               size="hand"
@@ -151,7 +152,7 @@ export default function PlayerHand({
               onClick={() => handleTileClick(drawnTile)}
               onMouseEnter={() => handleMouseEnter(drawnTile)}
               onMouseLeave={handleMouseLeave}
-              className="ring-2 ring-amber-400"
+              className="ph-tile ring-2 ring-amber-400"
             />
           </div>
         )}

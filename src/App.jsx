@@ -1921,36 +1921,8 @@ export default function App() {
     <div
       className="relative w-screen h-screen overflow-hidden flex flex-col bg-panel text-slate-100 select-none safe-pad"
       data-theme={config.theme === 'jade' ? 'jade' : undefined} /* P0-8 双主题：jade 时覆盖 --color-* token */
+      data-layout={isPortrait ? 'portrait' : 'landscape'} /* P0-7 竖屏专用布局：竖屏时走 [data-layout="portrait"] 样式 */
     >
-      {/* 竖屏提示遮罩 (仅在竖屏时显示) */}
-      {isPortrait && (
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-[100] flex flex-col items-center justify-center p-8">
-        <div className="w-24 h-24 mb-8 rounded-full bg-amber-500/20 flex items-center justify-center animate-pulse">
-          <svg className="w-16 h-16 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </div>
-        <h2 className="text-3xl font-black text-amber-300 mb-4 text-center">请横置手机</h2>
-        <p className="text-lg text-slate-300 text-center mb-6 max-w-sm leading-relaxed">
-          长沙麻将需要横屏显示才能获得最佳游戏体验
-        </p>
-        <div className="text-sm text-slate-400 text-center mb-6">
-          旋转手机后即可开始游戏
-        </div>
-
-        {/* 手动跳过按钮 (如果自动检测失败) */}
-        <button
-          onClick={() => setIsPortrait(false)}
-          className="px-8 py-3 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-lg transition-colors"
-        >
-          已横屏，开始游戏
-        </button>
-        <div className="text-xs text-slate-500 mt-3">
-          如果已经横屏但仍看到此提示，请点击上方按钮
-        </div>
-      </div>
-      )}
-
       {/* 顶部黄金岛经典 HUD 导航栏 (红木描金古典风) */}
       <header className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-amber-500/30 bg-gradient-to-r from-shell-800 via-shell-500 to-shell-800 shadow-lg z-30 shrink-0">
         <div className="flex items-center gap-3">
@@ -1958,13 +1930,13 @@ export default function App() {
             岛
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-black tracking-wide text-amber-200 flex items-center gap-2 drop-shadow">
+            <h1 className="hdr-title text-base sm:text-lg font-black tracking-wide text-amber-200 flex items-center gap-2 drop-shadow">
               <span>黄金岛 · 长沙麻将</span>
-              <span className="text-[10px] sm:text-xs bg-amber-950/80 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/40">
+              <span className="hdr-badge text-[10px] sm:text-xs bg-amber-950/80 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/40">
                 经典正版复刻
               </span>
             </h1>
-            <div className="text-[11px] text-amber-300/70 flex items-center gap-1.5 mt-0.2">
+            <div className="hdr-sub text-[11px] text-amber-300/70 flex items-center gap-1.5 mt-0.2">
               <span>开杠摸 {config.kongDrawCount} 只</span>
               <span>·</span>
               <span>{config.kongRequiresJiang ? '需将' : '免将'}</span>
@@ -2017,7 +1989,7 @@ export default function App() {
           {/* 多人联机 */}
           <button
             onClick={() => setIsMultiplayerOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-700 via-yellow-600 to-amber-700 hover:from-amber-600 hover:to-yellow-500 text-slate-950 text-xs font-black border border-amber-300 shadow-md transition-all active:scale-95"
+            className="hdr-multi flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-700 via-yellow-600 to-amber-700 hover:from-amber-600 hover:to-yellow-500 text-slate-950 text-xs font-black border border-amber-300 shadow-md transition-all active:scale-95"
           >
             <Users className="w-3.5 h-3.5" />
             <span>{multiplayerState.isMultiplayer ? `房间 ${multiplayerState.roomCode}` : '多人对战'}</span>
@@ -2202,7 +2174,7 @@ export default function App() {
           </div>
 
           {/* 6. 左下角：我方玩家信息胶囊牌（P2-6：占位符改为本机真实标识与昵称） */}
-          <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-4 z-40 flex items-center gap-1.5 bg-gradient-to-b from-panel-800 via-panel-700 to-panel-600 border-[1.5px] border-amber-400/90 rounded-full px-3 py-1 shadow-2xl">
+          <div className="my-capsule absolute bottom-2 sm:bottom-3 left-2 sm:left-4 z-40 flex items-center gap-1.5 bg-gradient-to-b from-panel-800 via-panel-700 to-panel-600 border-[1.5px] border-amber-400/90 rounded-full px-3 py-1 shadow-2xl">
             {dealerId === bottomSeatId && (
               <span className="w-4 h-4 rounded-full bg-gradient-to-tr from-red-700 to-red-500 border border-amber-300 text-white text-[10px] font-black flex items-center justify-center shadow-md">
                 庄
@@ -2217,7 +2189,7 @@ export default function App() {
             </span>
             {/* 本机战绩（裁定：只有 4 真人满座、全程无托管的对局才计入；刷电脑不涨） */}
             <span
-              className="text-[10px] font-black text-amber-200 bg-amber-950/80 px-1.5 py-0.2 rounded border border-amber-500/40 whitespace-nowrap"
+              className="capsule-record text-[10px] font-black text-amber-200 bg-amber-950/80 px-1.5 py-0.2 rounded border border-amber-500/40 whitespace-nowrap"
               title="本机记录：只统计 4 个真人满座、全程无 AI 托管的对局；打电脑不计入"
             >
               净胜 {myRecord.netScore > 0 ? '+' : ''}{myRecord.netScore} · {myRecord.matches} 局
