@@ -11,31 +11,31 @@ function SingleWallStack({ orientation = 'horizontal' }) {
         <svg viewBox="0 0 28 42" className="w-full h-full overflow-visible">
           <defs>
             <linearGradient id="wallGoldGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#fef08a" />
-              <stop offset="30%" stopColor="#f59e0b" />
-              <stop offset="70%" stopColor="#d97706" />
-              <stop offset="100%" stopColor="#92400e" />
+              <stop offset="0%" stopColor="var(--art-gold-200)" />
+              <stop offset="30%" stopColor="var(--art-gold-500)" />
+              <stop offset="70%" stopColor="var(--art-gold-600)" />
+              <stop offset="100%" stopColor="var(--art-gold-800)" />
             </linearGradient>
             <linearGradient id="wallIvoryGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="100%" stopColor="#e5e5e5" />
+              <stop offset="0%" stopColor="var(--art-white)" />
+              <stop offset="100%" stopColor="var(--art-steel-200)" />
             </linearGradient>
             <linearGradient id="wallDarkGold" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#b45309" />
-              <stop offset="100%" stopColor="#78350f" />
+              <stop offset="0%" stopColor="var(--art-gold-900)" />
+              <stop offset="100%" stopColor="var(--art-brown-900)" />
             </linearGradient>
           </defs>
 
           {/* 下层牌 (底层牌垛) */}
-          <rect x="1" y="20" width="26" height="20" rx="3" fill="url(#wallDarkGold)" stroke="#451a03" strokeWidth="0.8" />
-          <rect x="1" y="16" width="26" height="8" rx="2" fill="url(#wallIvoryGrad)" stroke="#a3a3a3" strokeWidth="0.6" />
-          <rect x="1" y="24" width="26" height="16" rx="2" fill="url(#wallGoldGrad)" stroke="#fef08a" strokeWidth="0.7" />
+          <rect x="1" y="20" width="26" height="20" rx="3" fill="url(#wallDarkGold)" stroke="var(--art-brown-950)" strokeWidth="0.8" />
+          <rect x="1" y="16" width="26" height="8" rx="2" fill="url(#wallIvoryGrad)" stroke="var(--art-steel-400)" strokeWidth="0.6" />
+          <rect x="1" y="24" width="26" height="16" rx="2" fill="url(#wallGoldGrad)" stroke="var(--art-gold-200)" strokeWidth="0.7" />
 
           {/* 上层牌 (顶层牌垛) */}
-          <rect x="1" y="4" width="26" height="20" rx="3" fill="url(#wallDarkGold)" stroke="#451a03" strokeWidth="0.8" />
-          <rect x="1" y="0" width="26" height="8" rx="2" fill="url(#wallIvoryGrad)" stroke="#d4d4d4" strokeWidth="0.6" />
-          <rect x="1" y="8" width="26" height="16" rx="2" fill="url(#wallGoldGrad)" stroke="#fef08a" strokeWidth="0.7" />
-          <rect x="3" y="10" width="22" height="12" rx="1.5" fill="none" stroke="#fef08a" strokeWidth="0.5" strokeOpacity="0.6" />
+          <rect x="1" y="4" width="26" height="20" rx="3" fill="url(#wallDarkGold)" stroke="var(--art-brown-950)" strokeWidth="0.8" />
+          <rect x="1" y="0" width="26" height="8" rx="2" fill="url(#wallIvoryGrad)" stroke="var(--art-steel-300)" strokeWidth="0.6" />
+          <rect x="1" y="8" width="26" height="16" rx="2" fill="url(#wallGoldGrad)" stroke="var(--art-gold-200)" strokeWidth="0.7" />
+          <rect x="3" y="10" width="22" height="12" rx="1.5" fill="none" stroke="var(--art-gold-200)" strokeWidth="0.5" strokeOpacity="0.6" />
         </svg>
       </div>
     );
@@ -47,27 +47,27 @@ function SingleWallStack({ orientation = 'horizontal' }) {
       <svg viewBox="0 0 42 28" className="w-full h-full overflow-visible">
         <defs>
           <linearGradient id="wallGoldSide" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#fef08a" />
-            <stop offset="30%" stopColor="#f59e0b" />
-            <stop offset="70%" stopColor="#d97706" />
-            <stop offset="100%" stopColor="#92400e" />
+            <stop offset="0%" stopColor="var(--art-gold-200)" />
+            <stop offset="30%" stopColor="var(--art-gold-500)" />
+            <stop offset="70%" stopColor="var(--art-gold-600)" />
+            <stop offset="100%" stopColor="var(--art-gold-800)" />
           </linearGradient>
           <linearGradient id="wallIvorySide" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="100%" stopColor="#d4d4d4" />
+            <stop offset="0%" stopColor="var(--art-white)" />
+            <stop offset="100%" stopColor="var(--art-steel-300)" />
           </linearGradient>
         </defs>
 
         {/* 底层牌 */}
-        <rect x="18" y="1" width="22" height="26" rx="3" fill="#78350f" stroke="#451a03" strokeWidth="0.8" />
-        <rect x="14" y="1" width="8" height="26" rx="2" fill="url(#wallIvorySide)" stroke="#a3a3a3" strokeWidth="0.6" />
-        <rect x="22" y="1" width="18" height="26" rx="2" fill="url(#wallGoldSide)" stroke="#fef08a" strokeWidth="0.7" />
+        <rect x="18" y="1" width="22" height="26" rx="3" fill="var(--art-brown-900)" stroke="var(--art-brown-950)" strokeWidth="0.8" />
+        <rect x="14" y="1" width="8" height="26" rx="2" fill="url(#wallIvorySide)" stroke="var(--art-steel-400)" strokeWidth="0.6" />
+        <rect x="22" y="1" width="18" height="26" rx="2" fill="url(#wallGoldSide)" stroke="var(--art-gold-200)" strokeWidth="0.7" />
 
         {/* 顶层牌 */}
-        <rect x="4" y="1" width="22" height="26" rx="3" fill="#78350f" stroke="#451a03" strokeWidth="0.8" />
-        <rect x="0" y="1" width="8" height="26" rx="2" fill="url(#wallIvorySide)" stroke="#d4d4d4" strokeWidth="0.6" />
-        <rect x="8" y="1" width="18" height="26" rx="2" fill="url(#wallGoldSide)" stroke="#fef08a" strokeWidth="0.7" />
-        <rect x="10" y="3" width="14" height="22" rx="1.5" fill="none" stroke="#fef08a" strokeWidth="0.5" strokeOpacity="0.6" />
+        <rect x="4" y="1" width="22" height="26" rx="3" fill="var(--art-brown-900)" stroke="var(--art-brown-950)" strokeWidth="0.8" />
+        <rect x="0" y="1" width="8" height="26" rx="2" fill="url(#wallIvorySide)" stroke="var(--art-steel-300)" strokeWidth="0.6" />
+        <rect x="8" y="1" width="18" height="26" rx="2" fill="url(#wallGoldSide)" stroke="var(--art-gold-200)" strokeWidth="0.7" />
+        <rect x="10" y="3" width="14" height="22" rx="1.5" fill="none" stroke="var(--art-gold-200)" strokeWidth="0.5" strokeOpacity="0.6" />
       </svg>
     </div>
   );

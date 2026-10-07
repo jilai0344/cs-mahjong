@@ -47,6 +47,60 @@
   --font-serif: "Noto Serif SC", ui-serif, Georgia, "Songti SC", "SimSun", serif;
 }
 
+/* ---------------------------------------------------------------------------
+ * 牌面艺术色 token（P2-2 / D1b）
+ * 牌面/牌墙的 SVG 艺术层次（象牙面、万字红、条子绿、筒子蓝、金边、牌背灰）单独一组，
+ * 与 UI 语义色板分开：它们只服务于牌面画法，改动必须逐尺寸看图核对（DESIGN.md §5）。
+ * 组件里一律写 var(--art-*)，不再写死 #xxxxxx —— test/designTokens.test.js 测试 2 会拦。
+ * ------------------------------------------------------------------------- */
+@theme {
+  /* 牌面象牙 */
+  --art-face: #fcfbf7;
+  --art-face-shade: #f3efe4;
+  --art-face-edge: #d1ccba;
+  --art-ink: #18181b;
+  --art-white: #ffffff;
+
+  /* 万字（红） */
+  --art-wan-300: #f87171;
+  --art-wan-400: #ef4444;
+  --art-wan-500: #dc2626;
+  --art-wan-600: #b91c1c;
+  --art-wan-700: #991b1b;
+
+  /* 条子（绿） */
+  --art-tiao-300: #4ade80;
+  --art-tiao-500: #22c55e;
+  --art-tiao-600: #15803d;
+  --art-tiao-700: #047857;
+  --art-tiao-800: #14532d;
+  --art-tiao-900: #065f46;
+
+  /* 筒子（蓝） */
+  --art-tong-300: #60a5fa;
+  --art-tong-400: #3b82f6;
+  --art-tong-500: #2563eb;
+  --art-tong-600: #1d4ed8;
+  --art-tong-800: #1e40af;
+  --art-tong-900: #1e3a8a;
+
+  /* 金与棕（牌背、边框、装饰） */
+  --art-gold-100: #fef9c3;
+  --art-gold-200: #fef08a;
+  --art-gold-500: #f59e0b;
+  --art-gold-600: #d97706;
+  --art-gold-700: #ca8a04;
+  --art-gold-800: #92400e;
+  --art-gold-900: #b45309;
+  --art-brown-900: #78350f;
+  --art-brown-950: #451a03;
+
+  /* 牌背钢灰 */
+  --art-steel-200: #e5e5e5;
+  --art-steel-300: #d4d4d4;
+  --art-steel-400: #a3a3a3;
+}
+
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   color-scheme: dark;

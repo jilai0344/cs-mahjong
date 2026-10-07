@@ -54,10 +54,50 @@ const EXPECTED_TOKENS = {
   body: '#f1f5f9'
 };
 
-/** 牌面艺术色白名单：允许残留硬编码，但数量只允许减少（D1b 会逐批迁移） */
+/** 牌面艺术色：D1b 已全部 token 化（改动历史：MahjongTile 101 处、TileWall 30 处 → 0）。
+ *  上限固定 0：这两个文件里再出现 #xxxxxx 就直接失败，艺术色一律写 var(--art-*)。 */
 const ART_HEX_CEILING = {
-  'src/components/MahjongTile.jsx': 101,
-  'src/components/TileWall.jsx': 30
+  'src/components/MahjongTile.jsx': 0,
+  'src/components/TileWall.jsx': 0
+};
+
+/** D1b 迁移台账：33 个艺术色 token 的取值必须与迁移前的硬编码字面量逐条一致
+ *  （值没变 ⇒ 只是换了个引用方式，像素不可能变）。 */
+const EXPECTED_ART_TOKENS = {
+  face: '#fcfbf7',
+  'face-shade': '#f3efe4',
+  'face-edge': '#d1ccba',
+  ink: '#18181b',
+  white: '#ffffff',
+  'wan-300': '#f87171',
+  'wan-400': '#ef4444',
+  'wan-500': '#dc2626',
+  'wan-600': '#b91c1c',
+  'wan-700': '#991b1b',
+  'tiao-300': '#4ade80',
+  'tiao-500': '#22c55e',
+  'tiao-600': '#15803d',
+  'tiao-700': '#047857',
+  'tiao-800': '#14532d',
+  'tiao-900': '#065f46',
+  'tong-300': '#60a5fa',
+  'tong-400': '#3b82f6',
+  'tong-500': '#2563eb',
+  'tong-600': '#1d4ed8',
+  'tong-800': '#1e40af',
+  'tong-900': '#1e3a8a',
+  'gold-100': '#fef9c3',
+  'gold-200': '#fef08a',
+  'gold-500': '#f59e0b',
+  'gold-600': '#d97706',
+  'gold-700': '#ca8a04',
+  'gold-800': '#92400e',
+  'gold-900': '#b45309',
+  'brown-900': '#78350f',
+  'brown-950': '#451a03',
+  'steel-200': '#e5e5e5',
+  'steel-300': '#d4d4d4',
+  'steel-400': '#a3a3a3'
 };
 
 function walk(dir, out = []) {
@@ -109,9 +149,13 @@ console.log('\n=== 测试 2: 源码里不得再写死色值（牌面艺术色白
 
   eq(offenders, [], '组件与样式里没有白名单之外的硬编码色值');
   for (const [rel, ceiling] of Object.entries(ART_HEX_CEILING)) {
-    assert(artCounts[rel] !== undefined && artCounts[rel] > 0, `${rel} 仍在使用艺术色（当前 ${artCounts[rel]} 处，上限 ${ceiling}）`);
+    if (ceiling === 0) {
+      assert(!(rel in artCounts), `${rel} 已全部 token 化（D1b 完成：艺术色一律 var(--art-*)）`);
+    } else {
+      assert(artCounts[rel] !== undefined && artCounts[rel] > 0, `${rel} 仍在使用艺术色（当前 ${artCounts[rel]} 处，上限 ${ceiling}）`);
+    }
   }
-  console.log(`  ℹ️  白名单残留：${Object.entries(artCounts).map(([f, c]) => `${f.split('/').pop()} ${c} 处`).join('、')}（D1b 逐批迁移）`);
+  console.log(`  ℹ️  白名单残留：${Object.entries(artCounts).map(([f, c]) => `${f.split('/').pop()} ${c} 处`).join('、') || '无'}`);
 }
 
 console.log('\n=== 测试 3: 文档与代码一致（docs/DESIGN.md §3）===');
@@ -207,6 +251,34 @@ console.log('\n=== 测试 7: 桌心信息密度（D6）===');
   assert(/setWallTotal\(newDeck\.length\)/.test(appSrc3), 'D6：牌墙总数取自真实牌堆长度（不是写死 108）');
   assert(/gameState === 'ROUND_OVER' \? roundNoRef\.current \+ 1 : 1/.test(appSrc3),
     'D6：局数在结算后递增、从大厅重开归 1');
+}
+
+console.log('\n=== 测试 8: 牌面艺术色 token（D1b）===');
+{
+  const artSection = css.split('牌面艺术色 token')[1] || '';
+  const artBlock = artSection.match(/@theme\s*\{([\s\S]*?)\n\}/);
+  assert(!!artBlock, 'index.css 里有独立的「牌面艺术色」@theme 块');
+
+  const artTokens = {};
+  for (const m of (artBlock ? artBlock[1] : '').matchAll(/--art-([a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g)) {
+    artTokens[m[1]] = m[2].toLowerCase();
+  }
+  assert(Object.keys(artTokens).length >= 33, `艺术色 token 数量 ≥33（实际 ${Object.keys(artTokens).length}）`);
+  eq(Object.keys(artTokens).sort(), Object.keys(EXPECTED_ART_TOKENS).sort(), '艺术色 token 名单与迁移台账完全一致');
+  for (const [name, value] of Object.entries(EXPECTED_ART_TOKENS)) {
+    eq(artTokens[name], value, `--art-${name} = ${value}（必须与迁移前的硬编码字面量一致）`);
+  }
+
+  const undocumented = Object.entries(artTokens)
+    .filter(([name, value]) => !designDoc.includes(`--art-${name}`) || !designDoc.includes(value))
+    .map(([name]) => name);
+  eq(undocumented, [], '每个艺术色 token 都写进 DESIGN.md 的牌面色板表（含取值）');
+
+  for (const rel of ['src/components/MahjongTile.jsx', 'src/components/TileWall.jsx']) {
+    const src = readFileSync(join(ROOT, rel), 'utf8');
+    eq(src.match(/#[0-9a-fA-F]{3,8}\b/g) || [], [], `${rel} 里不再有任何硬编码色值`);
+    assert(/var\(--art-/.test(src), `${rel} 通过 var(--art-*) 取艺术色`);
+  }
 }
 
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);
