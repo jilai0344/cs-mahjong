@@ -357,7 +357,7 @@ export class NetworkManager {
     } else if (data.type === 'LEAVE') {
       const s = data.fromSeatId;
       if (s >= 1 && s <= 3) {
-        this._revertSeatToAI(s);
+        this._revertSeatToAI(s, 'leave');
       }
     } else if (data.type === 'RECONNECT') {
       // 掉线玩家重连：优先恢复原座位（可能刚被心跳看门狗降级成 AI）
@@ -673,20 +673,26 @@ export class NetworkManager {
     }
   }
 
-  // 房主将某座位玩家替换为电脑 AI
+  // 房主将某座位玩家替换为电脑 AI（房主主动操作，不是掉线托管）
   toggleSeatAI(seatId) {
     if (!this.isHost || seatId === 0) return;
     this.sendToSeat(seatId, { type: 'KICKED' });
-    this._revertSeatToAI(seatId);
+    this._revertSeatToAI(seatId, 'manual');
   }
 
   // 把座位降级为电脑 AI（心跳超时 / 房主看门狗托管）。对外公开，便于 App 侧超时接管。
-  revertSeatToAI(seatId) {
+  revertSeatToAI(seatId, reason = 'timeout') {
     if (!this.isHost || !(seatId >= 1 && seatId <= 3)) return;
-    this._revertSeatToAI(seatId);
+    this._revertSeatToAI(seatId, reason);
   }
 
-  _revertSeatToAI(seatId) {
+  /**
+   * @param {number} seatId
+   * @param {'timeout'|'leave'|'manual'} reason 降级原因：
+   *   timeout = 心跳超时/看门狗托管（真人掉线，可能回来）；leave = 玩家自己退出；manual = 房主主动替换。
+   *   上层据此区分「托管」与「电脑补位」标识（P2-3）。
+   */
+  _revertSeatToAI(seatId, reason = 'timeout') {
     const guestId = this.seatToGuest.get(seatId);
     if (guestId) {
       this.guestToSeat.delete(guestId);
@@ -705,7 +711,7 @@ export class NetworkManager {
     // 掉线托管（P0-4）：座位降级为 AI 只改了大厅状态，若此刻正轮到该座位出牌，牌局会永久卡住。
     // 通知 App 层接管这一手（App 侧只在 PLAYING 且 currentTurn === seatId 时触发 AI 出牌）。
     try {
-      this.onSeatRevertedToAI?.(seatId);
+      this.onSeatRevertedToAI?.(seatId, reason);
     } catch {
       // 托管回调失败不应影响网络层
     }

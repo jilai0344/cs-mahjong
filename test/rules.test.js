@@ -107,6 +107,24 @@ console.log('\n=== 测试 5: 接线守卫（房主广播、客人套用并锁定
   assert(/onHostRules=/.test(app) && /rules=\{pickMatchRules\(config\)\}/.test(app), 'App 把规则交给大厅弹窗');
 }
 
+console.log('\n=== 测试 6: 局内电脑/托管标识（P2-3 另一项）===');
+{
+  const appSrc4 = readFileSync(join(ROOT, 'src/App.jsx'), 'utf8');
+  const opp = readFileSync(join(ROOT, 'src/components/OpponentHand.jsx'), 'utf8');
+  assert(/isAi = false/.test(opp) && /aiLabel = '电脑'/.test(opp), '对手牌组件支持 isAi / aiLabel');
+  assert(/\{isAi && \(/.test(opp), '只有是电脑在打时才渲染标识');
+  assert(/该座位真人掉线，已由电脑接管/.test(opp), '托管与补位用不同提示文案区分');
+  assert(/const seatAiInfo = \(seat\)/.test(appSrc4), 'App 有座位 AI 状态推导');
+  assert(/multiplayerState\.isMultiplayer\) return \{ isAi: false/.test(appSrc4), '单机不标注（三座位本来就是电脑）');
+  assert(/reason === 'timeout'/.test(appSrc4), '只有掉线托管才标「托管」（房主替换/玩家退出只标「电脑」）');
+  assert(/takenOverSeats\.includes\(seat\)/.test(appSrc4), '被托管的座位与补位电脑区分开');
+  assert((appSrc4.match(/\.\.\.seatAiInfo\(/g) || []).length === 3, '三个对手座位都接上了标识');
+  const netSrc = readFileSync(join(ROOT, 'src/utils/multiplayer.js'), 'utf8');
+  assert(/_revertSeatToAI\(seatId, 'manual'\)/.test(netSrc), '房主主动替换 → reason=manual');
+  assert(/_revertSeatToAI\(s, 'leave'\)/.test(netSrc), '玩家退出 → reason=leave');
+  assert(/onSeatRevertedToAI\?\.\(seatId, reason\)/.test(netSrc), '回调把降级原因一并传上去');
+}
+
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);
 if (failures.length > 0) {
   console.error('\n失败列表:');

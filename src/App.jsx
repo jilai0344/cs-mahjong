@@ -99,6 +99,13 @@ export default function App() {
   const topSeatId = (mySeatId + 2) % 4;
   const leftSeatId = (mySeatId + 3) % 4;
 
+  // P2-3：某个座位现在是不是电脑在打 —— 只在联机时标注（单机三个座位本来就是电脑，标了是噪音）
+  const seatAiInfo = (seat) => {
+    if (!multiplayerState.isMultiplayer) return { isAi: false, aiLabel: '电脑' };
+    if (multiplayerState.seats?.[seat]?.isHuman !== false) return { isAi: false, aiLabel: '电脑' };
+    return { isAi: true, aiLabel: takenOverSeats.includes(seat) ? '托管' : '电脑' };
+  };
+
   // P2-6：胶囊牌显示的昵称 —— 联机取自己座位的名字，单机取玩家在设置里保存的昵称
   const myDisplayName = multiplayerState.isMultiplayer
     ? (multiplayerState.seats[bottomSeatId]?.name || '我')
@@ -169,6 +176,8 @@ export default function App() {
   // 网络事件分发 effect 故意不随依赖重注册（见文件里既有的 aiTurnRef/actionsRef 模式），
   // 所以用 ref 暴露给分发器，避免新增 exhaustive-deps 告警。
   const hostRulesRef = useRef(null);
+  // P2-3：局内标识 —— 哪些座位是被「托管」的（真人掉线被电脑接管，区别于一开始就补位的电脑）
+  const [takenOverSeats, setTakenOverSeats] = useState([]);
   // P2-3：网络状况（往返延迟 + 连接状态），联机时显示在顶栏
   const [netLatency, setNetLatency] = useState(null);
   const [netConn, setNetConn] = useState('disconnected');
@@ -215,6 +224,7 @@ export default function App() {
   const handleLeaveRoom = useCallback(() => {
     setRulesLocked(false);
     setRoomRulesState(null);
+    setTakenOverSeats([]);
     if (preMatchConfigRef.current) {
       setConfig(preMatchConfigRef.current);
       preMatchConfigRef.current = null;
@@ -1852,9 +1862,13 @@ export default function App() {
   // 座位被降级为电脑 AI 时（心跳超时、房主手动替换、托管看门狗），若此刻正轮到该座位，
   // 立刻由 AI 接管这一手 —— 否则牌局会永久停在「等一个已经不在的人出牌」。
   useEffect(() => {
-    network.onSeatRevertedToAI = (seatId) => {
+    network.onSeatRevertedToAI = (seatId, reason = 'timeout') => {
       // 有人被托管 → 本局不再算「四人对战」，不计入本机记录
       rankedRoundRef.current = false;
+      // P2-3：只有「掉线托管」才标托管；玩家自己退出 / 房主主动替换都只标「电脑」
+      if (reason === 'timeout') {
+        setTakenOverSeats((prev) => (prev.includes(seatId) ? prev : [...prev, seatId]));
+      }
       if (stateRef.current.gameState !== 'PLAYING') return;
       if (stateRef.current.currentTurn !== seatId) return;
       console.log(`[CSMJ] 托管接管：座位 ${seatId} 改由电脑 AI 出牌`);
@@ -2048,6 +2062,7 @@ export default function App() {
               score={playerScores[topSeatId]}
               isDealer={dealerId === topSeatId}
               visualPosition="top"
+              {...seatAiInfo(topSeatId)}
             />
           </div>
 
@@ -2062,6 +2077,7 @@ export default function App() {
               score={playerScores[leftSeatId]}
               isDealer={dealerId === leftSeatId}
               visualPosition="left"
+              {...seatAiInfo(leftSeatId)}
             />
           </div>
 
@@ -2076,6 +2092,7 @@ export default function App() {
               score={playerScores[rightSeatId]}
               isDealer={dealerId === rightSeatId}
               visualPosition="right"
+              {...seatAiInfo(rightSeatId)}
             />
           </div>
 
