@@ -57,6 +57,8 @@ export default function RoundResultModal({
   const cap = scoring?.cap ?? 42 * B;
   const details = scoring?.details || [];
   const winners = scoring?.winners || [];
+  // D7：本局胡家共得（自摸=三家之和；通炮=各胡家之和），结算页以它为唯一主视觉数字
+  const totalGain = winners.reduce((sum, w) => sum + (Number(scoreChanges?.[w.seat]) || 0), 0);
   const birdDetail = scoring?.birdDetail || [];
   const isDice = scoring?.method === 'qishou' || scoring?.method === 'siji';
   const winnerNames = winners.map(w => nameOf(w.seat)).join('、');
@@ -70,7 +72,7 @@ export default function RoundResultModal({
             <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mb-2">
               <AlertTriangle className="w-6 h-6 text-amber-400" />
             </div>
-            <h2 className="text-2xl font-black text-amber-400">黄庄荒牌</h2>
+            <h2 className="text-base font-black text-amber-400">黄庄荒牌</h2>
             <p className="text-xs text-slate-400 mt-1">
               牌墙已摸完，本局流局不计分；下一局庄 = 最后一张牌由
               {Number.isInteger(result.lastDrawerId) ? `【${nameOf(result.lastDrawerId)}】` : '（记录缺失，沿用当前庄）'}
@@ -82,7 +84,7 @@ export default function RoundResultModal({
             <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center mb-2">
               <Trophy className="w-7 h-7 text-amber-400" />
             </div>
-            <h2 className="text-2xl font-black text-white">
+            <h2 className="text-base font-black text-white">
               【{winners.length > 1 ? winnerNames : winner?.name}】{scoring?.method === 'tongpao' ? '一炮多响！' : isSelfDrawn ? '自摸大捷！' : '点炮胡牌！'}
             </h2>
             <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
@@ -100,6 +102,21 @@ export default function RoundResultModal({
                 </span>
               )}
             </div>
+          </div>
+        )}
+
+        {/* D7 主视觉：本局共得 —— 唯一的 ≥22px 衬线数字；页面其余文字一律 ≤16px */}
+        {isHuangZhuang ? (
+          <div className="mt-3 text-xs font-bold tracking-widest text-slate-400">本局流局 · 不计分</div>
+        ) : (
+          <div className="mt-3 flex flex-col items-center">
+            <span className="text-[11px] font-bold tracking-widest text-slate-400">本局共得</span>
+            <span
+              className="font-serif text-[26px] font-black leading-none text-amber-300 [text-shadow:_0_2px_12px_rgba(0,0,0,0.85)]"
+              title={winners.length > 1 ? '通炮：各胡家得分之和' : '胡牌者本局净得'}
+            >
+              +{totalGain}
+            </span>
           </div>
         )}
 

@@ -160,6 +160,38 @@ console.log('\n=== 测试 5: 假等级徽标与占位文案已清理（D3）==='
   assert(/myRecord\.netScore/.test(app), '左下角胶囊显示的是本机真实战绩（净胜分）');
 }
 
+console.log('\n=== 测试 6: 安全区 / 减少动态 / 结算页字号层级（D4/D5/D7）===');
+{
+  const cssAll = readFileSync(join(ROOT, 'src/index.css'), 'utf8');
+  const appSrc2 = readFileSync(join(ROOT, 'src/App.jsx'), 'utf8');
+
+  // D4 安全区
+  assert(/safe-area-inset-left/.test(cssAll) && /safe-area-inset-right/.test(cssAll) && /safe-area-inset-bottom/.test(cssAll),
+    'D4：index.css 从 env() 取出四边安全区变量');
+  assert(/\.safe-pad\s*\{/.test(cssAll) && /padding-left:\s*var\(--safe-left\)/.test(cssAll),
+    'D4：提供 .safe-pad 工具类（四边内缩）');
+  assert(/safe-pad"/.test(appSrc2), 'D4：游戏根容器套用 safe-pad，顶栏与四角徽标随之避开刘海/圆角');
+  assert(/var\(--safe-bottom\)/.test(appSrc2), 'D4：手牌区引用安全区变量');
+  assert(!/env\(safe-area/.test(appSrc2), 'D4：组件里不再散落 env()（统一走变量，便于验证）');
+
+  // D5 减少动态效果
+  assert(/@media \(prefers-reduced-motion: reduce\)/.test(cssAll), 'D5：存在 prefers-reduced-motion 媒体查询');
+  assert(/animation-duration:\s*0\.001ms\s*!important/.test(cssAll), 'D5：动画时长压到不可感知');
+  assert(/transition-duration:\s*0\.001ms\s*!important/.test(cssAll), 'D5：过渡时长压到不可感知');
+  assert(/animation-iteration-count:\s*1\s*!important/.test(cssAll), 'D5：动画不重复播放（不留位移循环）');
+
+  // D7 结算页字号层级
+  const modal = readFileSync(join(ROOT, 'src/components/RoundResultModal.jsx'), 'utf8');
+  assert(/本局共得/.test(modal), 'D7：结算页有主视觉标签「本局共得」');
+  const serif = modal.match(/font-serif text-\[(\d+)px\]/);
+  assert(!!serif, 'D7：主视觉数字用衬线字体');
+  if (serif) assert(Number(serif[1]) >= 22, `D7：主视觉字号 ≥22px（实际 ${serif[1]}px）`);
+  const big = modal.match(/\btext-(lg|xl|2xl|3xl|4xl)\b/g) || [];
+  eq(big, [], 'D7：除主视觉外没有大于 16px 的字号类');
+  assert(/--font-serif:\s*"Noto Serif SC"/.test(cssAll),
+    'D7：font-serif 指向 index.html 已预加载的 Noto Serif SC（此前只加载没用上）');
+}
+
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);
 if (failures.length > 0) {
   console.error('\n失败列表:');
