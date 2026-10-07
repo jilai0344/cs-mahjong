@@ -281,6 +281,35 @@ console.log('\n=== 测试 8: 牌面艺术色 token（D1b）===');
   }
 }
 
+console.log('\n=== 测试 9: 双主题（P0-8 / D8）===');
+{
+  // 翡翠主题：只换值、不换 token 名；覆盖块必须在 @theme 之外（测试 1 只认第一个 @theme 块）
+  const jadeBlock = css.match(/\[data-theme="jade"\]\s*\{([\s\S]*?)\n\}/);
+  assert(!!jadeBlock, 'index.css 里有 [data-theme="jade"] 覆盖块');
+  const jadeTokens = {};
+  for (const m of (jadeBlock ? jadeBlock[1] : '').matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g)) {
+    jadeTokens[m[1]] = m[2].toLowerCase();
+  }
+  const EXPECTED_JADE = {
+    page: '#04120c', panel: '#0d1f14',
+    'shell-800': '#123626', 'shell-700': '#0f2e20', 'shell-500': '#0a2115', 'shell-300': '#06130c',
+    'panel-800': '#16402e', 'panel-700': '#0f2c1f', 'panel-600': '#071711',
+    'felt-300': '#319e64', 'felt-500': '#1e7a49', 'felt-400': '#145c38', 'felt-700': '#0a2c1b',
+    'violet-800': '#14503a', 'violet-600': '#0d3a29', 'violet-400': '#07231a'
+  };
+  eq(jadeTokens, EXPECTED_JADE, '翡翠主题覆盖的 token 名单与取值与规范一致（只换暖色系，翡翠/金色/正文共用）');
+
+  const appSrc = readFileSync(join(ROOT, 'src/App.jsx'), 'utf8');
+  assert(/data-theme=\{[^}]*config\.theme/.test(appSrc), 'App.jsx 根容器按 config.theme 设置 data-theme');
+  const settingsSrc = readFileSync(join(ROOT, 'src/components/SettingsModal.jsx'), 'utf8');
+  assert(/theme: 'red'/.test(settingsSrc) && /theme: 'jade'/.test(settingsSrc), '设置面板有红绒/翡翠两个主题切换按钮');
+  const typesSrc = readFileSync(join(ROOT, 'src/types/mahjong.js'), 'utf8');
+  assert(/theme: 'red'/.test(typesSrc), "DEFAULT_CONFIG 默认 theme: 'red'（老用户无感）");
+  const rulesSrc = readFileSync(join(ROOT, 'src/game/rules.js'), 'utf8');
+  assert(!/theme/.test(rulesSrc.match(/export function pickMatchRules[\s\S]*?\n\}/)[0]),
+    'pickMatchRules 不含 theme（主题是本机显示偏好，不随联机同步）');
+}
+
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);
 if (failures.length > 0) {
   console.error('\n失败列表:');

@@ -3,6 +3,9 @@
 > ROADMAP **P2-2** 的前置产物：**先定规范，再统一改造**。
 > 本文只写「已经存在的事实 + 可执行的规则」，不写口号；每条规则都给出**现状取值**（来自代码）与**验收方式**（跑什么、看哪里）。
 > 适用范围：`src/App.jsx`、`src/components/*`、`src/*.css`。**不改**牌面 SVG 艺术本身（属重绘，另立任务）。
+>
+> 2026-10-07 视觉负责人第 0 阶段增补：新增 §13（按钮与图标风格）、§14（完整动效规范，任务书口径）、
+> §15（待决策事项，需用户拍板）。§1–§12 为既有规范，继续有效。
 
 ---
 
@@ -255,3 +258,155 @@
 2. 三档截图：1440×900、812×375、768×1024（竖屏遮罩）各一张，存 `docs/screenshots/` 并在 PR 里贴出；
 3. 溢出检查：`scrollWidth/scrollHeight <= innerWidth/innerHeight`；
 4. 涉及交互时补一条可复现的手动步骤（例：点击手牌→抬起→再点→打出）。
+
+---
+
+## 13. 按钮与图标风格（2026-10-07 增补）
+
+### 13.1 操作按钮（`ActionControls.jsx` 现状即规范）
+
+层级（从强到弱，**不许打乱**）：
+
+| 按钮 | 视觉 | 尺寸/字号 |
+|---|---|---|
+| 胡 / 四喜 | 胶囊 `rounded-full`；胡 = `red-600→rose-600→amber-600` 渐变 + `ring-4 ring-red-400/80` + `animate-pulse`；四喜 = `purple-600→pink-600→rose-600` + `ring-4 ring-pink-400/80` + `animate-pulse` | `px-8 sm:px-10 py-3`，`text-2xl sm:text-3xl font-black` —— **全场最大最醒目** |
+| 杠 | `amber-600→yellow-600` + `ring-2 ring-amber-400/70` | `px-7 sm:px-8 py-2.5 sm:py-3`，`text-xl sm:text-2xl` |
+| 碰 | `teal-600→emerald-600` + `ring-2 ring-emerald-400/70` | 同上 |
+| 吃 | `sky-600→blue-600` + `ring-2 ring-sky-400/70` | 同上 |
+| 过 | `bg-slate-800` + `border-slate-600`，无渐变、无 ring | `px-6 sm:px-7`，`text-lg sm:text-xl` —— 最弱 |
+
+容器：`bg-slate-950/90 backdrop-blur-xl rounded-full border-2 border-emerald-400/40` 胶囊底座，
+`animate-fade-in-up` 入场。**吃/杠多选**用二级弹窗（`animate-scale-up`，深底 + 对应色边框）。
+
+### 13.2 通用按钮
+
+- **主要（开始对局）**：`amber-500→yellow-400→amber-600` 渐变 + `border-2 border-amber-200`，`rounded-2xl text-lg font-black`，
+  `hover:scale-105 active:scale-95`。
+- **次要（多人联机/规则入口）**：`amber-950/80` 底 + `border-amber-500/40`，`hover:bg-amber-900`。
+- **图标按钮（顶栏）**：`w-8 h-8 rounded-full bg-amber-950/70 border border-amber-500/40`，
+  **热区**用 `after:absolute after:-inset-1.5` 补足 44×44（视觉 32px，热区 44px）。
+- **"打出"按钮**：`emerald-600→emerald-500` 渐变 `rounded-xl`，只在选中牌时出现（防误触链路的一部分）。
+
+### 13.3 状态
+
+- `hover`：亮度/缩放（`hover:scale-105`、`hover:from-…`）；`active`：`active:scale-95`（按压反馈统一为 95% 缩放）。
+- `disabled`：`opacity-40` + 去渐变（现状多为条件不渲染；新增按钮必须显式处理 disabled 态）。
+- `focus-visible`：必须有可见焦点环（`focus-visible:ring-2`），键盘可达（弹窗已由 `useModalA11y` 保障）。
+
+### 13.4 图标
+
+- 统一用 `lucide-react`（`Users/Volume2/VolumeX/BookOpen/Settings/Play/Trophy/Feather/RotateCcw/AlertTriangle/Dices/Crown`），
+  线性图标，`w-3.5~7` 按场景取档，不混用 emoji 作功能图标（♥/🀄 这类文字装饰除外）。
+- 新增图标先查 lucide 是否有对应语义，没有才用 SVG 自绘，不得引入第二套图标库。
+
+### 13.5 危险/强调语义（token 提案，待 §15 确认后落地）
+
+| Token（提案） | 值 | 用途 |
+|---|---|---|
+| `danger-600` | `#dc2626` | 危险操作（胡按钮的红段、超时警告） |
+| `accent-jade` | `var(--color-jade-500)` | 可操作强调（已用于可操作描边，见 §3.1） |
+| `accent-gold` | `var(--color-gold-200)` | 最高强调（庄家、主视觉数字） |
+
+---
+
+## 14. 动效规范（完整版，2026-10-07 增补；§7 为其子集）
+
+> 任务书口径。§7 的 token 与"只动 transform/opacity、不超 300ms 阻塞"继续有效，本节补齐缺失维度。
+
+### 14.1 时长阶梯
+
+| 档 | 时长 | 场景 | Token |
+|---|---|---|---|
+| 微交互 | **100–180ms** | 按钮按压、选中抬起、hover、Toast 进出、气泡 | `--motion-fast: 150ms`（已存在） |
+| 牌的移动 | **200–350ms** | 发牌单张飞行、出牌飞行、摸牌滑入、吃碰杠合并 | 新增 `--motion-move: 280ms`（提案） |
+| 大特效 | **600–1200ms** | 胡字特效、结算数字滚动、骰子滚动 | 新增 `--motion-grand: 900ms`（提案） |
+| 弹窗 | 200–250ms | Modal scale+fade（现状 `fadeIn/scaleUp`） | 现状类名保留 |
+
+**红线**：任何动画不得阻塞操作——"动画结束才能点下一次"的设计一律否决（现状 `tileDraw/tileDiscard` 为 `both` 填充的非阻塞挂载，符合）。
+
+### 14.2 缓动（全场统一三套，不许各用各的）
+
+| 用途 | 曲线 | Token |
+|---|---|---|
+| 进入（出现/飞入） | ease-out `cubic-bezier(0.16, 1, 0.3, 1)` | `--motion-ease-out`（已存在） |
+| 退出（消失/飞出） | ease-in `cubic-bezier(0.55, 0.06, 0.68, 0.19)` | 新增 `--motion-ease-in`（提案） |
+| 落桌（出牌/摸牌到位） | 轻微回弹 `cubic-bezier(0.34, 1.4, 0.64, 1)`（ overshoot ≤ 8%） | 新增 `--motion-ease-settle`（提案） |
+
+### 14.3 合成器纪律
+
+- 只用 `transform` 与 `opacity`；**禁止**动画 `width/height/top/left/margin`（触发布局）。
+- `will-change: transform, opacity` 只在动画元素上挂载，**动画结束即撤**（`animationend` 清理或 `both` 填充后移除类）。
+- 同一时刻动画对象 >12 个时**合并或降级**：发牌用分批队列（每批 4 张，间隔 60ms），不得 52 张同时飞。
+- `backdrop-blur` 不得出现在动画元素上（先做完位移再加模糊，或全程不加）。
+
+### 14.4 动画队列与状态关系（铁律）
+
+1. **动画是状态的表现层**：状态变更先行，动画随后挂载；**动画不得阻塞或改写状态**（如出牌逻辑不得等待飞行动画结束）。
+2. 一个动作的动画未结束时，后续动作**排队或平滑衔接**（新动画从当前视觉位置继续，而非跳回起点）。
+3. 状态机（`App.jsx`）不得读取动画进度做分支；动画时长变化不得影响游戏节奏（AI 700ms 节奏独立）。
+
+### 14.5 降级
+
+- `prefers-reduced-motion: reduce` → 全局退化为即时切换（已实现，`index.css`）。
+- 低端机兜底：若连续两帧 >50ms（`requestAnimationFrame` 自检），自动把"大特效"降为淡入淡出（实现时再定阈值，此处先立规矩）。
+
+### 14.6 音画对齐表（现状 → 目标）
+
+| 事件 | 音效（`audio.js`） | 现状动画 | 目标 |
+|---|---|---|---|
+| 选牌 | `playTileTouch` | 抬起 transition | ✅ 已对齐 |
+| 出牌落桌 | `playDiscard`（双脉冲 80ms） | `tileDiscard` 180ms | ✅ 已对齐（声先画后，落差 <100ms 可接受） |
+| 吃/碰/杠 | `playMeld`（和弦 200ms） | **无** | P0-3：被叫牌飞入副露 + "碰/杠/吃"字特效，关键帧对准和弦起音 |
+| 胡牌 | `playHu`（琶音 800ms） | **无**（只有弹窗） | P0-4："胡"字特效 900ms 对准琶音 |
+| 骰子 | `playDice`（6 连击 300ms） | 静态方块 bounce | P1-1：滚动 600ms，每 100ms 变点，落定帧 = 真实点数 |
+| 结算 | `playHu` | 数字跳变 | P0-5：数字滚动 600–900ms 对准琶音 |
+
+---
+
+## 15. 待决策事项（需用户拍板，不自行定）
+
+### D8 牌桌主色：翡翠毛毡 vs 皇家红绒
+
+- **任务书原文**：「翡翠毛毡牌桌、象牙白骨牌、青翠玉石牌背……带一点长沙/湘味的辨识度（如点缀的中国红、金色细节）」。
+- **现状**：皇家红绒桌面（`--color-felt-*`）+ 金线 + 紫檀罗盘，品牌文案"黄金岛 · 长沙麻将 / 经典正版复刻"——整套红金身份已 token 化且 D1–D7 全部基于它。
+- **选项**：
+  - A. **保持红绒**（不推倒重来）：只做质感升级（毛毡纹理、暗纹、层次），任务书的"翡翠/中国红/金"理解为"青翠玉石牌背 + 红金点缀"已兑现。
+  - B. **转翡翠桌**：桌面主色换翡翠绿系（`--color-felt-*` 重定义为绿），红金退为点缀（庄标、胡按钮、纹样）；工作量约 1–2 个 PR（token 层替换 + 截图回归）。
+  - C. **双主题**：默认红绒，设置里加"翡翠桌"切换（token 两套，`data-theme` 切换）；工作量最大，但朋友圈传播时可选。
+- 默认不动（选 A），等你一句话。
+- **✅ 2026-10-07 用户已拍板：选 C（双主题）**——默认红绒（现状），设置里加"牌桌主题"切换（红绒经典 / 翡翠清澈）；
+  `data-theme="jade"` 切换第二套 token，`@theme` 的 token 名不变、只换值；实现见 P0-8（`ui/dual-theme` 分支）。
+  - 机制：`src/index.css` 末尾 `[data-theme="jade"]` 覆盖块（无层样式，必胜过 `@theme` 的层内 `:root` 定义）；
+    `App.jsx` 根容器 `data-theme={config.theme === 'jade' ? 'jade' : undefined}`；`config.theme` 默认 `'red'`，
+    进 `DEFAULT_CONFIG`（`src/types/mahjong.js`），走现有 `handleUpdateConfig` 持久化到 localStorage；
+    `pickMatchRules` 不含 theme（本机显示偏好，不随联机同步、不被房主规则覆盖）。
+  - 翡翠主题 token 值（暖色系全换，翡翠/金色/正文/牌面艺术色两套共用）：
+
+| Token | 红绒（默认） | 翡翠 |
+|---|---|---|
+| `page` | `#03140e` | `#04120c` |
+| `panel` | `#1f0604` | `#0d1f14` |
+| `shell-800/700/500/300` | `#3b0e08/#380e08/#240804/#140302` | `#123626/#0f2e20/#0a2115/#06130c` |
+| `panel-800/700/600` | `#4a180e/#2b0c07/#140503` | `#16402e/#0f2c1f/#071711` |
+| `felt-300/500/400/700` | `#a01c22/#821318/#560a0d/#280406` | `#319e64/#1e7a49/#145c38/#0a2c1b` |
+| `violet-800/600/400`（罗盘） | `#4c1d73/#2d0e45/#1a082b` | `#14503a/#0d3a29/#07231a` |
+
+  - 牌桌微纹理/中心辉光的红绒颗粒在 `[data-theme="jade"]` 下替换为翡翠颗粒（金色颗粒保留）；
+    设置面板的主题切换按钮带固定色板预览（`.theme-swatch-red/.theme-swatch-jade`，不跟随当前主题）。
+  - 守卫：`test/designTokens.test.js` 测试 9 断言覆盖块存在、取值与上表一致、App/设置/DEFAULT_CONFIG/pickMatchRules 接线正确。
+
+### D9 竖屏：真可玩 vs 保留遮罩
+
+- **任务书**：「手机竖屏、横屏、平板、桌面都要可玩，手牌不被遮挡、不需要缩放」。
+- **现状**：竖屏显示「请横置手机」全屏遮罩（可手动跳过，跳过后为强制横屏布局的压缩渲染）。
+- **选项**：
+  - A. **保留遮罩**：承认麻将桌是横屏游戏，优化遮罩文案与跳过体验（最小工作量）。
+  - B. **竖屏专用布局**：重排四家（上家信息条折叠、牌河竖排、手牌横滑），约 3–5 个 PR，是 P0 级工作量。
+- 微信里"打开就玩"的场景多为竖屏持机——建议至少给个明确结论再排 P0/P1。
+- **✅ 2026-10-07 用户已拍板：选 B（竖屏专用布局）**——重排四家与牌河、手牌横滑可玩；
+  实现为 P0-7（`ui/portrait-layout` 分支），验收见 `docs/UI_ROADMAP.md` P0-7。
+
+### D10 "胡"按钮常驻 `animate-pulse`
+
+- 现状最醒目的"胡"按钮带无限 `animate-pulse`（reduced-motion 下已关）。好处是醒目，代价是可能干扰读牌且与"克制"基调冲突。
+- 提案：改为**出现时 pulse 3 次后停止**（`animation-iteration-count: 3`），既醒目又不长期抢戏。等你确认（小改动，可并入 P0-3）。

@@ -145,6 +145,56 @@ html, body, #root {
 .safe-pad-bottom { padding-bottom: var(--safe-bottom); }
 
 /* ---------------------------------------------------------------------------
+ * 翡翠主题（P0-8 / D8：双主题，用户 2026-10-07 拍板选 C）
+ * 默认（无 data-theme 或 data-theme="red"）= 皇家红绒（@theme 里的值）；
+ * data-theme="jade" = 翡翠毛毡。token 名不变、只换值，因此所有
+ * var(--color-*) / Tailwind 工具类（bg-panel、from-shell-800 …）自动跟随，
+ * 无需改组件。未列出的 token（金色、翡翠强调色、牌面艺术色）两套主题共用。
+ * 放在文件末尾且不进 @layer：无层样式一定赢过 @theme 生成的层内 :root 定义。
+ * ------------------------------------------------------------------------- */
+[data-theme="jade"] {
+  /* 页面与面板：暖棕黑 → 墨绿黑 */
+  --color-page: #04120c;
+  --color-panel: #0d1f14;
+
+  /* 外壳渐变（顶栏与牌桌外框） */
+  --color-shell-800: #123626;
+  --color-shell-700: #0f2e20;
+  --color-shell-500: #0a2115;
+  --color-shell-300: #06130c;
+
+  /* 胶囊/头像牌渐变 */
+  --color-panel-800: #16402e;
+  --color-panel-700: #0f2c1f;
+  --color-panel-600: #071711;
+
+  /* 翡翠毛毡牌桌（四档径向渐变，顺序与红绒版一致：亮→中→外→暗角） */
+  --color-felt-300: #319e64;
+  --color-felt-500: #1e7a49;
+  --color-felt-400: #145c38;
+  --color-felt-700: #0a2c1b;
+
+  /* 桌心罗盘：紫檀 → 深碧玉（金边保留，见 TableCenter） */
+  --color-violet-800: #14503a;
+  --color-violet-600: #0d3a29;
+  --color-violet-400: #07231a;
+}
+
+/* 翡翠主题下的牌桌微纹理与中心辉光：红绒颗粒 → 翡翠颗粒（金色颗粒保留） */
+[data-theme="jade"] .mahjong-table::before {
+  background-image:
+    radial-gradient(rgba(245, 158, 11, 0.05) 1px, transparent 1px),
+    radial-gradient(rgba(52, 168, 108, 0.07) 1px, transparent 1px);
+}
+[data-theme="jade"] .mahjong-table::after {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.09) 0%, rgba(46, 158, 99, 0.05) 60%, transparent 80%);
+}
+
+/* 主题切换按钮的色板预览（P0-8）：固定展示两套主题的牌桌渐变，不跟随当前主题变化 */
+.theme-swatch-red { background: radial-gradient(circle at 35% 35%, #a01c22, #560a0d); }
+.theme-swatch-jade { background: radial-gradient(circle at 35% 35%, #319e64, #145c38); }
+
+/* ---------------------------------------------------------------------------
  * 减少动态效果（P2-2 / D5）
  * 系统开启「减少动态效果」后，位移动画/过渡降到不可感知，只保留终态。
  * （否则倒计时箭头、骰子滚动、弹窗上浮、脉冲按钮都会继续动。）
