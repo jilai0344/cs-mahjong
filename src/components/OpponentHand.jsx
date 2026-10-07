@@ -79,21 +79,21 @@ export default function OpponentHand({
 
       {/* 手牌与已亮面子区域 */}
       <div
-        className={`flex items-center gap-2 ${
+        className={`${isTop ? 'opp-top-row' : ''} flex items-center gap-2 ${
           isTop ? 'flex-row' : 'flex-col justify-center'
         }`}
       >
         {/* 副露面子 (暗杠全盖，吃牌放中间且对着各家朝向摆放) */}
         {melds.length > 0 && (
           <div
-            className={`flex gap-1.5 p-1 rounded-xl bg-black/60 border border-amber-500/30 shrink-0 ${
+            className={`opp-melds-box flex gap-1.5 p-1 rounded-xl bg-black/60 border border-amber-500/30 shrink-0 ${
               isTop ? 'flex-row' : 'flex-col items-center justify-center'
             }`}
           >
             {melds.map((meld, mIdx) => (
               <div
                 key={mIdx}
-                className={`flex rounded-lg p-1 bg-black/50 border border-amber-500/20 shadow-xs ${
+                className={`opp-meld-group flex rounded-lg p-1 bg-black/50 border border-amber-500/20 shadow-xs ${
                   isTop ? 'flex-row gap-0.5 items-center' : 'flex-col gap-0.5 items-center'
                 }`}
               >
@@ -104,7 +104,7 @@ export default function OpponentHand({
                     return (
                       <div
                         key={tIdx}
-                        className={`relative flex items-center justify-center shrink-0 ${
+                        className={`opp-tile-wrap relative flex items-center justify-center shrink-0 ${
                           isEatenTile ? 'ring-1 ring-amber-400 rounded-sm' : ''
                         }`}
                       >
@@ -113,6 +113,7 @@ export default function OpponentHand({
                           size="meld"
                           rotation={180}
                           isBack={meld.type === 'an_gang'}
+                          className="ph-tile"
                         />
                       </div>
                     );
@@ -142,9 +143,9 @@ export default function OpponentHand({
 
         {/* 黄金牌背立牌 */}
         <div
-          className={`flex shrink-0 ${
+          className={`opp-backs flex shrink-0 ${
             isTop
-              ? 'flex-row gap-0.5'
+              ? 'opp-backs-top flex-row gap-0.5'
               : 'flex-col -space-y-1.5 sm:-space-y-2 justify-center'
           }`}
         >
@@ -153,6 +154,7 @@ export default function OpponentHand({
               key={idx}
               isBack={true}
               size={isTop ? 'opp-top' : 'opp-side'}
+              className={isTop ? 'ph-tile' : ''}
             />
           ))}
         </div>
