@@ -192,6 +192,23 @@ console.log('\n=== 测试 6: 安全区 / 减少动态 / 结算页字号层级（
     'D7：font-serif 指向 index.html 已预加载的 Noto Serif SC（此前只加载没用上）');
 }
 
+console.log('\n=== 测试 7: 桌心信息密度（D6）===');
+{
+  const center = readFileSync(join(ROOT, 'src/components/TableCenter.jsx'), 'utf8');
+  const appSrc3 = readFileSync(join(ROOT, 'src/App.jsx'), 'utf8');
+
+  assert(/role="progressbar"/.test(center), 'D6：桌心有牌墙进度条（数据可视化，不是装饰纹理）');
+  assert(/aria-valuenow=\{wallRemaining\}/.test(center) && /aria-valuemax=\{wallTotal\}/.test(center),
+    'D6：进度条带 aria-valuenow / aria-valuemax');
+  assert(/roundNumber/.test(center) && /dealerName/.test(center), 'D6：桌心显示「第 N 局」与庄家');
+  assert(/wallTotal/.test(center), 'D6：显示「余 N / 总数」，不再只有一个余数');
+  assert(/wallTotal=\{wallTotal\}/.test(appSrc3) && /roundNumber=\{roundNumber\}/.test(appSrc3) && /dealerName=\{/.test(appSrc3),
+    'D6：App 把牌墙总数 / 局数 / 庄家名传给桌心');
+  assert(/setWallTotal\(newDeck\.length\)/.test(appSrc3), 'D6：牌墙总数取自真实牌堆长度（不是写死 108）');
+  assert(/gameState === 'ROUND_OVER' \? roundNoRef\.current \+ 1 : 1/.test(appSrc3),
+    'D6：局数在结算后递增、从大厅重开归 1');
+}
+
 console.log(`\n测试汇总: 通过 ${passed} 个, 失败 ${failed} 个`);
 if (failures.length > 0) {
   console.error('\n失败列表:');

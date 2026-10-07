@@ -12,6 +12,9 @@ export default function TableCenter({
   dealerId = 0,
   wallRemaining = 108,
   roomLabel = '单机练习',
+  wallTotal = 108,
+  roundNumber = 0,
+  dealerName = '',
   turnTimer = 15,
   diceValues = [3, 4],
   isRollingDice = false,
@@ -142,15 +145,46 @@ export default function TableCenter({
         </div>
       </div>
 
-      {/* 3. 罗盘下方底纹：房间/模式标识 + 剩余牌数（P2-2 / D3：原先写死一个假的区服编号，改为真实信息） */}
-      <div className="mt-2 flex flex-col items-center gap-0.5 opacity-60">
+      {/* 3. 罗盘下方底纹：房间/模式 + 局数·庄家 + 牌墙进度（P2-2 / D3 改真实信息、D6 增加信息密度） */}
+      <div className="mt-2 flex flex-col items-center gap-1 opacity-70">
         <span className="text-[11px] font-black text-amber-400/80 tracking-widest [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
           {roomLabel}
         </span>
-        <div className="flex items-center gap-1 text-[11px] font-bold text-amber-200/80 bg-black/50 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-200/80 bg-black/50 px-2.5 py-0.5 rounded-full border border-amber-500/20 whitespace-nowrap">
+          {roundNumber > 0 && (
+            <>
+              <span>第</span>
+              <span className="font-mono text-amber-300 font-black">{roundNumber}</span>
+              <span>局</span>
+              <span className="text-amber-400/60">·</span>
+            </>
+          )}
+          {dealerName ? (
+            <>
+              <span>庄</span>
+              <span className="font-black text-amber-300">{dealerName.slice(0, 4)}</span>
+              <span className="text-amber-400/60">·</span>
+            </>
+          ) : null}
           <span>余</span>
           <span className="font-mono text-amber-300 font-black">{wallRemaining}</span>
+          <span className="text-amber-400/60">/</span>
+          <span className="font-mono text-amber-200/70">{wallTotal}</span>
           <span>张</span>
+        </div>
+        {/* 牌墙进度条：把「还剩多少」变成一眼可见的比例（数据可视化，不是装饰纹理） */}
+        <div
+          role="progressbar"
+          aria-label="牌墙剩余"
+          aria-valuemin={0}
+          aria-valuemax={wallTotal}
+          aria-valuenow={wallRemaining}
+          className="w-24 sm:w-32 h-1 rounded-full bg-black/60 border border-amber-500/20 overflow-hidden"
+        >
+          <div
+            className="h-full bg-gradient-to-r from-jade-500 to-amber-400 transition-[width] duration-300"
+            style={{ width: `${Math.max(0, Math.min(100, Math.round((wallRemaining / Math.max(1, wallTotal)) * 100)))}%` }}
+          />
         </div>
       </div>
     </div>
