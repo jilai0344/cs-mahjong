@@ -71,6 +71,10 @@ export default function PlayerHand({
     ? handTiles.filter(t => t.id !== drawnTile.id)
     : handTiles;
 
+  // 竖屏流式布局：总牌数（副露牌 + 手牌 + 摸牌），用于 CSS calc() 均分宽度
+  // Safari 对 flex-basis:0 + aspect-ratio 的支持有 bug，必须用显式宽度
+  const totalTiles = melds.reduce((n, m) => n + m.tiles.length, 0) + regularTiles.length + (drawnTile ? 1 : 0);
+
   return (
     <div className="player-hand flex flex-col items-center justify-end w-full px-2 select-none">
       {/* 听牌详情提示气泡 */}
@@ -87,7 +91,7 @@ export default function PlayerHand({
         </div>
       )}
 
-      <div className="ph-row flex items-end justify-center gap-4 max-w-full overflow-x-auto pb-1">
+      <div className="ph-row flex items-end justify-center gap-4 max-w-full overflow-x-auto pb-1" style={{ '--ph-n': Math.max(totalTiles, 1) }}>
         {/* 左侧：已亮出的吃碰杠面子 (副露) */}
         {melds.length > 0 && (
           <div className="ph-melds-wrap flex items-end gap-2 pr-3 border-r-2 border-emerald-400/30 shrink-0">

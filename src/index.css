@@ -218,7 +218,7 @@ html, body, #root {
 /* 操作按钮：紧贴手牌上方（相对底部容器顶部 +12px），不再悬空 */
 [data-layout="portrait"] .action-controls { bottom: calc(100% + 0.75rem); }
 
-/* 手牌行：一排、不换行、不滚动；必须显式 width:100%（Safari 下 flex-basis:0 的子项在不定宽容器里会塌缩到不可见） */
+/* 手牌行：一排、不换行、不滚动；必须显式 width:100%（Safari 下不定宽容器 + flex 子项会塌缩） */
 [data-layout="portrait"] .ph-row { width: 100%; flex-wrap: nowrap; overflow-x: visible; overflow-y: visible; gap: 2px; }
 /* 副露容器打散：副露牌、手牌直接参与外层 flex 均分 */
 [data-layout="portrait"] .ph-melds-wrap,
@@ -226,11 +226,23 @@ html, body, #root {
 [data-layout="portrait"] .ph-hand { display: contents; }
 /* 副露文字徽标在竖屏隐藏（牌型由牌面自述，省宽度） */
 [data-layout="portrait"] .ph-meld-badge { display: none; }
-/* 流式牌：按可用宽度均分，一排全见；aspect-ratio 保持 3:4，SVG 矢量自适应 */
-[data-layout="portrait"] .ph-tile { flex: 1 1 0; min-width: 0; width: auto; height: auto; aspect-ratio: 3 / 4; }
+/* 流式牌：用显式 calc() 宽度均分（--ph-n 为总牌数，由 PlayerHand 写入）；
+   不用 flex:1 1 0 + aspect-ratio 自动分配——Safari 对 flex-basis:0 的 aspect-ratio 解析有 bug 会导致高度塌缩 */
+[data-layout="portrait"] .ph-tile {
+  flex: none;
+  width: calc((100% - (var(--ph-n, 14) - 1) * 2px) / var(--ph-n, 14));
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 3 / 4;
+}
 /* 摸牌：同样占一份，间距收紧 */
-[data-layout="portrait"] .ph-drawn { flex: 1 1 0; min-width: 0; padding-left: 4px; }
-[data-layout="portrait"] .ph-drawn .ph-tile { flex: none; width: 100%; }
+[data-layout="portrait"] .ph-drawn {
+  flex: none;
+  width: calc((100% - (var(--ph-n, 14) - 1) * 2px) / var(--ph-n, 14));
+  min-width: 0;
+  padding-left: 0;
+}
+[data-layout="portrait"] .ph-drawn .ph-tile { width: 100%; }
 
 /* 对家（顶部）：副露 + 牌背打散后一起流式均分，一排全见不裁切 */
 [data-layout="portrait"] .opp-top-row { width: min(94vw, 380px); }
