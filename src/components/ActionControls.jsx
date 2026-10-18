@@ -7,7 +7,8 @@ const TONES = {
   gang: { text: 'text-amber-700', bg: 'bg-amber-50', ring: 'ring-amber-200' },
   peng: { text: 'text-teal-700', bg: 'bg-teal-50', ring: 'ring-teal-200' },
   chi: { text: 'text-blue-700', bg: 'bg-blue-50', ring: 'ring-blue-200' },
-  xi: { text: 'text-fuchsia-600', bg: 'bg-fuchsia-50', ring: 'ring-fuchsia-200' }
+  xi: { text: 'text-fuchsia-600', bg: 'bg-fuchsia-50', ring: 'ring-fuchsia-200' },
+  pass: { text: 'text-stone-600', bg: 'bg-stone-100', ring: 'ring-stone-300' }
 };
 
 function ActionKey({ char, label, tone, onClick, primary = false, ariaLabel }) {
@@ -180,16 +181,16 @@ export default function ActionControls({
           )}
 
           {availableActions.pass && (
-            <button
-              type="button"
+            <ActionKey
+              char="过"
+              label="过牌"
+              tone="pass"
+              ariaLabel="过牌"
               onClick={() => {
                 sound.playTileTouch();
                 if (onPass) onPass();
               }}
-              className="flex h-[54px] items-center justify-center rounded-full px-3 text-sm font-semibold text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
-            >
-              过
-            </button>
+            />
           )}
         </div>
       </div>

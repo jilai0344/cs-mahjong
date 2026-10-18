@@ -723,6 +723,8 @@ export default function App() {
           const playerName = mp.isMultiplayer ? mp.seats[pIdx]?.name : PLAYERS[pIdx].name;
           startingEvents.push({
             player: { ...PLAYERS[pIdx], name: playerName },
+            // 起手胡按本地规则要摊牌给其余三家看：完整手牌随事件一起广播
+            hand: [...hand],
             huList
           });
         }

@@ -29,10 +29,10 @@ export default function StartingHuModal({
             <Sparkles className="h-3 w-3" />
           </div>
           <h3 className="mt-1 font-serif text-[22px] font-semibold text-stone-900">开局见喜</h3>
-          <p className="mt-1 text-[11px] text-stone-400">已按小胡自摸结算，牌局继续</p>
+          <p className="mt-1 text-[11px] text-stone-400">起手牌公开摊开给其余三家 · 已按小胡自摸结算，牌局继续</p>
         </div>
 
-        <div className="max-h-[54vh] space-y-2.5 overflow-y-auto px-5 pb-3">
+        <div className="max-h-[62vh] space-y-2.5 overflow-y-auto px-5 pb-3">
           {startingHuEvents.map((evt, idx) => (
             <div key={idx} className="rounded-2xl border border-stone-200 bg-white p-3.5">
               <div className="flex items-center justify-between gap-2">
@@ -41,6 +41,17 @@ export default function StartingHuModal({
                   共 {evt.huList.length} 把 · +{evt.scoreChanges ? evt.scoreChanges[evt.player.id] : evt.huList.length * 6} 分
                 </span>
               </div>
+
+              {evt.hand && evt.hand.length > 0 && (
+                <div className="mt-2.5 rounded-xl bg-stone-50 px-2 py-2">
+                  <div className="text-[9px] font-semibold tracking-[0.14em] text-stone-400">起手牌 · 公开摊牌</div>
+                  <div className="mt-1.5 flex flex-wrap justify-center gap-0.5">
+                    {evt.hand.map((tile, tIdx) => (
+                      <MahjongTile key={`${tile.id || tIdx}-${tIdx}`} tile={tile} size="sm" />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {evt.huList.map((hu, hIdx) => {
                 const sc = (evt.perHuScores || [])[hIdx];
@@ -57,16 +68,6 @@ export default function StartingHuModal({
                         <div>
                           每家应付 {sc.details.map((d) => `${d.P}`).join(' / ')} · 封顶 {sc.cap}
                         </div>
-                      </div>
-                    )}
-                    {hu.tiles && hu.tiles.length > 0 && (
-                      <div className="mt-2 flex flex-wrap justify-center gap-1">
-                        {hu.tiles.slice(0, 8).map((tile, tIdx) => (
-                          <MahjongTile key={tIdx} tile={tile} size="sm" />
-                        ))}
-                        {hu.tiles.length > 8 && (
-                          <span className="self-center text-[10px] text-stone-400">+{hu.tiles.length - 8} 张</span>
-                        )}
                       </div>
                     )}
                   </div>
