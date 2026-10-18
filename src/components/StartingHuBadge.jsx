@@ -12,14 +12,14 @@ export default function StartingHuBadge({ event, className = '' }) {
     <div
       role="status"
       aria-label={`起手胡 ${names}，局终结算`}
-      className={`starting-hu-badge pointer-events-none flex max-w-[12rem] items-start gap-1.5 rounded-xl border border-rose-200/80 bg-rose-600 px-2 py-1.5 text-white shadow-[0_8px_22px_rgba(140,40,40,0.35)] ${className}`}
+      className={`starting-hu-badge pointer-events-none flex max-w-[14rem] items-start gap-2 rounded-xl border border-rose-200/80 bg-rose-600 px-3 py-2 text-white shadow-[0_8px_22px_rgba(140,40,40,0.35)] ${className}`}
     >
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/15 font-brush text-[18px] leading-none">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/15 font-brush text-[20px] leading-none">
         胡
       </span>
       <div className="min-w-0 leading-tight">
-        <div className="text-[8px] font-semibold tracking-[0.12em] text-white/70">起手胡 · 局终结算</div>
-        <div className="mt-0.5 break-words text-[11px] font-bold">{names}</div>
+        <div className="text-[9px] font-semibold tracking-[0.12em] text-white/75">起手胡 · 局终结算</div>
+        <div className="mt-0.5 break-words text-[12px] font-bold">{names}</div>
       </div>
     </div>
   );
