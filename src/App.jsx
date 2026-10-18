@@ -185,6 +185,7 @@ export default function App() {
   const timerRef = useRef(null);
   const aiTurnRef = useRef(null); // 指向 triggerAiTurn（掉线托管时从网络回调里调用，避免闭包过期）
   const aiTurnTokenRef = useRef(0); // 取消过期的 AI 定时器，避免结束后/换手后补刀
+  const showBubbleRef = useRef(null);
   // P1-2：桌上还有真人能胡时，全部胡家（含 AI）先挂起等待真人决定，决定后再一次性结算
   const pendingHuRef = useRef(null);
   // 战绩裁定（2026-10）：只有「4 个真人满座且全程无托管」的对局才计入本机记录；刷 AI 不计
@@ -314,6 +315,7 @@ export default function App() {
       );
     }
   };
+  showBubbleRef.current = showBubble;
 
   // 听牌分析计算 (我当前手牌)
   const tingMap = useMemo(() => {
@@ -578,7 +580,7 @@ export default function App() {
             }
           }
         } else if (data.type === 'BUBBLE_BROADCAST') {
-          showBubble(data.playerId, data.text);
+          showBubbleRef.current?.(data.playerId, data.text);
         }
       }
     });
