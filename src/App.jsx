@@ -164,6 +164,7 @@ export default function App() {
   const [chiOptions, setChiOptions] = useState([]);
   const [kongOptions, setKongOptions] = useState([]);
   const [buOptions, setBuOptions] = useState([]);
+  const [kongLockedPlayers, setKongLockedPlayers] = useState([false, false, false, false]);
   const [midGameSiXiOptions, setMidGameSiXiOptions] = useState([]);
   const declaredSiXiRef = useRef([new Set(), new Set(), new Set(), new Set()]);
 
@@ -188,6 +189,7 @@ export default function App() {
   const timerRef = useRef(null);
   const aiTurnRef = useRef(null); // 指向 triggerAiTurn（掉线托管时从网络回调里调用，避免闭包过期）
   const aiTurnTokenRef = useRef(0); // 取消过期的 AI 定时器，避免结束后/换手后补刀
+  const kongLockedRef = useRef([false, false, false, false]); // 开杠后手牌锁定，只能自动打摸到的牌
   const showBubbleRef = useRef(null);
   const startingHuPendingRef = useRef([]);
   // P1-2：桌上还有真人能胡时，全部胡家（含 AI）先挂起等待真人决定，决定后再一次性结算
@@ -650,6 +652,8 @@ export default function App() {
     startingHuPendingRef.current = [];
     setMidGameSiXiOptions([]);
     declaredSiXiRef.current = [new Set(), new Set(), new Set(), new Set()];
+    kongLockedRef.current = [false, false, false, false];
+    setKongLockedPlayers([false, false, false, false]);
     setKongDrawState({ isOpen: false, kongPlayer: null, drawnTiles: [], count: 2, canSelfHu: false });
     setTableCallout(null);
     if (tableCalloutTimerRef.current) clearTimeout(tableCalloutTimerRef.current);
@@ -1033,8 +1037,14 @@ export default function App() {
       let aiDecision = null;
       let want;
       if (isHumanSeat(s)) {
-        // 真人：明杠也必须先听牌；其他选项照常弹
-        want = { hu: huRes.canHu, gang: kOptions.length > 0 && isTingHand(hand, melds, config), peng: pAllowed, chi: cOptions.length > 0 };
+        // 开杠后锁牌：只能等自摸/点炮胡，不能再吃碰杠
+        const locked = s === 0 && kongLockedRef.current[s];
+        want = {
+          hu: huRes.canHu,
+          gang: !locked && kOptions.length > 0 && isTingHand(hand, melds, config),
+          peng: !locked && pAllowed,
+          chi: !locked && cOptions.length > 0
+        };
       } else {
         // 电脑：尊重 AI 自己的意愿（它也可能选择不碰/不吃）
         aiDecision = decideAiResponse(hand, melds, tile, isFromPrev, config, {
@@ -1467,6 +1477,10 @@ export default function App() {
     setPlayerHands([...stateRef.current.playerHands]);
     setPlayerMelds([...stateRef.current.playerMelds]);
 
+    // 开杠后不许再换牌：该玩家之后摸什么打什么，只有自摸/点炮胡需要本人确认。
+    kongLockedRef.current[playerId] = true;
+    setKongLockedPlayers([...kongLockedRef.current]);
+
     const mp = multiplayerRef.current;
     if (mp.isMultiplayer && mp.isHost) {
       network.broadcast({
@@ -1689,6 +1703,41 @@ export default function App() {
     const mp = multiplayerRef.current;
     if (nextPlayerId === 0) {
       sound.playTileTouch();
+
+      // 开杠后手牌锁定：之后摸什么打什么；只有自摸胡需要本家点一下。
+      if (kongLockedRef.current[0]) {
+        const huRes = checkHu(
+          stateRef.current.playerHands[0],
+          stateRef.current.playerMelds[0],
+          null,
+          true,
+          { isLastTile: stateRef.current.wall.length === 0 }
+        );
+        if (huRes.canHu) {
+          setAvailableActions({ hu: true, siXi: false, gang: false, bu: false, peng: false, chi: false, pass: false });
+        } else {
+          setAvailableActions({ hu: false, siXi: false, gang: false, bu: false, peng: false, chi: false, pass: false });
+          setTimeout(() => {
+            if (stateRef.current.gameState === 'PLAYING' && stateRef.current.currentTurn === 0) {
+              executeDiscard(0, drawn);
+            }
+          }, 280);
+        }
+        setKongOptions([]);
+        setBuOptions([]);
+        setMidGameSiXiOptions([]);
+
+        if (mp.isMultiplayer && mp.isHost) {
+          network.broadcast({
+            type: 'TURN_UPDATE',
+            currentTurn: 0,
+            turnTimer: 15,
+            wallRemaining: curWall.length
+          });
+        }
+        return;
+      }
+
       const myHand = stateRef.current.playerHands[0];
       const huRes = checkHu(myHand, stateRef.current.playerMelds[0], null, true, { isLastTile: stateRef.current.wall.length === 0 });
       const siXiList = checkMidGameSiXi(myHand, config, declaredSiXiRef.current[0]);
@@ -2418,7 +2467,8 @@ export default function App() {
                 handTiles={playerHands[bottomSeatId] || []}
                 melds={playerMelds[bottomSeatId] || []}
                 drawnTile={currentTurn === bottomSeatId ? drawnTile : null}
-                isMyTurn={currentTurn === bottomSeatId && gameState === 'PLAYING'}
+                isMyTurn={currentTurn === bottomSeatId && gameState === 'PLAYING' && !kongLockedPlayers[bottomSeatId]}
+                locked={kongLockedPlayers[bottomSeatId]}
                 tingMap={tingMap}
                 onDiscard={(tile) => executeDiscard(bottomSeatId, tile)}
                 onHoverTile={setHoveredTile}

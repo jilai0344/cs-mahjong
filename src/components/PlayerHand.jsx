@@ -13,7 +13,8 @@ export default function PlayerHand({
   onDiscard = null,
   onHoverTile = null,
   showJiangBadge = false,
-  startingHu = null
+  startingHu = null,
+  locked = false
 }) {
   const [selectedTileId, setSelectedTileId] = useState(null);
   const [tooFast, setTooFast] = useState(false);
@@ -87,6 +88,12 @@ export default function PlayerHand({
       {startingHu && (
         <div className="mb-1.5 flex w-full justify-start pl-1">
           <StartingHuBadge event={startingHu} />
+        </div>
+      )}
+      {locked && (
+        <div className="mb-1 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/15 px-3 py-1 text-[10px] font-semibold text-white/80 backdrop-blur">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+          开杠锁牌 · 摸什么打什么
         </div>
       )}
       {/* 听牌详情 */}
