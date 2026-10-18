@@ -1,17 +1,19 @@
 import React, { useRef, useState } from 'react';
 import MahjongTile from './MahjongTile.jsx';
+import StartingHuBadge from './StartingHuBadge.jsx';
 import { sound } from '../utils/audio.js';
 import { createDiscardGuard, discardHint } from '../game/discardGuard.js';
 
 export default function PlayerHand({
   handTiles = [],
   melds = [],
-  drawnTile = null,
+  drawnTile: drawnTileProp = null,
   isMyTurn = false,
   tingMap = new Map(),
   onDiscard = null,
   onHoverTile = null,
-  showJiangBadge = false
+  showJiangBadge = false,
+  startingHu = null
 }) {
   const [selectedTileId, setSelectedTileId] = useState(null);
   const [tooFast, setTooFast] = useState(false);
@@ -63,6 +65,13 @@ export default function PlayerHand({
     if (onHoverTile) onHoverTile(null);
   };
 
+  // 摸牌永远放最右：优先用传入的 drawnTile；若只剩几张牌时状态没带过来，
+  // 用「轮到我了且手牌数 % 3 === 2」识别最后一张为刚摸的牌，避免它被排序到左边。
+  const hasDrawnInHand = !!drawnTileProp && handTiles.some((t) => t.id === drawnTileProp.id);
+  const inferredDrawn = !hasDrawnInHand && isMyTurn && handTiles.length % 3 === 2
+    ? handTiles[handTiles.length - 1]
+    : null;
+  const drawnTile = hasDrawnInHand ? drawnTileProp : (inferredDrawn || drawnTileProp);
   const regularTiles = drawnTile
     ? handTiles.filter((t) => t.id !== drawnTile.id)
     : handTiles;
@@ -72,6 +81,11 @@ export default function PlayerHand({
 
   return (
     <div className="player-hand flex w-full select-none flex-col items-center justify-end px-2">
+      {startingHu && (
+        <div className="mb-1.5 flex w-full justify-start pl-1">
+          <StartingHuBadge event={startingHu} />
+        </div>
+      )}
       {/* 听牌详情 */}
       {selectedTileId && tingMap.has(selectedTileId) && (
         <div className="animate-fade-in mb-2 flex flex-wrap items-center gap-2 rounded-2xl border border-stone-200/80 bg-white/95 px-4 py-2 text-sm text-stone-700 shadow-lg backdrop-blur">
@@ -147,9 +161,9 @@ export default function PlayerHand({
           })}
         </div>
 
-        {/* 摸牌：与立牌留一道缝，以插入动效强调这是刚摸的 */}
+        {/* 摸牌：与立牌留一道缝，以插入动效强调这是刚摸的；order:1 保证永远最右 */}
         {drawnTile && (
-          <div key={drawnTile.id} className="ph-drawn animate-tile-draw flex shrink-0 items-end pl-2">
+          <div key={drawnTile.id} className="ph-drawn animate-tile-draw flex shrink-0 items-end pl-2" style={{ order: 1 }}>
             <MahjongTile
               tile={drawnTile}
               size="hand"

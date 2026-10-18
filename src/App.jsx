@@ -38,7 +38,6 @@ import { PlayerDiscardTray } from './components/DiscardPool.jsx';
 import ActionControls from './components/ActionControls.jsx';
 import TileWall from './components/TileWall.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
-import StartingHuModal from './components/StartingHuModal.jsx';
 import KongDrawModal from './components/KongDrawModal.jsx';
 import RoundResultModal from './components/RoundResultModal.jsx';
 import RulesGuideModal from './components/RulesGuideModal.jsx';
@@ -132,7 +131,7 @@ export default function App() {
     : ((typeof localStorage !== 'undefined' && localStorage.getItem('cs_player_name')) || '我');
 
   // 2. 牌局展示状态 (UI 驱动)
-  const [gameState, setGameState] = useState('IDLE'); // 'IDLE' | 'DEALING' | 'STARTING_HU' | 'PLAYING' | 'KONG_DRAW' | 'ROUND_OVER'
+  const [gameState, setGameState] = useState('IDLE'); // 'IDLE' | 'DEALING' | 'PLAYING' | 'KONG_DRAW' | 'ROUND_OVER'
   const [dealerId, setDealerId] = useState(0);
   const [currentTurn, setCurrentTurn] = useState(0);
   const [turnTimer, setTurnTimer] = useState(15);
@@ -186,6 +185,7 @@ export default function App() {
   const aiTurnRef = useRef(null); // 指向 triggerAiTurn（掉线托管时从网络回调里调用，避免闭包过期）
   const aiTurnTokenRef = useRef(0); // 取消过期的 AI 定时器，避免结束后/换手后补刀
   const showBubbleRef = useRef(null);
+  const startingHuPendingRef = useRef([]);
   // P1-2：桌上还有真人能胡时，全部胡家（含 AI）先挂起等待真人决定，决定后再一次性结算
   const pendingHuRef = useRef(null);
   // 战绩裁定（2026-10）：只有「4 个真人满座且全程无托管」的对局才计入本机记录；刷 AI 不计
@@ -355,8 +355,6 @@ export default function App() {
           executeDiscard(data.fromSeatId, data.tile);
         } else if (data.type === 'RESPOND_ACTION') {
           handleGuestActionResponse(data.fromSeatId, data.action, data.payload);
-        } else if (data.type === 'ACK_STARTING_HU') {
-          handleAcknowledgeStartingHu();
         }
       } else {
         // 访客接收房主广播的游戏状态
@@ -547,25 +545,15 @@ export default function App() {
             return next;
           });
         } else if (data.type === 'STARTING_HU_BROADCAST') {
-          setStartingHuEvents(data.events);
-          setGameState('STARTING_HU');
-          // 起手胡由房主（权威端）算分，客户端只累加权威结果（规格 §九.3）
-          const perSeat = [0, 0, 0, 0];
-          (data.events || []).forEach(evt => {
-            (evt.scoreChanges || []).forEach((c, i) => { perSeat[i] += c; });
-          });
-          if (perSeat.some(c => c !== 0)) {
-            setPlayerScores(prev => prev.map((s, i) => s + perSeat[i]));
-          }
+          // 起手胡只做「座位横幅 + 局终结算」，不再弹窗拦停牌局，也不再立即加分
+          const events = data.events || [];
+          setStartingHuEvents(events);
+          startingHuPendingRef.current = events;
         } else if (data.type === 'SI_XI_BROADCAST') {
           showBubbleRef.current?.(data.playerId, data.text);
           if (data.changes) {
             setPlayerScores(prev => prev.map((s, i) => s + (data.changes[i] || 0)));
           }
-        } else if (data.type === 'START_PLAYING') {
-          setStartingHuEvents([]);
-          setGameState('PLAYING');
-          setCurrentTurn(data.dealerId);
         } else if (data.type === 'ROUND_WIN_BROADCAST') {
           setRoundResult(data.result);
           setGameState('ROUND_OVER');
@@ -652,6 +640,7 @@ export default function App() {
     setDrawnTile(null);
     setRoundResult(null);
     setStartingHuEvents([]);
+    startingHuPendingRef.current = [];
     setMidGameSiXiOptions([]);
     declaredSiXiRef.current = [new Set(), new Set(), new Set(), new Set()];
     setKongDrawState({ isOpen: false, kongPlayer: null, drawnTiles: [], count: 2, canSelfHu: false });
@@ -723,16 +712,14 @@ export default function App() {
           const playerName = mp.isMultiplayer ? mp.seats[pIdx]?.name : PLAYERS[pIdx].name;
           startingEvents.push({
             player: { ...PLAYERS[pIdx], name: playerName },
-            // 起手胡按本地规则要摊牌给其余三家看：完整手牌随事件一起广播
-            hand: [...hand],
             huList
           });
         }
       });
 
       if (startingEvents.length > 0) {
-        // 规格 §七.2/§八.10：每个起手胡各摇一次骰子、各自独立按「小胡自摸」结算（逐家 n + 封顶 + 2F），
-        // 且不影响下一局庄。骰子数量 = 规则设置里的抓鸟数，随机源走安全随机数（联机时由服务端执行）。
+        // 规格 §七.2/§八.10：每个起手胡各摇一次骰子、各自独立按「小胡自摸」结算。
+        // 这里只算好分数挂起，局终再和胡牌/流局一起结算，不在开局时弹窗拦停。
         const { B, F } = normalizeScoreParams(config);
         const scoredEvents = startingEvents.map(evt => {
           const perHu = evt.huList.map(hu => {
@@ -752,35 +739,18 @@ export default function App() {
           return { ...evt, perHuScores: perHu, scoreChanges: changes };
         });
 
-        setPlayerScores(prevScores => prevScores.map((s, i) =>
-          s + scoredEvents.reduce((sum, e) => sum + e.scoreChanges[i], 0)
-        ));
-
         setStartingHuEvents(scoredEvents);
-        setGameState('STARTING_HU');
-        stateRef.current.gameState = 'STARTING_HU';
+        startingHuPendingRef.current = scoredEvents;
 
         if (mp.isMultiplayer && mp.isHost) {
           network.broadcast({ type: 'STARTING_HU_BROADCAST', events: scoredEvents });
         }
-      } else {
-        enterPlayingState(dealerId, hands, newDeck, mp);
       }
+
+      // 起手胡不再阻塞开局：直接进入行牌，座位横幅一直提示到本局结束
+      enterPlayingState(dealerId, hands, newDeck, mp);
     }, 900);
   }, [dealerId, config]);
-
-  const handleAcknowledgeStartingHu = () => {
-    setStartingHuEvents([]);
-    const mp = multiplayerRef.current;
-    if (mp.isMultiplayer && !mp.isHost) {
-      network.sendToHost({ type: 'ACK_STARTING_HU' });
-      return;
-    }
-    enterPlayingState(dealerId, stateRef.current.playerHands, stateRef.current.wall, mp);
-    if (mp.isMultiplayer && mp.isHost) {
-      network.broadcast({ type: 'START_PLAYING', dealerId });
-    }
-  };
 
   const enterPlayingState = (activeDealerId, hands, currentWall, mp = multiplayerRef.current) => {
     setGameState('PLAYING');
@@ -1770,14 +1740,21 @@ export default function App() {
       ? { method, B, F, winners: winnerList, discarderSeat: loserId, birdValues: birdResult.birdValues }
       : { method, B, F, winner: winnerList[0], discarderSeat: method === 'dianpao' ? loserId : null, birdValues: birdResult.birdValues });
     const changes = scored.changes;
+    // 起手胡挂起到局终一起算：与本次胡牌/流局得分合并后只落一次账
+    const pendingStartingHuEvents = startingHuPendingRef.current || [];
+    const startingHuChanges = [0, 0, 0, 0];
+    pendingStartingHuEvents.forEach(evt => {
+      (evt.scoreChanges || []).forEach((c, i) => { startingHuChanges[i] += c; });
+    });
+    const totalChanges = changes.map((c, i) => c + startingHuChanges[i]);
     // 战绩裁定：只有四人对战（4 真人、全程无托管）才记入本机记录；单机/托管局一律不计
     if (rankedRoundRef.current) {
       setMyRecord(recordRound(typeof localStorage !== 'undefined' ? localStorage : null, {
-        scoreDelta: changes[multiplayerState.mySeatId] || 0
+        scoreDelta: totalChanges[multiplayerState.mySeatId] || 0
       }));
     }
 
-    setPlayerScores(prev => prev.map((s, idx) => s + changes[idx]));
+    setPlayerScores(prev => prev.map((s, idx) => s + totalChanges[idx]));
     // 规格 §二.1/§二.3：谁胡牌谁做庄；通炮时放炮者做庄
     const nextDealer = isTongPao
       ? nextDealerSeat({ outcome: 'tongpao', discarderSeat: loserId })
@@ -1804,7 +1781,9 @@ export default function App() {
       melds: stateRef.current.playerMelds[winnerId],
       winningTile,
       isSelfDrawn: isSelfDrawn && !isTongPao,
-      scoreChanges: changes,
+      scoreChanges: totalChanges,
+      startingHuEvents: pendingStartingHuEvents,
+      startingHuChanges,
       newDealerId: nextDealer,
       roundDealerId,
       seatNames,
@@ -1849,15 +1828,28 @@ export default function App() {
 
     const mp = multiplayerRef.current;
     const seatNames = [0, 1, 2, 3].map(i => (mp.isMultiplayer ? (mp.seats[i]?.name || PLAYERS[i].name) : PLAYERS[i].name));
+    const pendingStartingHuEvents = startingHuPendingRef.current || [];
+    const startingHuChanges = [0, 0, 0, 0];
+    pendingStartingHuEvents.forEach(evt => {
+      (evt.scoreChanges || []).forEach((c, i) => { startingHuChanges[i] += c; });
+    });
+    if (startingHuChanges.some(c => c !== 0)) {
+      setPlayerScores(prev => prev.map((s, i) => s + startingHuChanges[i]));
+    }
 
-    // 战绩裁定：流局也算打过一局（净变化 0），但同样只计四人对战
+    // 战绩裁定：流局也算打过一局；起手胡挂账在局终结算，所以净变化不是恒 0
     if (rankedRoundRef.current) {
-      setMyRecord(recordRound(typeof localStorage !== 'undefined' ? localStorage : null, { scoreDelta: 0 }));
+      setMyRecord(recordRound(
+        typeof localStorage !== 'undefined' ? localStorage : null,
+        { scoreDelta: startingHuChanges[multiplayerState.mySeatId] || 0 }
+      ));
     }
 
     const finalResult = {
       isHuangZhuang: true,
-      scoreChanges: [0, 0, 0, 0],
+      scoreChanges: startingHuChanges,
+      startingHuEvents: pendingStartingHuEvents,
+      startingHuChanges,
       lastDrawerId: stateRef.current.lastDrawerId,
       newDealerId: nextDealer,
       roundDealerId,
@@ -2190,6 +2182,7 @@ export default function App() {
               score={playerScores[topSeatId]}
               isDealer={dealerId === topSeatId}
               visualPosition="top"
+              startingHu={startingHuEvents.find(e => e.player.id === topSeatId) || null}
               {...seatAiInfo(topSeatId)}
             />
           </div>
@@ -2204,6 +2197,7 @@ export default function App() {
               score={playerScores[leftSeatId]}
               isDealer={dealerId === leftSeatId}
               visualPosition="left"
+              startingHu={startingHuEvents.find(e => e.player.id === leftSeatId) || null}
               {...seatAiInfo(leftSeatId)}
             />
           </div>
@@ -2218,6 +2212,7 @@ export default function App() {
               score={playerScores[rightSeatId]}
               isDealer={dealerId === rightSeatId}
               visualPosition="right"
+              startingHu={startingHuEvents.find(e => e.player.id === rightSeatId) || null}
               {...seatAiInfo(rightSeatId)}
             />
           </div>
@@ -2362,6 +2357,7 @@ export default function App() {
                 onDiscard={(tile) => executeDiscard(bottomSeatId, tile)}
                 onHoverTile={setHoveredTile}
                 showJiangBadge={config.kongRequiresJiang}
+                startingHu={startingHuEvents.find(e => e.player.id === bottomSeatId) || null}
               />
             </div>
           </div>
@@ -2410,11 +2406,6 @@ export default function App() {
       />
 
       {/* 弹窗 4: 起手胡祥瑞通知 */}
-      <StartingHuModal
-        startingHuEvents={startingHuEvents}
-        onAcknowledge={handleAcknowledgeStartingHu}
-      />
-
       {/* 弹窗 5: 开杠补牌 (2只 或 4只) */}
       <KongDrawModal
         isOpen={kongDrawState.isOpen}

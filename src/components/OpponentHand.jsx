@@ -1,5 +1,6 @@
 import React from 'react';
 import MahjongTile from './MahjongTile.jsx';
+import StartingHuBadge from './StartingHuBadge.jsx';
 
 const WINDS = ['东', '南', '西', '北'];
 
@@ -17,7 +18,8 @@ export default function OpponentHand({
   isDealer = false,
   visualPosition = null,
   isAi = false,
-  aiLabel = '电脑'
+  aiLabel = '电脑',
+  startingHu = null
 }) {
   const { name = '' } = player || {};
   const finalPos = visualPosition || player?.position || 'top';
@@ -66,6 +68,8 @@ export default function OpponentHand({
           <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-[var(--color-jade-600)]" title="思考中" />
         )}
       </div>
+
+      {startingHu && <StartingHuBadge event={startingHu} />}
 
       {/* 手牌与副露 */}
       <div

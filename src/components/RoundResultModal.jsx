@@ -52,6 +52,7 @@ export default function RoundResultModal({
     winningTile = null,
     isSelfDrawn = false,
     scoreChanges = [0, 0, 0, 0],
+    startingHuEvents = [],
     newDealerId = null,
     roundDealerId = null,
     scoring = null
@@ -68,6 +69,10 @@ export default function RoundResultModal({
   const birdDetail = scoring?.birdDetail || [];
   const isDice = scoring?.method === 'qishou' || scoring?.method === 'siji';
   const winnerNames = winners.map((w) => nameOf(w.seat)).join('、');
+  const startingHuTotal = (startingHuEvents || []).reduce(
+    (sum, evt) => sum + (Number(evt.scoreChanges?.[evt.player.id]) || 0),
+    0
+  );
 
   return (
     <div role="dialog" aria-modal="true" tabIndex={-1} className="modal-backdrop animate-fade-in select-none">
@@ -81,7 +86,9 @@ export default function RoundResultModal({
               </span>
               <h2 className="mt-3 text-[15px] font-bold text-stone-900">黄庄荒牌</h2>
               <p className="mt-1 text-[11px] leading-relaxed text-stone-400">
-                牌墙已摸完，本局流局不计分；下一局庄 = 最后一张牌由
+                {startingHuEvents.length > 0
+                  ? '牌墙已摸完，本局起手胡照常结算；下一局庄 = 最后一张牌由'
+                  : '牌墙已摸完，本局流局不计分；下一局庄 = 最后一张牌由'}
                 {Number.isInteger(result.lastDrawerId) ? `【${nameOf(result.lastDrawerId)}】` : '（记录缺失，沿用当前庄）'}
                 摸走
               </p>
@@ -114,9 +121,18 @@ export default function RoundResultModal({
 
         {/* 主视觉数字 */}
         {isHuangZhuang ? (
-          <div className="mt-2 text-center text-[11px] font-medium tracking-[0.15em] text-stone-400">
-            本局流局 · 不计分
-          </div>
+          startingHuEvents.length > 0 ? (
+            <div className="mt-2 flex flex-col items-center">
+              <span className="text-[10px] font-medium tracking-[0.15em] text-stone-400">起手胡结算</span>
+              <span className="font-serif text-[30px] font-semibold leading-none text-rose-600">
+                +{startingHuTotal}
+              </span>
+            </div>
+          ) : (
+            <div className="mt-2 text-center text-[11px] font-medium tracking-[0.15em] text-stone-400">
+              本局流局 · 不计分
+            </div>
+          )
         ) : (
           <div className="mt-2 flex flex-col items-center">
             <span className="text-[10px] font-medium tracking-[0.15em] text-stone-400">本局共得</span>
@@ -151,6 +167,31 @@ export default function RoundResultModal({
               </div>
             </div>
           </div>
+
+          {/* 起手胡挂账：局终和胡牌/流局一起结 */}
+          {startingHuEvents.length > 0 && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-semibold text-rose-700">起手胡 · 局终结算</span>
+                <span className="font-mono text-[11px] font-semibold text-rose-600">+{startingHuTotal}</span>
+              </div>
+              <div className="space-y-1.5">
+                {startingHuEvents.map((evt) => (
+                  <div key={`start-hu-${evt.player.id}`} className="flex items-start justify-between gap-2 rounded-lg bg-white/70 px-2 py-1.5">
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-semibold text-stone-700">【{nameOf(evt.player.id)}】</div>
+                      <div className="mt-0.5 text-[10px] text-stone-500">
+                        {(evt.huList || []).map((hu) => hu.name).join(' · ')}
+                      </div>
+                    </div>
+                    <span className="shrink-0 font-mono text-[11px] font-semibold text-rose-600">
+                      +{evt.scoreChanges?.[evt.player.id] || 0}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 计分明细 */}
           {details.length > 0 && (
