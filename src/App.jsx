@@ -38,7 +38,6 @@ import { PlayerDiscardTray } from './components/DiscardPool.jsx';
 import ActionControls from './components/ActionControls.jsx';
 import TileWall from './components/TileWall.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
-import KongDrawModal from './components/KongDrawModal.jsx';
 import RoundResultModal from './components/RoundResultModal.jsx';
 import RulesGuideModal from './components/RulesGuideModal.jsx';
 import MultiplayerModal from './components/MultiplayerModal.jsx';
@@ -1525,22 +1524,15 @@ export default function App() {
     });
 
     if (playerId === 0) {
-      if (!canSelfKongHu) {
-        // 杠牌没中：不再弹「打出/放弃」二选一，直接把补牌打进牌池并检查杠上炮
+      // 开杠后手牌已经锁定，不能再改牌：能杠上开花就自动胡，没胡就直接把补牌丢进牌池
+      if (canSelfKongHu) {
+        showBubble(0, '杠上开花！');
+        handleRoundWin(0, 0, kongFlowerWinTile, true,
+          kongFlowerHuTypes.length > 0 ? kongFlowerHuTypes : ['杠上开花']);
+      } else {
         setTimeout(() => {
           discardKongTilesToPool(0, drawnKongCards);
         }, 220);
-      } else {
-        setKongDrawState({
-          isOpen: true,
-          kongPlayer: PLAYERS[0],
-          drawnTiles: drawnKongCards,
-          count: drawCount,
-          canSelfHu: true,
-          kongOption,
-          kongFlowerHuTypes,
-          kongFlowerWinTile
-        });
       }
     } else {
       if (canSelfKongHu) {
@@ -2432,27 +2424,7 @@ export default function App() {
       />
 
       {/* 弹窗 4: 起手胡祥瑞通知 */}
-      {/* 弹窗 5: 开杠补牌 (2只 或 4只) */}
-      <KongDrawModal
-        isOpen={kongDrawState.isOpen}
-        kongPlayer={kongDrawState.kongPlayer}
-        drawnKongTiles={kongDrawState.drawnTiles}
-        kongCount={kongDrawState.count}
-        canSelfHu={kongDrawState.canSelfHu}
-        onDeclareKongHu={() => {
-          const kongTypes = kongDrawState.kongFlowerHuTypes?.length
-            ? kongDrawState.kongFlowerHuTypes
-            : ['杠上开花'];
-          handleRoundWin(0, 0, kongDrawState.kongFlowerWinTile || kongDrawState.drawnTiles[0], true, kongTypes);
-        }}
-        onDiscardKongTiles={() => {
-          // 开杠补牌未胡：所有补牌打入牌池（可能点炮/杠上炮），再按顺序走到下一家。
-          // 注意不要把补牌塞回手牌 —— 那会让手牌多出 2/4 张并卡住轮次。
-          const kongCards = kongDrawState.drawnTiles;
-          setKongDrawState({ isOpen: false, kongPlayer: null, drawnTiles: [], count: 2, canSelfHu: false });
-          discardKongTilesToPool(0, kongCards);
-        }}
-      />
+      {/* 开杠补牌不再弹窗：能胡自动胡，未胡直接丢补牌 */}
 
       {/* 弹窗 6: 终局结算与抓鸟 */}
       <RoundResultModal
