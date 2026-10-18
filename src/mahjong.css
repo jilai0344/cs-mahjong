@@ -105,6 +105,22 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes actionCalloutPop {
+  0% { opacity: 0; transform: scale(0.55) rotate(-7deg); }
+  58% { opacity: 1; transform: scale(1.08) rotate(1.5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes actionCalloutRing {
+  0% { opacity: 0.55; transform: scale(0.86); }
+  100% { opacity: 0; transform: scale(1.32); }
+}
+
+@keyframes actionDockIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .animate-fade-in {
   animation: fadeIn var(--motion-fast) var(--motion-ease-out) both;
 }
@@ -131,6 +147,81 @@
 
 .animate-sheet-in {
   animation: sheetIn var(--motion-base) var(--motion-ease-out) both;
+}
+
+.animate-action-dock {
+  animation: actionDockIn var(--motion-base) var(--motion-ease-out) both;
+}
+
+/* 桌上大字印章：吃 / 碰 / 杠 / 胡 */
+.action-callout {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 128px;
+  border-radius: 30px;
+  color: var(--art-white);
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.28) inset,
+    0 18px 44px rgba(16, 36, 28, 0.38);
+  transform-origin: 50% 55%;
+  animation: actionCalloutPop var(--motion-base) var(--motion-ease-out) both;
+}
+
+.action-callout::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  pointer-events: none;
+}
+
+.action-callout-ring {
+  position: absolute;
+  inset: -12px;
+  border-radius: 38px;
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  animation: actionCalloutRing var(--motion-base) var(--motion-ease-out) both;
+  pointer-events: none;
+}
+
+.action-callout-char {
+  font-family: "Ma Shan Zheng", "STXingkai", "KaiTi", "STKaiti", "Noto Serif SC", serif;
+  font-size: 76px;
+  line-height: 0.9;
+  font-weight: 400;
+  text-shadow: 0 3px 8px rgba(20, 30, 25, 0.28);
+  transform: translateY(-8px);
+}
+
+.action-callout-label {
+  position: absolute;
+  left: 50%;
+  bottom: 9px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  max-width: 118px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--art-white);
+  padding: 2px 9px;
+  font-size: 10px;
+  font-weight: 700;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  text-shadow: 0 1px 3px rgba(20, 30, 25, 0.28);
+}
+
+@media (max-width: 640px) {
+  .action-callout { width: 104px; height: 104px; border-radius: 25px; }
+  .action-callout::before { inset: 6px; border-radius: 20px; }
+  .action-callout-char { font-size: 62px; transform: translateY(-6px); }
+  .action-callout-label { font-size: 9px; bottom: 7px; }
 }
 
 /*

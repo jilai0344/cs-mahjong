@@ -199,6 +199,11 @@ button { -webkit-tap-highlight-color: transparent; }
 
 .hairline { border-color: var(--ui-line); }
 
+.font-brush {
+  font-family: "Ma Shan Zheng", "STXingkai", "KaiTi", "STKaiti", "Noto Serif SC", serif;
+  font-weight: 400;
+}
+
 .icon-btn {
   width: 2.25rem;
   height: 2.25rem;

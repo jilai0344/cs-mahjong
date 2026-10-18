@@ -13,7 +13,6 @@ export default function OpponentHand({
   handCount = 13,
   melds = [],
   isCurrentTurn = false,
-  actionBubble = null,
   score = 1000,
   isDealer = false,
   visualPosition = null,
@@ -33,18 +32,6 @@ export default function OpponentHand({
           isCurrentTurn ? 'ring-2 ring-white/80' : ''
         }`}
       >
-        {actionBubble && (
-          <div
-            className={`animate-callout absolute -top-8 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-xl px-3 py-1 text-[12px] font-bold tracking-wide shadow-lg ${
-              actionBubble === '胡'
-                ? 'bg-rose-600 text-white'
-                : 'bg-stone-900 text-stone-50'
-            }`}
-          >
-            {actionBubble}
-          </div>
-        )}
-
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-jade-600)] text-[11px] font-bold text-white">
           {wind}
         </span>

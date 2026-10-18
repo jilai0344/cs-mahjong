@@ -44,8 +44,21 @@ import RoundResultModal from './components/RoundResultModal.jsx';
 import RulesGuideModal from './components/RulesGuideModal.jsx';
 import MultiplayerModal from './components/MultiplayerModal.jsx';
 import LobbyOverlay from './components/LobbyOverlay.jsx';
+import ActionCallout from './components/ActionCallout.jsx';
 
 import { Settings, BookOpen, Volume2, VolumeX, Users } from 'lucide-react';
+
+// 把座位气泡文案映射成桌心大字印章：吃/碰/杠/胡/喜
+function calloutForBubble(text) {
+  const raw = String(text || '');
+  const clean = raw.replace(/[！!]/g, '').trim();
+  if (/四喜/.test(clean)) return { char: '喜', tone: 'xi', label: clean };
+  if (/胡|自摸|开花|抢杠|杠上炮/.test(clean)) return { char: '胡', tone: 'hu', label: clean };
+  if (/杠/.test(clean)) return { char: '杠', tone: 'gang', label: clean };
+  if (/碰/.test(clean)) return { char: '碰', tone: 'peng', label: clean };
+  if (/吃/.test(clean)) return { char: '吃', tone: 'chi', label: clean };
+  return null;
+}
 
 // (helper 已移入 src/utils/scoring.js：normalizeScoreParams / huEntryFromTypes —— 纯函数、可单测)
 
@@ -131,7 +144,8 @@ export default function App() {
   const [playerMelds, setPlayerMelds] = useState([[], [], [], []]);
   const [playerDiscards, setPlayerDiscards] = useState([[], [], [], []]);
   const [playerScores, setPlayerScores] = useState([1000, 1000, 1000, 1000]);
-  const [actionBubbles, setActionBubbles] = useState([null, null, null, null]);
+  const [tableCallout, setTableCallout] = useState(null);
+  const tableCalloutTimerRef = useRef(null);
 
   const [drawnTile, setDrawnTile] = useState(null);
   const [lastDiscard, setLastDiscard] = useState(null);
@@ -255,19 +269,28 @@ export default function App() {
     sound.setVoice(config.voice || 'f');
   }, [config.soundEnabled, config.voice]);
 
+  useEffect(() => () => {
+    if (tableCalloutTimerRef.current) clearTimeout(tableCalloutTimerRef.current);
+  }, []);
+
   const showBubble = (playerId, text, duration = 1200) => {
-    setActionBubbles(prev => {
-      const next = [...prev];
-      next[playerId] = text;
-      return next;
-    });
-    setTimeout(() => {
-      setActionBubbles(prev => {
-        const next = [...prev];
-        next[playerId] = null;
-        return next;
+    // 桌心大字：吃/碰/杠/胡/喜
+    const callout = calloutForBubble(text);
+    if (callout) {
+      const seatName = (multiplayerState.seats?.[playerId]?.name || PLAYERS[playerId]?.name || '')
+        .replace(/[（(].*$/, '')
+        .trim();
+      setTableCallout({
+        ...callout,
+        seatName,
+        key: `${Date.now()}-${Math.random()}`
       });
-    }, duration);
+      if (tableCalloutTimerRef.current) clearTimeout(tableCalloutTimerRef.current);
+      tableCalloutTimerRef.current = setTimeout(
+        () => setTableCallout(null),
+        Math.max(900, Math.min(duration, 1500))
+      );
+    }
   };
 
   // 听牌分析计算 (我当前手牌)
@@ -571,6 +594,8 @@ export default function App() {
     setMidGameSiXiOptions([]);
     declaredSiXiRef.current = [new Set(), new Set(), new Set(), new Set()];
     setKongDrawState({ isOpen: false, kongPlayer: null, drawnTiles: [], count: 2, canSelfHu: false });
+    setTableCallout(null);
+    if (tableCalloutTimerRef.current) clearTimeout(tableCalloutTimerRef.current);
     setAvailableActions({ hu: false, siXi: false, gang: false, peng: false, chi: false, pass: false });
 
     stateRef.current.playerDiscards = [[], [], [], []];
@@ -2048,7 +2073,6 @@ export default function App() {
               handCount={playerHands[topSeatId]?.length || 0}
               melds={playerMelds[topSeatId] || []}
               isCurrentTurn={currentTurn === topSeatId}
-              actionBubble={actionBubbles[topSeatId]}
               score={playerScores[topSeatId]}
               isDealer={dealerId === topSeatId}
               visualPosition="top"
@@ -2063,7 +2087,6 @@ export default function App() {
               handCount={playerHands[leftSeatId]?.length || 0}
               melds={playerMelds[leftSeatId] || []}
               isCurrentTurn={currentTurn === leftSeatId}
-              actionBubble={actionBubbles[leftSeatId]}
               score={playerScores[leftSeatId]}
               isDealer={dealerId === leftSeatId}
               visualPosition="left"
@@ -2078,7 +2101,6 @@ export default function App() {
               handCount={playerHands[rightSeatId]?.length || 0}
               melds={playerMelds[rightSeatId] || []}
               isCurrentTurn={currentTurn === rightSeatId}
-              actionBubble={actionBubbles[rightSeatId]}
               score={playerScores[rightSeatId]}
               isDealer={dealerId === rightSeatId}
               visualPosition="right"
@@ -2240,6 +2262,8 @@ export default function App() {
               onRules={() => setIsRulesOpen(true)}
             />
           )}
+
+          <ActionCallout event={tableCallout} />
         </main>
       </div>
 

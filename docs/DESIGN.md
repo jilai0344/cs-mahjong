@@ -285,22 +285,27 @@
 
 ---
 
-## 13. 按钮与图标风格（2026-10-07 增补）
+## 13. 按钮与图标风格（2026-10-18 改版）
 
-### 13.1 操作按钮（`ActionControls.jsx` 现状即规范）
+### 13.1 操作按钮（`ActionControls.jsx` 当前规范）
 
 层级（从强到弱，**不许打乱**）：
 
 | 按钮 | 视觉 | 尺寸/字号 |
 |---|---|---|
-| 胡 / 四喜 | 胶囊 `rounded-full`；胡 = `red-600→rose-600→amber-600` 渐变 + `ring-4 ring-red-400/80` + `animate-pulse`；四喜 = `purple-600→pink-600→rose-600` + `ring-4 ring-pink-400/80` + `animate-pulse` | `px-8 sm:px-10 py-3`，`text-2xl sm:text-3xl font-black` —— **全场最大最醒目** |
-| 杠 | `amber-600→yellow-600` + `ring-2 ring-amber-400/70` | `px-7 sm:px-8 py-2.5 sm:py-3`，`text-xl sm:text-2xl` |
-| 碰 | `teal-600→emerald-600` + `ring-2 ring-emerald-400/70` | 同上 |
-| 吃 | `sky-600→blue-600` + `ring-2 ring-sky-400/70` | 同上 |
-| 过 | `bg-slate-800` + `border-slate-600`，无渐变、无 ring | `px-6 sm:px-7`，`text-lg sm:text-xl` —— 最弱 |
+| 胡 | 实心 `rose-600`，`rounded-[22px]`，`ring-4 ring-rose-200/70`，大阴影 | 桌面 **116×116** / 手机 92×92；毛笔字 66/52px + 「胡牌」小字 |
+| 四喜 / 碰 / 杠 / 吃 | 白底纸卡，`rounded-[22px]`，细边 + 中阴影；字色分别 `rose/teal/amber/blue` | 桌面 **92×92** / 手机 72×72；毛笔字 48/38px + 小标签 |
+| 过 | 无边框、`text-stone-400`，hover 才出现浅底 | 54px 高，最弱 |
 
-容器：`bg-slate-950/90 backdrop-blur-xl rounded-full border-2 border-emerald-400/40` 胶囊底座，
-`animate-fade-in-up` 入场。**吃/杠多选**用二级弹窗（`animate-scale-up`，深底 + 对应色边框）。
+容器：`bg-white/95` 大圆角操作台 + `shadow-[0_20px_55px_…]`，`animate-action-dock` 入场；
+吃/杠多选仍用 `animate-scale-up` 的纸卡二级弹窗。**胡牌必须明显大于其他动作**。
+
+### 13.1b 桌心大字印章（`ActionCallout.jsx`）
+
+- 任意一家吃/碰/杠/胡/四喜 → 桌心 128px（手机 104px）**毛笔大字印章**，0.18s 弹入 + 外圈扩散。
+- 颜色语义：胡 `rose-600`、碰 `teal-700`、杠 `amber-600`、吃 `blue-600`、喜 `fuchsia-600`。
+- 下方/内部显示「座位 · 动作」，`role="status"` 可被读屏播报；`pointer-events: none`，不挡操作。
+- 原先座位旁的小气泡已移除，避免「大字 + 小字」重复。
 
 ### 13.2 通用按钮
 

@@ -2,6 +2,36 @@ import React, { useState } from 'react';
 import MahjongTile from './MahjongTile.jsx';
 import { sound } from '../utils/audio.js';
 
+const TONES = {
+  hu: 'text-rose-600',
+  gang: 'text-amber-600',
+  peng: 'text-[var(--color-jade-600)]',
+  chi: 'text-[var(--color-violet-600)]',
+  xi: 'text-rose-500'
+};
+
+function ActionKey({ char, label, tone, onClick, primary = false, ariaLabel }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel || label}
+      className={`group relative flex shrink-0 flex-col items-center justify-center rounded-[22px] font-semibold transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 ${
+        primary
+          ? 'h-[92px] w-[92px] bg-rose-600 text-white shadow-[0_16px_40px_rgba(190,60,50,0.45)] ring-4 ring-rose-200/70 sm:h-[116px] sm:w-[116px]'
+          : 'h-[72px] w-[72px] border border-stone-200 bg-white shadow-md sm:h-[92px] sm:w-[92px]'
+      }`}
+    >
+      <span className={`font-brush leading-none ${primary ? 'text-[52px] sm:text-[66px]' : `text-[38px] sm:text-[48px] ${TONES[tone] || ''}`}`}>
+        {char}
+      </span>
+      <span className={`mt-0.5 text-[9px] font-bold tracking-[0.08em] ${primary ? 'text-white/80' : 'text-stone-400'}`}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
 export default function ActionControls({
   availableActions = {},
   chiOptions = [],
@@ -86,75 +116,81 @@ export default function ActionControls({
         </div>
       )}
 
-      <div className="animate-fade-in-up flex items-center gap-2 rounded-full border border-white/60 bg-white/90 p-1.5 pl-2.5 shadow-xl backdrop-blur">
-        {availableActions.siXi && (
-          <button
-            onClick={() => {
-              sound.playHu();
-              if (onSiXi) onSiXi();
-            }}
-            className="flex h-10 items-center justify-center rounded-full bg-[var(--color-jade-600)] px-5 text-base font-bold text-white shadow-sm transition-transform hover:scale-[1.02] active:scale-95"
-          >
-            四喜
-          </button>
-        )}
+      <div className="animate-action-dock flex flex-col items-center">
+        <div className="flex flex-wrap items-end justify-center gap-2.5 rounded-[28px] border border-white/75 bg-white/95 p-2.5 shadow-[0_20px_55px_rgba(20,40,32,0.32)] backdrop-blur">
+          {availableActions.siXi && (
+            <ActionKey
+              char="喜"
+              label="四喜"
+              tone="xi"
+              ariaLabel="中途四喜"
+              onClick={() => {
+                sound.playHu();
+                if (onSiXi) onSiXi();
+              }}
+            />
+          )}
 
-        {availableActions.hu && (
-          <button
-            onClick={() => {
-              sound.playHu();
-              if (onHu) onHu();
-            }}
-            className="flex h-11 items-center justify-center rounded-full bg-rose-600 px-7 text-lg font-bold text-white shadow-md transition-transform hover:scale-[1.02] active:scale-95"
-          >
-            胡
-          </button>
-        )}
+          {availableActions.hu && (
+            <ActionKey
+              char="胡"
+              label="胡牌"
+              tone="hu"
+              primary
+              ariaLabel="胡牌"
+              onClick={() => {
+                sound.playHu();
+                if (onHu) onHu();
+              }}
+            />
+          )}
 
-        {availableActions.gang && (
-          <button
-            onClick={handleGangClick}
-            className="flex h-10 items-center justify-center gap-1.5 rounded-full border border-stone-200 bg-white px-5 text-base font-semibold text-stone-800 transition-colors hover:border-[var(--color-jade-500)]"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-gold-200)]" />
-            杠
-          </button>
-        )}
+          {availableActions.gang && (
+            <ActionKey
+              char="杠"
+              label="杠牌"
+              tone="gang"
+              ariaLabel="杠牌"
+              onClick={handleGangClick}
+            />
+          )}
 
-        {availableActions.peng && (
-          <button
-            onClick={() => {
-              sound.playMeld('peng');
-              if (onPeng) onPeng();
-            }}
-            className="flex h-10 items-center justify-center gap-1.5 rounded-full border border-stone-200 bg-white px-5 text-base font-semibold text-stone-800 transition-colors hover:border-[var(--color-jade-500)]"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-jade-600)]" />
-            碰
-          </button>
-        )}
+          {availableActions.peng && (
+            <ActionKey
+              char="碰"
+              label="碰牌"
+              tone="peng"
+              ariaLabel="碰牌"
+              onClick={() => {
+                sound.playMeld('peng');
+                if (onPeng) onPeng();
+              }}
+            />
+          )}
 
-        {availableActions.chi && (
-          <button
-            onClick={handleChiClick}
-            className="flex h-10 items-center justify-center gap-1.5 rounded-full border border-stone-200 bg-white px-5 text-base font-semibold text-stone-800 transition-colors hover:border-[var(--color-jade-500)]"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-violet-600)]" />
-            吃
-          </button>
-        )}
+          {availableActions.chi && (
+            <ActionKey
+              char="吃"
+              label="吃牌"
+              tone="chi"
+              ariaLabel="吃牌"
+              onClick={handleChiClick}
+            />
+          )}
 
-        {availableActions.pass && (
-          <button
-            onClick={() => {
-              sound.playTileTouch();
-              if (onPass) onPass();
-            }}
-            className="flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700"
-          >
-            过
-          </button>
-        )}
+          {availableActions.pass && (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playTileTouch();
+                if (onPass) onPass();
+              }}
+              className="flex h-[54px] items-center justify-center rounded-full px-3 text-sm font-semibold text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
+            >
+              过
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
