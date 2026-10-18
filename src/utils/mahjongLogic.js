@@ -590,8 +590,7 @@ export function checkHu(handTiles, melds = [], winningTile = null, isSelfDrawn =
  * @param {Object} config 规则
  * @returns {Map<number, Array<{ tile: Object, remaining: number }>>}
  */
-export function analyzeTingCards(handTiles, melds = [], config = {}, allKnownTiles = []) {
-  const tingMap = new Map(); // tile.id -> array of winning tiles
+export function analyzeTingCards(handTiles, melds = [], config = {}, allKnownTiles = []) {  const tingMap = new Map(); // tile.id -> array of winning tiles
   if (handTiles.length % 3 !== 2) {
     return tingMap;
   }
@@ -643,6 +642,28 @@ export function analyzeTingCards(handTiles, melds = [], config = {}, allKnownTil
   });
 
   return tingMap;
+}
+
+/**
+ * 当前手牌是否能通过打出一张进入听牌。
+ * 开杠前必须已经听牌；不听牌时只能选择补桩。
+ */
+export function isTingHand(handTiles, melds = [], config = {}) {
+  if (!Array.isArray(handTiles)) return false;
+  if (handTiles.length % 3 === 2) {
+    return analyzeTingCards(handTiles, melds, config).size > 0;
+  }
+  // 13 张（等别人打牌）：已经听牌 = 存在任意一张牌能直接胡
+  if (handTiles.length % 3 === 1) {
+    const suits = [SUITS.WAN, SUITS.TIAO, SUITS.TONG];
+    for (const suit of suits) {
+      for (let value = 1; value <= 9; value++) {
+        const testTile = { suit, value, name: `${value}${suit}` };
+        if (checkHu(handTiles, melds, testTile, false, {}).canHu) return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**

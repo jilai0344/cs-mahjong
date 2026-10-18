@@ -11,6 +11,7 @@ import {
   checkMidGameSiXi,
   checkHu,
   getKongOptions,
+  isTingHand,
   canPeng,
   getChiOptions,
   analyzeTingCards,
@@ -162,6 +163,7 @@ export default function App() {
   });
   const [chiOptions, setChiOptions] = useState([]);
   const [kongOptions, setKongOptions] = useState([]);
+  const [buOptions, setBuOptions] = useState([]);
   const [midGameSiXiOptions, setMidGameSiXiOptions] = useState([]);
   const declaredSiXiRef = useRef([new Set(), new Set(), new Set(), new Set()]);
 
@@ -465,19 +467,9 @@ export default function App() {
                 const myH = currentHands[mySeat] || [];
                 const myM = playerMelds[mySeat] || [];
                 const huRes = checkHu(myH, myM, null, true, {});
-                const kOptions = getKongOptions(myH, myM, null, config);
                 const siXiList = checkMidGameSiXi(myH, config, declaredSiXiRef.current[mySeat]);
 
-                setAvailableActions({
-                  hu: huRes.canHu,
-                  siXi: siXiList.length > 0,
-                  gang: kOptions.length > 0,
-                  peng: false,
-                  chi: false,
-                  pass: huRes.canHu || kOptions.length > 0 || siXiList.length > 0
-                });
-                setKongOptions(kOptions);
-                setMidGameSiXiOptions(siXiList);
+                applySelfTurnOptions(myH, myM, huRes, siXiList);
                 return currentHands;
               });
             }
@@ -605,6 +597,8 @@ export default function App() {
       executeChi(seatId, payload.sequenceTiles, stateRef.current.lastDiscard.tile, stateRef.current.lastDiscard.fromPlayer);
     } else if (action === 'gang') {
       executeKong(seatId, payload.kongOption, stateRef.current.lastDiscard?.tile);
+    } else if (action === 'bu') {
+      executeBu(seatId);
     } else if (action === 'siXi') {
       executeMidGameSiXi(seatId, payload.siXiOption);
     } else if (action === 'pass') {
@@ -780,19 +774,9 @@ export default function App() {
 
     if (activeDealerId === 0) {
       const huRes = checkHu(dealerHand, [], null, true, {});
-      const kOptions = getKongOptions(dealerHand, [], null, config);
       const siXiList = checkMidGameSiXi(dealerHand, config, declaredSiXiRef.current[0]);
 
-      setAvailableActions({
-        hu: huRes.canHu,
-        siXi: siXiList.length > 0,
-        gang: kOptions.length > 0,
-        peng: false,
-        chi: false,
-        pass: huRes.canHu || kOptions.length > 0 || siXiList.length > 0
-      });
-      setKongOptions(kOptions);
-      setMidGameSiXiOptions(siXiList);
+      applySelfTurnOptions(dealerHand, [], huRes, siXiList);
     } else {
       // 若庄家是联机真人，通知出牌；若是 AI 则自动触发
       if (mp.isMultiplayer && mp.seats[activeDealerId]?.isHuman) {
@@ -1049,8 +1033,8 @@ export default function App() {
       let aiDecision = null;
       let want;
       if (isHumanSeat(s)) {
-        // 真人：只要有选项就是候选（弹不弹窗由优先级决定，不由检查顺序决定）
-        want = { hu: huRes.canHu, gang: kOptions.length > 0, peng: pAllowed, chi: cOptions.length > 0 };
+        // 真人：明杠也必须先听牌；其他选项照常弹
+        want = { hu: huRes.canHu, gang: kOptions.length > 0 && isTingHand(hand, melds, config), peng: pAllowed, chi: cOptions.length > 0 };
       } else {
         // 电脑：尊重 AI 自己的意愿（它也可能选择不碰/不吃）
         aiDecision = decideAiResponse(hand, melds, tile, isFromPrev, config, {
@@ -1547,6 +1531,57 @@ export default function App() {
     }
   };
 
+  const executeBu = (playerId) => {
+    if (stateRef.current.gameState !== 'PLAYING') return;
+    if (stateRef.current.wall.length === 0) {
+      handleHuangZhuang();
+      return;
+    }
+
+    // 补桩：不把四张牌开成杠，只从牌墙尾部补 1 张，手牌增加到 15 张后正常打出一张。
+    const wall = [...stateRef.current.wall];
+    const drawn = wall.pop();
+    stateRef.current.wall = wall;
+    setWall([...wall]);
+    stateRef.current.playerHands[playerId] = [
+      ...stateRef.current.playerHands[playerId],
+      drawn
+    ];
+    setPlayerHands([...stateRef.current.playerHands]);
+    setDrawnTile(drawn);
+    setCurrentTurn(playerId);
+    stateRef.current.currentTurn = playerId;
+    setTurnTimer(15);
+    setAvailableActions({ hu: false, gang: false, bu: false, peng: false, chi: false, pass: false });
+    setKongOptions([]);
+    setBuOptions([]);
+    sound.playDraw();
+    showBubble(playerId, '补桩');
+
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && mp.isHost && mp.seats[playerId]?.isHuman) {
+      network.sendToSeat(playerId, {
+        type: 'TURN_UPDATE',
+        currentTurn: playerId,
+        turnTimer: 15,
+        wallRemaining: wall.length,
+        drawnTile: drawn
+      });
+    }
+  };
+
+  const handleHumanBu = (option) => {
+    sound.playTileTouch();
+    const mp = multiplayerRef.current;
+    if (mp.isMultiplayer && !mp.isHost) {
+      network.sendToHost({ type: 'RESPOND_ACTION', action: 'bu' });
+      setAvailableActions({ hu: false, gang: false, bu: false, peng: false, chi: false, pass: false });
+      setBuOptions([]);
+      return;
+    }
+    executeBu(0, option);
+  };
+
   const discardKongTilesToPool = (kongPlayerId, kongCards) => {
     if (stateRef.current.gameState !== 'PLAYING') return;
     setKongDrawState({ isOpen: false, kongPlayer: null, drawnTiles: [], count: 2, canSelfHu: false });
@@ -1603,6 +1638,25 @@ export default function App() {
     passToNextPlayer(kongPlayerId);
   };
 
+  const applySelfTurnOptions = (hand, melds, huRes, siXiList = []) => {
+    const allKongOptions = getKongOptions(hand, melds, null, config);
+    const ting = allKongOptions.length > 0 ? isTingHand(hand, melds, config) : false;
+    // 开杠前必须听牌；不听牌时不能杠，只能补桩。
+    const legalGangOptions = ting ? allKongOptions : [];
+    setAvailableActions({
+      hu: Boolean(huRes?.canHu),
+      siXi: siXiList.length > 0,
+      gang: legalGangOptions.length > 0,
+      bu: allKongOptions.length > 0,
+      peng: false,
+      chi: false,
+      pass: Boolean(huRes?.canHu) || legalGangOptions.length > 0 || siXiList.length > 0
+    });
+    setKongOptions(legalGangOptions);
+    setBuOptions(allKongOptions);
+    setMidGameSiXiOptions(siXiList);
+  };
+
   const passToNextPlayer = (prevPlayerId) => {
     const nextPlayerId = (prevPlayerId + 1) % 4;
     stateRef.current.currentTurn = nextPlayerId;
@@ -1635,19 +1689,9 @@ export default function App() {
       sound.playTileTouch();
       const myHand = stateRef.current.playerHands[0];
       const huRes = checkHu(myHand, stateRef.current.playerMelds[0], null, true, { isLastTile: stateRef.current.wall.length === 0 });
-      const kOptions = getKongOptions(myHand, stateRef.current.playerMelds[0], null, config);
       const siXiList = checkMidGameSiXi(myHand, config, declaredSiXiRef.current[0]);
 
-      setAvailableActions({
-        hu: huRes.canHu,
-        siXi: siXiList.length > 0,
-        gang: kOptions.length > 0,
-        peng: false,
-        chi: false,
-        pass: huRes.canHu || kOptions.length > 0 || siXiList.length > 0
-      });
-      setKongOptions(kOptions);
-      setMidGameSiXiOptions(siXiList);
+      applySelfTurnOptions(myHand, stateRef.current.playerMelds[0], huRes, siXiList);
 
       if (mp.isMultiplayer && mp.isHost) {
         network.broadcast({
@@ -2355,9 +2399,11 @@ export default function App() {
                 availableActions={availableActions}
                 chiOptions={chiOptions}
                 kongOptions={kongOptions}
+                buOptions={buOptions}
                 onHu={handleHumanHu}
                 onSiXi={handleHumanSiXi}
                 onGang={handleHumanGang}
+                onBu={handleHumanBu}
                 onPeng={handleHumanPeng}
                 onChi={handleHumanChi}
                 onPass={handleHumanPass}

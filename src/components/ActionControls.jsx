@@ -5,6 +5,7 @@ import { sound } from '../utils/audio.js';
 const TONES = {
   hu: { text: 'text-rose-600', bg: 'bg-rose-50', ring: 'ring-rose-200' },
   gang: { text: 'text-amber-700', bg: 'bg-amber-50', ring: 'ring-amber-200' },
+  bu: { text: 'text-emerald-700', bg: 'bg-emerald-50', ring: 'ring-emerald-200' },
   peng: { text: 'text-teal-700', bg: 'bg-teal-50', ring: 'ring-teal-200' },
   chi: { text: 'text-blue-700', bg: 'bg-blue-50', ring: 'ring-blue-200' },
   xi: { text: 'text-fuchsia-600', bg: 'bg-fuchsia-50', ring: 'ring-fuchsia-200' },
@@ -38,9 +39,11 @@ export default function ActionControls({
   availableActions = {},
   chiOptions = [],
   kongOptions = [],
+  buOptions = [],
   onHu = null,
   onSiXi = null,
   onGang = null,
+  onBu = null,
   onPeng = null,
   onChi = null,
   onPass = null
@@ -154,6 +157,19 @@ export default function ActionControls({
               tone="gang"
               ariaLabel="杠牌"
               onClick={handleGangClick}
+            />
+          )}
+
+          {availableActions.bu && (
+            <ActionKey
+              char="补"
+              label="补桩"
+              tone="bu"
+              ariaLabel="补桩"
+              onClick={() => {
+                sound.playTileTouch();
+                if (onBu) onBu(buOptions[0]);
+              }}
             />
           )}
 

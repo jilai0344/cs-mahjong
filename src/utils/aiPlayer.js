@@ -1,6 +1,6 @@
 // 智能 AI 玩家决策引擎，符合长沙麻将战术逻辑
 import { isJiangTile, getTileKey, compareTiles } from '../types/mahjong.js';
-import { checkHu, getKongOptions, canPeng, getChiOptions, countTiles, analyzeTingCards } from './mahjongLogic.js';
+import { checkHu, getKongOptions, canPeng, getChiOptions, countTiles, analyzeTingCards, isTingHand } from './mahjongLogic.js';
 
 /**
  * AI 选择一张最佳手牌打出
@@ -118,9 +118,9 @@ export function decideAiResponse(handTiles, melds = [], discardedTile, isFromPre
     return { action: 'hu', huResult };
   }
 
-  // 2. 检查直杠 (明杠) - 需遵循“开杠需不需要将”规则
+  // 2. 检查直杠 (明杠) - 必须先听牌，且遵循“开杠需不需要将”规则
   const kongOptions = getKongOptions(handTiles, melds, discardedTile, config);
-  if (kongOptions.length > 0) {
+  if (kongOptions.length > 0 && isTingHand(handTiles, melds, config)) {
     // AI 在有较大概率或大牌时不放弃杠牌
     return { action: 'gang', kongOption: kongOptions[0] };
   }
@@ -173,9 +173,9 @@ export function decideAiTurnAction(handTiles, melds = [], drawnTile, config = {}
     return { action: 'hu', huResult };
   }
 
-  // 2. 暗杠与补杠判定 (遵循开杠需不需要将规则)
+  // 2. 暗杠与补杠判定：必须先听牌才能开杠；不听牌只补桩/正常出牌
   const kongOptions = getKongOptions(handTiles, melds, null, config);
-  if (kongOptions.length > 0) {
+  if (kongOptions.length > 0 && isTingHand(handTiles, melds, config)) {
     return { action: 'gang', kongOption: kongOptions[0] };
   }
 
