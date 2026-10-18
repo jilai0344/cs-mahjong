@@ -105,6 +105,7 @@ export default function PlayerHand({
                     tile={tile}
                     size="meld"
                     showJiangBadge={showJiangBadge}
+                    lying
                     isBack={meld.type === 'an_gang' && tIdx > 0 && tIdx < 3}
                     className={`ph-tile ${meld.type === 'chi' && tIdx === 1 ? 'ring-1 ring-white/80 rounded-[10px]' : ''}`}
                   />

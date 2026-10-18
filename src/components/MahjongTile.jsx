@@ -65,6 +65,7 @@ export default function MahjongTile({
   isTing = false,
   tingCount = null,
   showJiangBadge = false,
+  lying = false,
   rotation = 0,
   onClick = null,
   onMouseEnter = null,
@@ -152,7 +153,7 @@ export default function MahjongTile({
   if (isBack || !tile) {
     return (
       <div
-        className={`relative inline-block shrink-0 select-none cursor-default ${currentSizeClass} ${className}`}
+        className={`relative inline-block shrink-0 select-none cursor-default ${currentSizeClass} ${lying ? 'meld-lying' : ''} ${className}`}
         style={style}
         aria-hidden="true"
       >
@@ -193,7 +194,7 @@ export default function MahjongTile({
           : 'hover:-translate-y-0.5'
       } ${
         highlight ? 'ring-2 ring-white/90 ring-offset-1 ring-offset-transparent brightness-105 rounded-[10px]' : ''
-      } ${className}`}
+      } ${lying ? 'meld-lying' : ''} ${className}`}
       style={{
         ...style,
         ...dragStyle,

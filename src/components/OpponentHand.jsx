@@ -114,6 +114,7 @@ export default function OpponentHand({
                           tile={tile}
                           size="discard"
                           isBack={meld.type === 'an_gang'}
+                          lying
                           className="ph-tile animate-deal-in"
                         />
                       </div>
@@ -131,6 +132,7 @@ export default function OpponentHand({
                         tile={tile}
                         size="discard-side"
                         isBack={meld.type === 'an_gang'}
+                        lying
                         className="animate-deal-in"
                       />
                     </div>
