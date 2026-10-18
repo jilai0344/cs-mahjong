@@ -486,7 +486,7 @@ export default function App() {
           }
         } else if (data.type === 'MELD_BROADCAST') {
           sound.playMeld(data.meldType);
-          showBubble(data.playerId, data.meldType === 'chi' ? '吃！' : data.meldType === 'peng' ? '碰！' : '杠！');
+          showBubbleRef.current?.(data.playerId, data.meldType === 'chi' ? '吃！' : data.meldType === 'peng' ? '碰！' : '杠！');
           setPlayerMelds(prev => {
             const next = [...prev];
             next[data.playerId] = [...(next[data.playerId] || []), data.meldGroup];
@@ -558,7 +558,7 @@ export default function App() {
             setPlayerScores(prev => prev.map((s, i) => s + perSeat[i]));
           }
         } else if (data.type === 'SI_XI_BROADCAST') {
-          showBubble(data.playerId, data.text);
+          showBubbleRef.current?.(data.playerId, data.text);
           if (data.changes) {
             setPlayerScores(prev => prev.map((s, i) => s + (data.changes[i] || 0)));
           }
