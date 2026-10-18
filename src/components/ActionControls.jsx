@@ -3,14 +3,15 @@ import MahjongTile from './MahjongTile.jsx';
 import { sound } from '../utils/audio.js';
 
 const TONES = {
-  hu: 'text-rose-600',
-  gang: 'text-amber-600',
-  peng: 'text-[var(--color-jade-600)]',
-  chi: 'text-[var(--color-violet-600)]',
-  xi: 'text-rose-500'
+  hu: { text: 'text-rose-600', bg: 'bg-rose-50', ring: 'ring-rose-200' },
+  gang: { text: 'text-amber-700', bg: 'bg-amber-50', ring: 'ring-amber-200' },
+  peng: { text: 'text-teal-700', bg: 'bg-teal-50', ring: 'ring-teal-200' },
+  chi: { text: 'text-blue-700', bg: 'bg-blue-50', ring: 'ring-blue-200' },
+  xi: { text: 'text-fuchsia-600', bg: 'bg-fuchsia-50', ring: 'ring-fuchsia-200' }
 };
 
 function ActionKey({ char, label, tone, onClick, primary = false, ariaLabel }) {
+  const style = TONES[tone] || TONES.peng;
   return (
     <button
       type="button"
@@ -18,14 +19,14 @@ function ActionKey({ char, label, tone, onClick, primary = false, ariaLabel }) {
       aria-label={ariaLabel || label}
       className={`group relative flex shrink-0 flex-col items-center justify-center rounded-[22px] font-semibold transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 ${
         primary
-          ? 'h-[92px] w-[92px] bg-rose-600 text-white shadow-[0_16px_40px_rgba(190,60,50,0.45)] ring-4 ring-rose-200/70 sm:h-[116px] sm:w-[116px]'
-          : 'h-[72px] w-[72px] border border-stone-200 bg-white shadow-md sm:h-[92px] sm:w-[92px]'
+          ? 'h-[100px] w-[100px] bg-rose-600 text-white shadow-[0_18px_44px_rgba(190,60,50,0.5)] ring-4 ring-rose-200/70 sm:h-[124px] sm:w-[124px]'
+          : `${style.bg} h-[80px] w-[80px] ring-2 ${style.ring} shadow-md sm:h-[104px] sm:w-[104px]`
       }`}
     >
-      <span className={`font-brush leading-none ${primary ? 'text-[52px] sm:text-[66px]' : `text-[38px] sm:text-[48px] ${TONES[tone] || ''}`}`}>
+      <span className={`font-brush leading-none ${primary ? 'text-[56px] sm:text-[72px]' : `text-[42px] sm:text-[56px] ${style.text}`}`}>
         {char}
       </span>
-      <span className={`mt-0.5 text-[9px] font-bold tracking-[0.08em] ${primary ? 'text-white/80' : 'text-stone-400'}`}>
+      <span className={`mt-0.5 text-[9px] font-bold tracking-[0.08em] sm:text-[10px] ${primary ? 'text-white/80' : 'text-stone-400'}`}>
         {label}
       </span>
     </button>
