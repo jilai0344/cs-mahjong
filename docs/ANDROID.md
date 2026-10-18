@@ -7,13 +7,32 @@
 
 - 网页预览（GitHub Pages）：<https://jilai0344.github.io/cs-mahjong/>（已部署成功）
 - APK 构建：GitHub 仓库 → **Actions** → **Build Android APK** → 最近一次运行 → **Artifacts** →
-  下载 `cs-mahjong-debug-apk.zip`，解压得到 `app-debug.apk`。
+  下载 `cs-mahjong-debug-apk.zip`，解压得到 `cs-mahjong.apk`。
   当前一次构建：<https://github.com/jilai0344/cs-mahjong/actions/runs/39131402455>
 - 当前 APK：约 11.6 MB；带自定义「一萬」桌面图标与青瓷启动页
 - APK SHA-256：`7DC8ADFCE400D43FFF95A09AAE7F7F71EE85D6FE6F2677CC8E81419E8C4BBA1C`
 - 应用 ID：`com.jilai.csmahjong`
 - 最低 Android：7.0（API 24）
 - 目标 Android：API 36
+- 屏幕方向：**强制横屏 `sensorLandscape`**，不提供竖屏游戏布局
+
+## 自动更新（朋友安装后也能收到新版本）
+
+每次推送 `src/`、`android/` 等 APK 相关文件，Actions 会：
+
+1. 用 `GITHUB_RUN_NUMBER` 作为 `versionCode` 构建 APK；
+2. 把 `cs-mahjong.apk` 发布到 GitHub **latest release**；
+3. 朋友打开 APK 时，应用请求 GitHub latest release：
+   - 远端 `versionCode` 更大 → 弹出「发现新版本」；
+   - 点「立即更新」→ 下载到应用缓存 → 自动拉起 Android 系统安装器；
+   - 用户在系统界面确认安装后覆盖旧版本，保留战绩/设置。
+
+注意：
+
+- Android 不允许静默覆盖安装，最后一步必须用户确认；
+- 第一次更新需要在系统设置里允许本应用「安装未知应用」；
+- APK 必须保持同一个包名与签名（仓库内个人 keystore 已固定）；
+- 如果 GitHub API 不可达，会自动跳过检查，不阻塞游戏。
 
 ## 安装
 

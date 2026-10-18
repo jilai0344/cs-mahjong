@@ -42,6 +42,8 @@ import KongDrawModal from './components/KongDrawModal.jsx';
 import RoundResultModal from './components/RoundResultModal.jsx';
 import RulesGuideModal from './components/RulesGuideModal.jsx';
 import MultiplayerModal from './components/MultiplayerModal.jsx';
+import UpdatePrompt from './components/UpdatePrompt.jsx';
+import { checkForAppUpdate } from './utils/appUpdate.js';
 import LobbyOverlay from './components/LobbyOverlay.jsx';
 import ActionCallout from './components/ActionCallout.jsx';
 
@@ -178,6 +180,7 @@ export default function App() {
   });
   const [roundResult, setRoundResult] = useState(null);
   const [isPortrait, setIsPortrait] = useState(false);
+  const [appUpdate, setAppUpdate] = useState(null);
   const kongDrawOpenRef = useRef(false);
 
   // 定时器引用
@@ -342,6 +345,15 @@ export default function App() {
         setIsMultiplayerOpen(true);
       }
     }
+  }, []);
+
+  // 原生 APK 每次启动检查 GitHub latest release；网页版无操作。
+  useEffect(() => {
+    let cancelled = false;
+    checkForAppUpdate().then((update) => {
+      if (!cancelled && update) setAppUpdate(update);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // -------------------------------------------------------------------------
@@ -2445,6 +2457,8 @@ export default function App() {
         isHost={multiplayerState.isHost}
         mySeatId={bottomSeatId}
       />
+
+      <UpdatePrompt update={appUpdate} onClose={() => setAppUpdate(null)} />
     </div>
   );
 }

@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-apk-${{ github.ref }}
@@ -62,12 +62,34 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace \
+            -PversionCode="${GITHUB_RUN_NUMBER}" \
+            -PversionName="1.0.${GITHUB_RUN_NUMBER}"
+
+      - name: Name update APK
+        run: |
+          mkdir -p build-output
+          cp android/app/build/outputs/apk/debug/app-debug.apk build-output/cs-mahjong.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: cs-mahjong-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: build-output/cs-mahjong.apk
           retention-days: 30
           if-no-files-found: error
+
+      - name: Publish latest APK release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-${{ github.run_number }}
+          name: 长沙麻将 Android ${{ github.run_number }}
+          body: |
+            自动构建的长沙麻将 APK。
+            versionCode: ${{ github.run_number }}
+            提交: ${{ github.sha }}
+          files: build-output/cs-mahjong.apk
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
