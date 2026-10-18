@@ -69,7 +69,7 @@ export default function OpponentHand({
         )}
       </div>
 
-      {startingHu && <StartingHuBadge event={startingHu} />}
+      {startingHu && <StartingHuBadge event={startingHu} facing={finalPos} />}
 
       {/* 手牌与副露 */}
       <div
@@ -134,20 +134,33 @@ export default function OpponentHand({
           </div>
         )}
 
-        <div
-          className={`opp-backs flex shrink-0 ${
-            isTop ? 'opp-backs-top flex-row gap-0.5' : 'flex-col -space-y-1.5 justify-center sm:-space-y-2'
-          }`}
-        >
-          {[...Array(Math.max(0, handCount))].map((_, idx) => (
-            <MahjongTile
-              key={idx}
-              isBack
-              size={isTop ? 'opp-top' : 'opp-side'}
-              className={isTop ? 'ph-tile animate-deal-in' : 'animate-deal-in'}
-            />
-          ))}
-        </div>
+        {startingHu?.hand?.length > 0 ? (
+          /* 起手胡摊牌：直接替换暗牌，四家都看到完整起手牌 */
+          <div
+            className={`opp-revealed-hand grid shrink-0 gap-0.5 rounded-lg border border-white/25 bg-white/10 p-1 ${
+              isTop ? 'grid-cols-7' : 'grid-cols-3'
+            }`}
+          >
+            {startingHu.hand.map((tile, idx) => (
+              <MahjongTile key={`${tile.id || idx}-${idx}`} tile={tile} size="mini" />
+            ))}
+          </div>
+        ) : (
+          <div
+            className={`opp-backs flex shrink-0 ${
+              isTop ? 'opp-backs-top flex-row gap-0.5' : 'flex-col -space-y-1.5 justify-center sm:-space-y-2'
+            }`}
+          >
+            {[...Array(Math.max(0, handCount))].map((_, idx) => (
+              <MahjongTile
+                key={idx}
+                isBack
+                size={isTop ? 'opp-top' : 'opp-side'}
+                className={isTop ? 'ph-tile animate-deal-in' : 'animate-deal-in'}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

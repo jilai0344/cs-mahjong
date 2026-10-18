@@ -714,6 +714,8 @@ export default function App() {
           const playerName = mp.isMultiplayer ? mp.seats[pIdx]?.name : PLAYERS[pIdx].name;
           startingEvents.push({
             player: { ...PLAYERS[pIdx], name: playerName },
+            // 起手胡要摊牌给其余三家看；完整手牌由座位横幅直接展示
+            hand: [...hand],
             huList
           });
         }

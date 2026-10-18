@@ -1,25 +1,37 @@
 import React from 'react';
 
+const ANGLE = {
+  bottom: 0,
+  top: 180,
+  left: 90,
+  right: -90
+};
+
 /**
- * 起手胡座位横幅：不弹窗、不拦停牌局，只在该玩家面前醒目展示胡牌项目。
- * 分数统一挂到本局结算时计算，所以这里只显示项目，不显示 +分。
+ * 起手胡番型条：只写胡牌项目（例：缺一色），按座位旋转，字面朝向胡家。
+ * 起手牌本身由 OpponentHand 直接替换暗牌摊开，避免弹窗和重复占位。
  */
-export default function StartingHuBadge({ event, className = '' }) {
+export default function StartingHuBadge({ event, facing = 'bottom', className = '' }) {
   if (!event || !event.huList || event.huList.length === 0) return null;
   const names = event.huList.map((hu) => hu.name).join(' · ');
+  const side = facing === 'left' || facing === 'right';
+  const angle = ANGLE[facing] ?? 0;
 
   return (
     <div
       role="status"
-      aria-label={`起手胡 ${names}，局终结算`}
-      className={`starting-hu-badge pointer-events-none flex max-w-[14rem] items-start gap-2 rounded-xl border border-rose-200/80 bg-rose-600 px-3 py-2 text-white shadow-[0_8px_22px_rgba(140,40,40,0.35)] ${className}`}
+      aria-label={`起手胡 ${names}，起手牌公开`}
+      className={`starting-hu-reveal pointer-events-none flex flex-col items-center gap-1 ${side ? 'w-[3.2rem]' : ''} ${className}`}
     >
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/15 font-brush text-[20px] leading-none">
-        胡
-      </span>
-      <div className="min-w-0 leading-tight">
-        <div className="text-[9px] font-semibold tracking-[0.12em] text-white/75">起手胡 · 局终结算</div>
-        <div className="mt-0.5 break-words text-[12px] font-bold">{names}</div>
+      <div className={`flex items-center justify-center overflow-visible ${side ? 'h-[6.2rem] w-full' : ''}`}>
+        <div
+          className="starting-hu-fan inline-flex items-center justify-center rounded-lg border-2 border-rose-200/90 bg-rose-600 px-2.5 py-1.5 shadow-[0_8px_22px_rgba(140,40,40,0.38)]"
+          style={{ transform: `rotate(${angle}deg)` }}
+        >
+          <span className="whitespace-nowrap font-brush text-[22px] font-bold leading-none text-white sm:text-[24px]">
+            {names}
+          </span>
+        </div>
       </div>
     </div>
   );
