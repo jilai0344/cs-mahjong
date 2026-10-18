@@ -1,6 +1,7 @@
 import React from 'react';
 import MahjongTile from './MahjongTile.jsx';
 import StartingHuBadge from './StartingHuBadge.jsx';
+import StartingHuHand from './StartingHuHand.jsx';
 
 const WINDS = ['东', '南', '西', '北'];
 
@@ -69,99 +70,98 @@ export default function OpponentHand({
         )}
       </div>
 
-      {startingHu && <StartingHuBadge event={startingHu} facing={finalPos} />}
-
-      {/* 手牌与副露 */}
-      <div
-        className={`${isTop ? 'opp-top-row' : ''} flex items-center gap-1.5 ${
-          isTop ? 'flex-row' : 'flex-col justify-center'
-        }`}
-      >
-        {melds.length > 0 && (
+      {startingHu?.hand?.length > 0 ? (
+        /* 起手胡：番型条与整列手牌一起朝向胡家；手牌直接替换暗牌 */
+        <div
+          className={`flex items-center gap-1.5 ${
+            isTop ? 'flex-col' : finalPos === 'left' ? 'flex-row-reverse' : 'flex-row'
+          }`}
+        >
+          <StartingHuBadge event={startingHu} facing={finalPos} />
+          <StartingHuHand hand={startingHu.hand} facing={finalPos} />
+        </div>
+      ) : (
+        <>
+          {startingHu && <StartingHuBadge event={startingHu} facing={finalPos} />}
           <div
-            className={`opp-melds-box flex shrink-0 gap-1 rounded-xl border border-white/20 bg-white/10 p-1 ${
-              isTop ? 'flex-row' : 'flex-col items-center justify-center'
+            className={`${isTop ? 'opp-top-row' : ''} flex items-center gap-1.5 ${
+              isTop ? 'flex-row' : 'flex-col justify-center'
             }`}
           >
-            {melds.map((meld, mIdx) => (
+            {melds.length > 0 && (
               <div
-                key={mIdx}
-                className={`opp-meld-group flex rounded-lg border border-white/15 bg-white/10 p-0.5 ${
-                  isTop ? 'flex-row items-center gap-0.5' : 'flex-col items-center gap-0.5'
+                className={`opp-melds-box flex shrink-0 gap-1 rounded-xl border border-white/20 bg-white/10 p-1 ${
+                  isTop ? 'flex-row' : 'flex-col items-center justify-center'
                 }`}
               >
-                {meld.tiles.map((tile, tIdx) => {
-                  const isEatenTile = meld.type === 'chi' && tIdx === 1;
+                {melds.map((meld, mIdx) => (
+                  <div
+                    key={mIdx}
+                    className={`opp-meld-group flex rounded-lg border border-white/15 bg-white/10 p-0.5 ${
+                      isTop ? 'flex-row items-center gap-0.5' : 'flex-col items-center gap-0.5'
+                    }`}
+                  >
+                    {meld.tiles.map((tile, tIdx) => {
+                      const isEatenTile = meld.type === 'chi' && tIdx === 1;
 
-                  if (isTop) {
-                    return (
-                      <div
-                        key={tIdx}
-                        className={`opp-tile-wrap relative flex shrink-0 items-center justify-center rounded-sm ${
-                          isEatenTile ? 'ring-1 ring-white/80' : ''
-                        }`}
-                      >
-                        <MahjongTile
-                          tile={tile}
-                          size="discard"
-                          isBack={meld.type === 'an_gang'}
-                          lying
-                          className="ph-tile animate-deal-in"
-                        />
-                      </div>
-                    );
-                  }
+                      if (isTop) {
+                        return (
+                          <div
+                            key={tIdx}
+                            className={`opp-tile-wrap relative flex shrink-0 items-center justify-center rounded-sm ${
+                              isEatenTile ? 'ring-1 ring-white/80' : ''
+                            }`}
+                          >
+                            <MahjongTile
+                              tile={tile}
+                              size="discard"
+                              isBack={meld.type === 'an_gang'}
+                              lying
+                              className="ph-tile animate-deal-in"
+                            />
+                          </div>
+                        );
+                      }
 
-                  return (
-                    <div
-                      key={tIdx}
-                      className={`relative flex h-[26px] w-[36px] shrink-0 items-center justify-center rounded-sm sm:h-[30px] sm:w-[42px] ${
-                        isEatenTile ? 'ring-1 ring-white/80' : ''
-                      }`}
-                    >
-                      <MahjongTile
-                        tile={tile}
-                        size="discard-side"
-                        isBack={meld.type === 'an_gang'}
-                        lying
-                        className="animate-deal-in"
-                      />
-                    </div>
-                  );
-                })}
+                      return (
+                        <div
+                          key={tIdx}
+                          className={`relative flex h-[26px] w-[36px] shrink-0 items-center justify-center rounded-sm sm:h-[30px] sm:w-[42px] ${
+                            isEatenTile ? 'ring-1 ring-white/80' : ''
+                          }`}
+                        >
+                          <MahjongTile
+                            tile={tile}
+                            size="discard-side"
+                            isBack={meld.type === 'an_gang'}
+                            lying
+                            className="animate-deal-in"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {startingHu?.hand?.length > 0 ? (
-          /* 起手胡摊牌：直接替换暗牌，四家都看到完整起手牌 */
-          <div
-            className={`opp-revealed-hand grid shrink-0 gap-0.5 rounded-lg border border-white/25 bg-white/10 p-1 ${
-              isTop ? 'grid-cols-7' : 'grid-cols-3'
-            }`}
-          >
-            {startingHu.hand.map((tile, idx) => (
-              <MahjongTile key={`${tile.id || idx}-${idx}`} tile={tile} size="mini" />
-            ))}
+            <div
+              className={`opp-backs flex shrink-0 ${
+                isTop ? 'opp-backs-top flex-row gap-0.5' : 'flex-col -space-y-1.5 justify-center sm:-space-y-2'
+              }`}
+            >
+              {[...Array(Math.max(0, handCount))].map((_, idx) => (
+                <MahjongTile
+                  key={idx}
+                  isBack
+                  size={isTop ? 'opp-top' : 'opp-side'}
+                  className={isTop ? 'ph-tile animate-deal-in' : 'animate-deal-in'}
+                />
+              ))}
+            </div>
           </div>
-        ) : (
-          <div
-            className={`opp-backs flex shrink-0 ${
-              isTop ? 'opp-backs-top flex-row gap-0.5' : 'flex-col -space-y-1.5 justify-center sm:-space-y-2'
-            }`}
-          >
-            {[...Array(Math.max(0, handCount))].map((_, idx) => (
-              <MahjongTile
-                key={idx}
-                isBack
-                size={isTop ? 'opp-top' : 'opp-side'}
-                className={isTop ? 'ph-tile animate-deal-in' : 'animate-deal-in'}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
