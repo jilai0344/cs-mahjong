@@ -8,11 +8,11 @@
 - 网页预览（GitHub Pages）：<https://jilai0344.github.io/cs-mahjong/>（已部署成功）
 - APK 构建：GitHub 仓库 → **Actions** → **Build Android APK** → 最近一次运行 → **Artifacts** →
   下载 `cs-mahjong-debug-apk.zip`，解压得到 `cs-mahjong.apk`。
-  当前一次构建：<https://github.com/jilai0344/cs-mahjong/actions/runs/39133881401>
+  当前一次构建：<https://github.com/jilai0344/cs-mahjong/actions/runs/39134813509>
 - 直链（latest release，发给朋友用这个）：
   <https://github.com/jilai0344/cs-mahjong/releases/latest/download/cs-mahjong.apk>
 - 当前 APK：约 11.6 MB；带自定义「一萬」桌面图标与青瓷启动页
-- APK SHA-256：`A75889EC864D95A5BA2AF5661D39F692AC0BEC160EA53806ADFBB8BE0E4F7CFA`
+- APK SHA-256：`82A89E19AB04006969E54650F07EBEBEDB742A1CF2424760E78561167AD2D73B`
 - 应用 ID：`com.jilai.csmahjong`
 - 最低 Android：7.0（API 24）
 - 目标 Android：API 36
