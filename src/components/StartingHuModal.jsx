@@ -1,90 +1,71 @@
 import React, { useEffect } from 'react';
 import MahjongTile from './MahjongTile';
-import { Sparkles, Trophy } from 'lucide-react';
+import { Trophy, Sparkles } from 'lucide-react';
 import { sound } from '../utils/audio';
 
 export default function StartingHuModal({
-  startingHuEvents = [], // Array of { player, huList }
+  startingHuEvents = [],
   onAcknowledge
 }) {
   useEffect(() => {
     if (startingHuEvents && startingHuEvents.length > 0) {
-      sound.playStartingHu();
+      const names = startingHuEvents.flatMap((evt) => (evt.huList || []).map((hu) => hu.name));
+      sound.playStartingHu(names);
     }
   }, [startingHuEvents]);
 
   if (!startingHuEvents || startingHuEvents.length === 0) return null;
 
   return (
-    <div role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in select-none">
-      <div className="relative w-full max-w-md rounded-2xl bg-gradient-to-b from-amber-950 via-slate-900 to-black border-2 border-amber-400/70 p-6 shadow-2xl flex flex-col items-center text-center animate-scale-up">
-        {/* 顶部金光与奖杯 */}
-        <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-600 to-yellow-300 flex items-center justify-center shadow-lg mb-3 ring-4 ring-amber-400/30">
-          <Trophy className="w-8 h-8 text-slate-950" />
+    <div role="dialog" aria-modal="true" tabIndex={-1} className="modal-backdrop animate-fade-in select-none">
+      <div className="modal-card max-w-md animate-modal-in">
+        <div className="flex flex-col items-center px-5 pb-2 pt-6 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-jade-200)]/50 text-[var(--color-jade-600)]">
+            <Trophy className="h-6 w-6" />
+          </div>
+          <div className="mt-3 flex items-center gap-1.5 text-[10px] font-medium tracking-[0.18em] text-stone-400">
+            <Sparkles className="h-3 w-3" />
+            起手胡
+            <Sparkles className="h-3 w-3" />
+          </div>
+          <h3 className="mt-1 font-serif text-[22px] font-semibold text-stone-900">开局见喜</h3>
+          <p className="mt-1 text-[11px] text-stone-400">已按小胡自摸结算，牌局继续</p>
         </div>
 
-        <div className="flex items-center gap-1.5 text-amber-300 font-bold text-sm tracking-wider uppercase">
-          <Sparkles className="w-4 h-4 text-amber-400" />
-          <span>长沙麻将 · 起手胡牌</span>
-          <Sparkles className="w-4 h-4 text-amber-400" />
-        </div>
-
-        <h3 className="text-2xl font-black text-white mt-1 mb-4 drop-shadow">
-          开局天降祥瑞！
-        </h3>
-
-        {/* 起手胡列表 */}
-        <div className="w-full space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="max-h-[54vh] space-y-2.5 overflow-y-auto px-5 pb-3">
           {startingHuEvents.map((evt, idx) => (
-            <div
-              key={idx}
-              className="p-3.5 rounded-xl bg-slate-800/80 border border-amber-400/30 flex flex-col items-center gap-2"
-            >
-              <div className="flex items-center justify-between w-full">
-                <span className="font-bold text-emerald-300 text-sm">
-                  【{evt.player.name}】
-                </span>
-                <span className="text-xs bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-400/30 font-semibold flex items-center gap-1.5">
-                  <span>共胡 <strong className="text-amber-200 text-sm">{evt.huList.length}</strong> 把</span>
-                  <span className="text-amber-400/50">|</span>
-                  {/* 金额一律取权威端算出的结果（规格 §九.2），不再硬编码 */}
-                  <span>+{evt.scoreChanges ? evt.scoreChanges[evt.player.id] : evt.huList.length * 2 * 3}分</span>
+            <div key={idx} className="rounded-2xl border border-stone-200 bg-white p-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[12px] font-semibold text-stone-800">【{evt.player.name}】</span>
+                <span className="rounded-full bg-[var(--color-jade-200)]/35 px-2 py-0.5 text-[10px] font-medium text-[var(--color-jade-600)]">
+                  共 {evt.huList.length} 把 · +{evt.scoreChanges ? evt.scoreChanges[evt.player.id] : evt.huList.length * 6} 分
                 </span>
               </div>
 
               {evt.huList.map((hu, hIdx) => {
                 const sc = (evt.perHuScores || [])[hIdx];
                 return (
-                  <div key={hIdx} className="w-full text-left">
-                    <div className="text-amber-400 font-bold text-sm">
-                      {hu.name}
-                    </div>
-                    <div className="text-slate-300 text-xs mt-0.5">
-                      {hu.desc}
-                    </div>
+                  <div key={hIdx} className="mt-2.5 border-t border-stone-100 pt-2.5 first:mt-2 first:border-0 first:pt-0">
+                    <div className="text-[12px] font-semibold text-stone-700">{hu.name}</div>
+                    <div className="mt-0.5 text-[10px] leading-snug text-stone-400">{hu.desc}</div>
                     {sc && (
-                      <div className="text-slate-300 text-[11px] mt-1.5 space-y-0.5 leading-tight">
+                      <div className="mt-1 space-y-0.5 text-[10px] leading-snug text-stone-400">
                         <div>
-                          抓鸟骰子：{(sc.birdValues || []).length > 0 ? sc.birdValues.join('、') : '不抓鸟'}
-                          {' → 逐家 n = '}{sc.details.map(d => d.n).join(' / ')}
-                          {'（乘数 '}{sc.details.map(d => d.multiplier).join(' / ')}{'）'}
+                          骰子 {(sc.birdValues || []).length > 0 ? sc.birdValues.join('、') : '不抓鸟'}
+                          {' → n = '}{sc.details.map((d) => d.n).join(' / ')}
                         </div>
                         <div>
-                          每家应付：
-                          {sc.details.map(d => ` ${d.P}（${d.capped}${d.cappedHit ? ' 已封顶' : ''} + 2F ${d.fixed}）`).join('，')}
-                          {' · 封顶上限 '}{sc.cap}
+                          每家应付 {sc.details.map((d) => `${d.P}`).join(' / ')} · 封顶 {sc.cap}
                         </div>
                       </div>
                     )}
                     {hu.tiles && hu.tiles.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2 justify-center">
+                      <div className="mt-2 flex flex-wrap justify-center gap-1">
                         {hu.tiles.slice(0, 8).map((tile, tIdx) => (
                           <MahjongTile key={tIdx} tile={tile} size="sm" />
                         ))}
                         {hu.tiles.length > 8 && (
-                          <span className="text-xs text-slate-400 self-center">
-                            +{hu.tiles.length - 8}张
-                          </span>
+                          <span className="self-center text-[10px] text-stone-400">+{hu.tiles.length - 8} 张</span>
                         )}
                       </div>
                     )}
@@ -95,16 +76,11 @@ export default function StartingHuModal({
           ))}
         </div>
 
-        <p className="text-xs text-slate-400 my-4">
-          起手小胡见牌计分完毕，牌局将继续正常进行！
-        </p>
-
-        <button
-          onClick={onAcknowledge}
-          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm shadow-lg transition-transform active:scale-95"
-        >
-          确定并继续行牌
-        </button>
+        <div className="modal-foot">
+          <button onClick={onAcknowledge} className="btn-primary h-10 w-full text-[13px]">
+            确定并继续行牌
+          </button>
+        </div>
       </div>
     </div>
   );

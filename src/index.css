@@ -2,80 +2,71 @@
 @import "./mahjong.css";
 
 /* ---------------------------------------------------------------------------
- * 设计 token（P2-2 / D1：色值集中在这里；组件与 CSS 只允许用 var(--color-*)
- * 或等价的 Tailwind 工具类，禁止再写 #xxxxxx。取值与用途见 docs/DESIGN.md §3）
+ * 设计 token（2026-10「瓷白 · 青岚」改版）
+ * 色值只允许写在这里；组件用 var(--color-*) 或 Tailwind 工具类引用。
+ * 牌面艺术色是单独一组（--art-*），见下方第二个 @theme 块。
  * ------------------------------------------------------------------------- */
 @theme {
-  /* 页面与面板 */
-  --color-page: #03140e;        /* 牌桌外的页面底色 */
-  --color-panel: #1f0604;       /* 根容器/面板底 */
+  /* 纸张与卡片 */
+  --color-page: #f1efe7;        /* 牌桌外的暖白纸面 */
+  --color-panel: #fbf9f4;       /* 卡片/面板底色 */
+  --color-body: #22302b;        /* 正文字色（墨绿黑） */
 
-  /* 外壳渐变（顶栏与牌桌外框） */
-  --color-shell-800: #3b0e08;
-  --color-shell-700: #380e08;
-  --color-shell-500: #240804;   /* 顶栏与桌区共用的中段 */
-  --color-shell-300: #140302;
+  /* 外壳层次：从亮到暗，供浮层/分隔使用 */
+  --color-shell-800: #ffffff;
+  --color-shell-700: #f8f5ee;
+  --color-shell-500: #f1ede3;
+  --color-shell-300: #e5dfd2;
 
-  /* 胶囊/头像牌渐变 */
-  --color-panel-800: #4a180e;
-  --color-panel-700: #2b0c07;
-  --color-panel-600: #140503;
+  /* 胶囊与浅面板 */
+  --color-panel-800: #ffffff;
+  --color-panel-700: #f7f4ec;
+  --color-panel-600: #eeeae0;
 
-  /* 皇家红绒牌桌（四档渐变） */
-  --color-felt-300: #a01c22;
-  --color-felt-400: #560a0d;
-  --color-felt-500: #821318;
-  --color-felt-700: #280406;
+  /* 青瓷牌桌（默认 mist：雾青） */
+  --color-felt-300: #6aa08c;
+  --color-felt-500: #4a7f6b;
+  --color-felt-400: #356355;
+  --color-felt-700: #21453b;
 
-  /* 翡翠（可操作态、牌背、霓虹指示） */
-  --color-jade-600: #15803d;
-  --color-jade-500: #22c55e;
-  --color-jade-300: #86efac;
-  --color-jade-200: #bbf7d0;
+  /* 玉色强调：可操作、听牌、连接状态 */
+  --color-jade-600: #2f7d63;
+  --color-jade-500: #3f9a7a;
+  --color-jade-300: #93cbb4;
+  --color-jade-200: #cfe8dc;
 
-  /* 桌心紫檀面板 */
-  --color-violet-800: #4c1d73;
-  --color-violet-600: #2d0e45;
-  --color-violet-400: #1a082b;
+  /* 桌心与柔和的冷色辅助 */
+  --color-violet-800: #5f8578;
+  --color-violet-600: #486b60;
+  --color-violet-400: #33534a;
 
-  /* 金与正文 */
-  --color-gold-200: #fde047;
-  --color-body: #f1f5f9;
+  /* 一点点暖金，只用于「庄」与极少数焦点 */
+  --color-gold-200: #d9a441;
 
-  /* 衬线字体族（P2-2 / D7）：index.html 早就预加载了 Noto Serif SC，但此前没有任何地方用，
-   * 等于白下载 —— 结算页主视觉要求「≥22px 衬线」，这里给 font-serif 补上中文字族。 */
-  --font-serif: "Noto Serif SC", ui-serif, Georgia, "Songti SC", "SimSun", serif;
-
-  /* 动效时长与曲线（P2-1 收口 / DESIGN.md §7）：出牌与摸牌统一 150–200ms ease-out。
-   * 规范禁止「超过 300ms 才能继续操作」的阻塞动画，所以新增动效一律复用这两个 token，
-   * 不要在组件里写裸毫秒；并通过 @media (prefers-reduced-motion: reduce) 整体退化。 */
+  /* 字体与动效 */
+  --font-serif: "Noto Serif SC", "Songti SC", "SimSun", ui-serif, Georgia, serif;
   --motion-fast: 150ms;
   --motion-base: 180ms;
   --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ---------------------------------------------------------------------------
- * 牌面艺术色 token（P2-2 / D1b）
- * 牌面/牌墙的 SVG 艺术层次（象牙面、万字红、条子绿、筒子蓝、金边、牌背灰）单独一组，
- * 与 UI 语义色板分开：它们只服务于牌面画法，改动必须逐尺寸看图核对（DESIGN.md §5）。
- * 组件里一律写 var(--art-*)，不再写死 #xxxxxx —— test/designTokens.test.js 测试 2 会拦。
+ * 牌面艺术色 token（--art-*）：只服务牌面 SVG，不参与 UI 语义色板。
+ * 组件统一写 var(--art-*)，test/designTokens.test.js 会守住「不得硬编码」。
  * ------------------------------------------------------------------------- */
 @theme {
-  /* 牌面象牙 */
   --art-face: #fcfbf7;
   --art-face-shade: #f3efe4;
   --art-face-edge: #d1ccba;
   --art-ink: #18181b;
   --art-white: #ffffff;
 
-  /* 万字（红） */
   --art-wan-300: #f87171;
   --art-wan-400: #ef4444;
   --art-wan-500: #dc2626;
   --art-wan-600: #b91c1c;
   --art-wan-700: #991b1b;
 
-  /* 条子（绿） */
   --art-tiao-300: #4ade80;
   --art-tiao-500: #22c55e;
   --art-tiao-600: #15803d;
@@ -83,7 +74,6 @@
   --art-tiao-800: #14532d;
   --art-tiao-900: #065f46;
 
-  /* 筒子（蓝） */
   --art-tong-300: #60a5fa;
   --art-tong-400: #3b82f6;
   --art-tong-500: #2563eb;
@@ -91,7 +81,6 @@
   --art-tong-800: #1e40af;
   --art-tong-900: #1e3a8a;
 
-  /* 金与棕（牌背、边框、装饰） */
   --art-gold-100: #fef9c3;
   --art-gold-200: #fef08a;
   --art-gold-500: #f59e0b;
@@ -102,15 +91,25 @@
   --art-brown-900: #78350f;
   --art-brown-950: #451a03;
 
-  /* 牌背钢灰 */
   --art-steel-200: #e5e5e5;
   --art-steel-300: #d4d4d4;
   --art-steel-400: #a3a3a3;
 }
 
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-  color-scheme: dark;
+  --ui-ink: #22302b;
+  --ui-muted: #6f7c75;
+  --ui-line: #e4dfd3;
+  --ui-accent: #b4534a;
+  --ui-accent-soft: #f3e6e1;
+  --ui-paper: #fbf9f4;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  color-scheme: light;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 html, body, #root {
@@ -122,11 +121,25 @@ html, body, #root {
   background-color: var(--color-page);
 }
 
+body {
+  color: var(--color-body);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+
+::selection { background: rgba(63, 154, 122, 0.22); }
+
+:focus-visible {
+  outline: 2px solid var(--color-jade-600);
+  outline-offset: 2px;
+}
+
 /* ---------------------------------------------------------------------------
- * 安全区（P2-2 / D4）
- * 横屏刘海屏/圆角屏左右各有约 44–59px 不可用区（刘海+圆角），底部有手势条。
- * 统一从 env() 取到 CSS 变量，组件用 .safe-* 工具类引用；测试里替换变量即可验证接线。
- * （此前只有手牌区一处 inline env(safe-area-inset-bottom)，顶栏与四角徽标都没处理。）
+ * 安全区：横屏刘海/圆角/底部手势条统一走变量
  * ------------------------------------------------------------------------- */
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
@@ -145,89 +158,139 @@ html, body, #root {
 .safe-pad-bottom { padding-bottom: var(--safe-bottom); }
 
 /* ---------------------------------------------------------------------------
- * 翡翠主题（P0-8 / D8：双主题，用户 2026-10-07 拍板选 C）
- * 默认（无 data-theme 或 data-theme="red"）= 皇家红绒（@theme 里的值）；
- * data-theme="jade" = 翡翠毛毡。token 名不变、只换值，因此所有
- * var(--color-*) / Tailwind 工具类（bg-panel、from-shell-800 …）自动跟随，
- * 无需改组件。未列出的 token（金色、翡翠强调色、牌面艺术色）两套主题共用。
- * 放在文件末尾且不进 @layer：无层样式一定赢过 @theme 生成的层内 :root 定义。
+ * 牌桌主题：只换毛毡色，不动 UI 纸张；三套都保持「浅色外壳 + 中深桌面」。
  * ------------------------------------------------------------------------- */
-[data-theme="jade"] {
-  /* 页面与面板：暖棕黑 → 墨绿黑 */
-  --color-page: #04120c;
-  --color-panel: #0d1f14;
-
-  /* 外壳渐变（顶栏与牌桌外框） */
-  --color-shell-800: #123626;
-  --color-shell-700: #0f2e20;
-  --color-shell-500: #0a2115;
-  --color-shell-300: #06130c;
-
-  /* 胶囊/头像牌渐变 */
-  --color-panel-800: #16402e;
-  --color-panel-700: #0f2c1f;
-  --color-panel-600: #071711;
-
-  /* 翡翠毛毡牌桌（四档径向渐变，顺序与红绒版一致：亮→中→外→暗角） */
-  --color-felt-300: #319e64;
-  --color-felt-500: #1e7a49;
-  --color-felt-400: #145c38;
-  --color-felt-700: #0a2c1b;
-
-  /* 桌心罗盘：紫檀 → 深碧玉（金边保留，见 TableCenter） */
-  --color-violet-800: #14503a;
-  --color-violet-600: #0d3a29;
-  --color-violet-400: #07231a;
+[data-theme="sand"] {
+  --color-felt-300: #b48a67;
+  --color-felt-500: #8f6b52;
+  --color-felt-400: #6f523f;
+  --color-felt-700: #4b3628;
 }
 
-/* 翡翠主题下的牌桌微纹理与中心辉光：红绒颗粒 → 翡翠颗粒（金色颗粒保留） */
-[data-theme="jade"] .mahjong-table::before {
-  background-image:
-    radial-gradient(rgba(245, 158, 11, 0.05) 1px, transparent 1px),
-    radial-gradient(rgba(52, 168, 108, 0.07) 1px, transparent 1px);
-}
-[data-theme="jade"] .mahjong-table::after {
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.09) 0%, rgba(46, 158, 99, 0.05) 60%, transparent 80%);
+[data-theme="ink"] {
+  --color-felt-300: #557b80;
+  --color-felt-500: #3a6066;
+  --color-felt-400: #2b4b50;
+  --color-felt-700: #182f33;
 }
 
-/* 主题切换按钮的色板预览（P0-8）：固定展示两套主题的牌桌渐变，不跟随当前主题变化 */
-.theme-swatch-red { background: radial-gradient(circle at 35% 35%, #a01c22, #560a0d); }
-.theme-swatch-jade { background: radial-gradient(circle at 35% 35%, #319e64, #145c38); }
+.theme-swatch-mist { background: radial-gradient(circle at 35% 35%, #6aa08c, #21453b); }
+.theme-swatch-sand { background: radial-gradient(circle at 35% 35%, #b48a67, #4b3628); }
+.theme-swatch-ink { background: radial-gradient(circle at 35% 35%, #557b80, #182f33); }
 
 /* ---------------------------------------------------------------------------
- * 竖屏专用布局（P0-7 / D9：用户 2026-10-07 拍板选 B）
- * 方向：PC 版四方布局直接适配竖屏（等效 90° 旋转），不砍信息；
- * 手牌一排全见、无横滑（流式缩小）；`data-layout="portrait"` 由 App 根容器按
- * isPortrait 设置。未列出的组件（罗盘、牌河、牌墙、两侧对家）沿用原有绝对
- * 定位，竖屏下经截图验证无重叠。
- * 实现说明：手牌用 display:contents 把副露组打散，所有牌直接参与外层 flex
- * 均分（flex:1 1 0 + aspect-ratio 3/4），14 张以内一排全见；SVG 牌面为矢量，
- * 缩小后依然清晰。
+ * 通用表面与控件：让各组件少写重复类，观感统一。
  * ------------------------------------------------------------------------- */
-/* 顶栏压缩：隐藏徽章与规则副标题、标题不换行、多人按钮收紧 */
+.paper-card {
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(249, 246, 238, 0.98));
+  border: 1px solid rgba(120, 110, 90, 0.14);
+  box-shadow:
+    0 1px 2px rgba(34, 48, 43, 0.04),
+    0 18px 48px rgba(34, 48, 43, 0.16);
+}
+
+.glass-pill {
+  background: rgba(255, 252, 246, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 10px rgba(24, 44, 37, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.hairline { border-color: var(--ui-line); }
+
+.icon-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: var(--ui-muted);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--ui-line);
+  transition: background-color var(--motion-fast) var(--motion-ease-out),
+    color var(--motion-fast) var(--motion-ease-out),
+    transform var(--motion-fast) var(--motion-ease-out);
+}
+.icon-btn:hover { background: #ffffff; color: var(--ui-ink); transform: translateY(-1px); }
+.icon-btn:active { transform: translateY(0) scale(0.97); }
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: var(--ui-ink);
+  color: #fbf9f4;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(34, 48, 43, 0.22);
+  transition: transform var(--motion-fast) var(--motion-ease-out),
+    background-color var(--motion-fast) var(--motion-ease-out),
+    box-shadow var(--motion-fast) var(--motion-ease-out);
+}
+.btn-primary:hover { background: #2d4039; transform: translateY(-1px); box-shadow: 0 10px 24px rgba(34, 48, 43, 0.26); }
+.btn-primary:active { transform: translateY(0) scale(0.98); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--ui-line);
+  color: var(--ui-ink);
+  font-weight: 600;
+  transition: background-color var(--motion-fast) var(--motion-ease-out),
+    transform var(--motion-fast) var(--motion-ease-out);
+}
+.btn-secondary:hover { background: #ffffff; transform: translateY(-1px); }
+.btn-secondary:active { transform: translateY(0) scale(0.98); }
+
+.field {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ui-line);
+  background: #ffffff;
+  padding: 0.55rem 0.75rem;
+  color: var(--ui-ink);
+  transition: border-color var(--motion-fast) var(--motion-ease-out),
+    box-shadow var(--motion-fast) var(--motion-ease-out);
+}
+.field:focus { outline: none; border-color: var(--color-jade-500); box-shadow: 0 0 0 3px rgba(63, 154, 122, 0.14); }
+
+/* 自定义纤细滚动条 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(111, 124, 117, 0.25);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(111, 124, 117, 0.45); background-clip: content-box; }
+
+/* ---------------------------------------------------------------------------
+ * 竖屏专用布局（保留原有行为，只换观感）
+ * ------------------------------------------------------------------------- */
 [data-layout="portrait"] .hdr-badge,
 [data-layout="portrait"] .hdr-sub { display: none; }
 [data-layout="portrait"] .hdr-title { font-size: 0.875rem; white-space: nowrap; }
 [data-layout="portrait"] .hdr-multi { padding: 0.375rem 0.5rem; font-size: 11px; white-space: nowrap; }
 [data-layout="portrait"] > header { padding-left: 0.5rem; padding-right: 0.5rem; }
 
-/* 我方胶囊：从左下角移到牌桌右上角（竖屏底部是手牌区，左上角会和对家胶囊重叠） */
-[data-layout="portrait"] .my-capsule { top: 0.5rem; bottom: auto; left: auto; right: 0.5rem; }
+[data-layout="portrait"] .my-capsule { top: 0.5rem; bottom: auto; left: 0.5rem; right: auto; }
 [data-layout="portrait"] .my-capsule .capsule-record { display: none; }
 
-/* 操作按钮：紧贴手牌上方（相对底部容器顶部 +12px），不再悬空 */
 [data-layout="portrait"] .action-controls { bottom: calc(100% + 0.75rem); }
 
-/* 手牌行：一排、不换行、不滚动；必须显式 width:100%（Safari 下不定宽容器 + flex 子项会塌缩） */
 [data-layout="portrait"] .ph-row { width: 100%; flex-wrap: nowrap; overflow-x: visible; overflow-y: visible; gap: 2px; }
-/* 副露容器打散：副露牌、手牌直接参与外层 flex 均分 */
 [data-layout="portrait"] .ph-melds-wrap,
 [data-layout="portrait"] .ph-meld-group,
 [data-layout="portrait"] .ph-hand { display: contents; }
-/* 副露文字徽标在竖屏隐藏（牌型由牌面自述，省宽度） */
 [data-layout="portrait"] .ph-meld-badge { display: none; }
-/* 流式牌：用显式 calc() 宽度均分（--ph-n 为总牌数，由 PlayerHand 写入）；
-   不用 flex:1 1 0 + aspect-ratio 自动分配——Safari 对 flex-basis:0 的 aspect-ratio 解析有 bug 会导致高度塌缩 */
 [data-layout="portrait"] .ph-tile {
   flex: none;
   width: calc((100% - (var(--ph-n, 14) - 1) * 2px) / var(--ph-n, 14));
@@ -235,7 +298,6 @@ html, body, #root {
   height: auto;
   aspect-ratio: 3 / 4;
 }
-/* 摸牌：同样占一份，间距收紧 */
 [data-layout="portrait"] .ph-drawn {
   flex: none;
   width: calc((100% - (var(--ph-n, 14) - 1) * 2px) / var(--ph-n, 14));
@@ -244,19 +306,27 @@ html, body, #root {
 }
 [data-layout="portrait"] .ph-drawn .ph-tile { width: 100%; }
 
-/* 对家（顶部）：副露 + 牌背打散后一起流式均分，一排全见不裁切 */
 [data-layout="portrait"] .opp-top-row { width: min(94vw, 380px); }
 [data-layout="portrait"] .opp-top-row .opp-melds-box,
-[data-layout="portrait"] .opp-top-row .opp-meld-group,
-[data-layout="portrait"] .opp-top-row .opp-backs-top { display: contents; }
+[data-layout="portrait"] .opp-top-row .opp-meld-group { display: contents; }
+[data-layout="portrait"] .opp-top-row .opp-backs-top {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 1px;
+}
+[data-layout="portrait"] .opp-top-row .opp-backs-top .ph-tile {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 3 / 4;
+}
 [data-layout="portrait"] .opp-top-row .opp-tile-wrap { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; }
 [data-layout="portrait"] .opp-top-row .opp-tile-wrap > .ph-tile { flex: none; width: 100%; height: auto; aspect-ratio: 3 / 4; }
-/* 注：牌背 .ph-tile 走通用流式规则（[data-layout="portrait"] .ph-tile），与副露牌均分 */
 
 /* ---------------------------------------------------------------------------
- * 减少动态效果（P2-2 / D5）
- * 系统开启「减少动态效果」后，位移动画/过渡降到不可感知，只保留终态。
- * （否则倒计时箭头、骰子滚动、弹窗上浮、脉冲按钮都会继续动。）
+ * 减少动态效果：位移动画/过渡降到不可感知，只保留终态。
  * ------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

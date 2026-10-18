@@ -64,9 +64,11 @@ export const DEFAULT_CONFIG = {
   autoSort: true,
   showHints: true,
   soundEnabled: true,
-  // 牌桌主题（P0-8 / D8 双主题）：'red'（皇家红绒，默认）| 'jade'（翡翠毛毡）。
-  // 纯本机显示偏好：不进 pickMatchRules，不随联机同步、不被房主规则覆盖。
-  theme: 'red',
+  // 真人语音：'f' 女声 | 'm' 男声 | 'off' 关闭（本机偏好，不进 pickMatchRules）
+  voice: 'f',
+  // 牌桌毛毡主题：'mist'（雾青，默认）| 'sand'（暖砂）| 'ink'（夜潭）。
+  // 纯本机显示偏好：不随联机同步、不被房主规则覆盖。
+  theme: 'mist',
   aiSpeed: 700 // 毫秒
 };
 

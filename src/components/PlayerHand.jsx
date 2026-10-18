@@ -16,8 +16,7 @@ export default function PlayerHand({
   const [selectedTileId, setSelectedTileId] = useState(null);
   const [tooFast, setTooFast] = useState(false);
   // P2-1 防误触：第一次点击只选中；再点同一张必须间隔 ≥250ms（双击不会误打出）；
-  // 也可以用显式「打出」按钮，点哪张打哪张。状态机用 useState 惰性创建（稳定实例，且避免
-  // 在 render 里直接 new 对象触发 react(purity)）。
+  // 也可以用显式「打出」按钮，点哪张打哪张。
   const [guard] = useState(() => createDiscardGuard());
   const tooFastTimerRef = useRef(null);
 
@@ -33,16 +32,13 @@ export default function PlayerHand({
 
     sound.playTileTouch();
 
-    // 这里是事件处理函数（不是 render）：状态机只在这里被调用，纯函数逻辑本身在
-    // src/game/discardGuard.js 里由 test/discardGuard.test.js 覆盖。
-    // oxlint 的 react(purity) 无法识别「工厂返回对象的成员方法」，故显式豁免。
+    // 事件处理函数内调用状态机（纯函数逻辑由 test/discardGuard.test.js 覆盖）。
     // eslint-disable-next-line react/purity
     const res = guard.select(tile.id, Date.now());
     if (res.action === 'discard') {
       if (res.allowed) {
         doDiscard(tile);
       } else {
-        // 手滑保护：连点/双击不打出，给出明确反馈
         setTooFast(true);
         if (tooFastTimerRef.current) clearTimeout(tooFastTimerRef.current);
         tooFastTimerRef.current = setTimeout(() => setTooFast(false), 1500);
@@ -66,37 +62,42 @@ export default function PlayerHand({
     if (onHoverTile) onHoverTile(null);
   };
 
-  // 分离常规手牌与最新摸牌
-  const regularTiles = drawnTile 
-    ? handTiles.filter(t => t.id !== drawnTile.id)
+  const regularTiles = drawnTile
+    ? handTiles.filter((t) => t.id !== drawnTile.id)
     : handTiles;
 
   // 竖屏流式布局：总牌数（副露牌 + 手牌 + 摸牌），用于 CSS calc() 均分宽度
-  // Safari 对 flex-basis:0 + aspect-ratio 的支持有 bug，必须用显式宽度
   const totalTiles = melds.reduce((n, m) => n + m.tiles.length, 0) + regularTiles.length + (drawnTile ? 1 : 0);
 
   return (
-    <div className="player-hand flex flex-col items-center justify-end w-full px-2 select-none">
-      {/* 听牌详情提示气泡 */}
+    <div className="player-hand flex w-full select-none flex-col items-center justify-end px-2">
+      {/* 听牌详情 */}
       {selectedTileId && tingMap.has(selectedTileId) && (
-        <div className="mb-2 px-5 py-2.5 rounded-2xl bg-slate-900/95 border-2 border-amber-400/60 shadow-2xl backdrop-blur-md flex items-center gap-3 text-sm sm:text-base text-amber-200 animate-fade-in">
-          <span className="font-black text-amber-400 text-base sm:text-lg">听牌待胡：</span>
-          <div className="flex items-center gap-2 flex-wrap">
-            {tingMap.get(selectedTileId).map((w, idx) => (
-              <span key={idx} className="bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-400/40 text-emerald-300 font-bold text-sm sm:text-base">
-                {w.tile.name} ({w.remaining}张)
-              </span>
-            ))}
-          </div>
+        <div className="animate-fade-in mb-2 flex flex-wrap items-center gap-2 rounded-2xl border border-stone-200/80 bg-white/95 px-4 py-2 text-sm text-stone-700 shadow-lg backdrop-blur">
+          <span className="text-xs font-semibold text-stone-500">听牌待胡</span>
+          {tingMap.get(selectedTileId).map((w, idx) => (
+            <span
+              key={idx}
+              className="rounded-full border border-[var(--color-jade-200)] bg-[var(--color-jade-200)]/35 px-2 py-0.5 text-xs font-semibold text-[var(--color-jade-600)]"
+            >
+              {w.tile.name} · 余 {w.remaining}
+            </span>
+          ))}
         </div>
       )}
 
-      <div className="ph-row flex items-end justify-center gap-4 max-w-full overflow-x-auto pb-1" style={{ '--ph-n': Math.max(totalTiles, 1) }}>
-        {/* 左侧：已亮出的吃碰杠面子 (副露) */}
+      <div
+        className="ph-row flex max-w-full items-end justify-center gap-3 overflow-x-auto pb-1"
+        style={{ '--ph-n': Math.max(totalTiles, 1) }}
+      >
+        {/* 副露：一块很轻的纸片托住，不抢牌面 */}
         {melds.length > 0 && (
-          <div className="ph-melds-wrap flex items-end gap-2 pr-3 border-r-2 border-emerald-400/30 shrink-0">
+          <div className="ph-melds-wrap flex shrink-0 items-end gap-2 border-r border-white/20 pr-3">
             {melds.map((meld, mIdx) => (
-              <div key={mIdx} className="ph-meld-group flex items-end bg-black/40 p-1.5 rounded-lg border border-emerald-500/30 gap-1 shadow-md">
+              <div
+                key={mIdx}
+                className="ph-meld-group flex items-end gap-1 rounded-lg border border-white/15 bg-white/10 p-1"
+              >
                 {meld.tiles.map((tile, tIdx) => (
                   <MahjongTile
                     key={tIdx}
@@ -104,10 +105,10 @@ export default function PlayerHand({
                     size="meld"
                     showJiangBadge={showJiangBadge}
                     isBack={meld.type === 'an_gang' && tIdx > 0 && tIdx < 3}
-                    className={`ph-tile ${meld.type === 'chi' && tIdx === 1 ? 'ring-2 ring-amber-400 rounded-md shadow-md' : ''}`}
+                    className={`ph-tile ${meld.type === 'chi' && tIdx === 1 ? 'ring-1 ring-white/80 rounded-[10px]' : ''}`}
                   />
                 ))}
-                <span className="ph-meld-badge text-xs sm:text-sm text-emerald-300 font-black ml-1 self-center bg-emerald-900/60 px-1.5 py-0.5 rounded">
+                <span className="ph-meld-badge ml-1 self-center rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold text-white/85">
                   {meld.type === 'chi' ? '吃' : meld.type === 'peng' ? '碰' : '杠'}
                 </span>
               </div>
@@ -115,9 +116,9 @@ export default function PlayerHand({
           </div>
         )}
 
-        {/* 中间：立手牌 (使用 hand 尺寸，大而清澈) */}
-        <div className="ph-hand flex items-end gap-1 shrink-0">
-          {regularTiles.map(tile => {
+        {/* 立牌 */}
+        <div className="ph-hand flex shrink-0 items-end gap-1">
+          {regularTiles.map((tile, idx) => {
             const isSelected = selectedTileId === tile.id;
             const tingInfo = tingMap.get(tile.id);
             const isTing = !!tingInfo;
@@ -135,17 +136,16 @@ export default function PlayerHand({
                 onClick={() => handleTileClick(tile)}
                 onMouseEnter={() => handleMouseEnter(tile)}
                 onMouseLeave={handleMouseLeave}
-                className="ph-tile"
+                className="ph-tile animate-deal-in"
+                style={{ animationDelay: `${Math.min(idx, 10) * 12}ms` }}
               />
             );
           })}
         </div>
 
-        {/* 右侧：单张摸入的手牌 (与常规手牌拉开微距)
-            P2-1 节奏动效：以牌 id 为 key ⇒ 每次摸到新牌都重播一次「右侧滑入 + 淡入」（180ms ease-out）。
-            只作用于这个包裹层，避免与 MahjongTile 自身的选中/听牌 transform 打架。 */}
+        {/* 摸牌：与立牌留一道缝，以插入动效强调这是刚摸的 */}
         {drawnTile && (
-          <div key={drawnTile.id} className="ph-drawn flex items-end pl-3 shrink-0 animate-tile-draw">
+          <div key={drawnTile.id} className="ph-drawn animate-tile-draw flex shrink-0 items-end pl-2">
             <MahjongTile
               tile={drawnTile}
               size="hand"
@@ -156,23 +156,23 @@ export default function PlayerHand({
               onClick={() => handleTileClick(drawnTile)}
               onMouseEnter={() => handleMouseEnter(drawnTile)}
               onMouseLeave={handleMouseLeave}
-              className="ph-tile ring-2 ring-amber-400"
+              className="ph-tile"
             />
           </div>
         )}
       </div>
 
-      {/* 出牌提示条 + 显式「打出」按钮（P2-1：说清怎么打，并防手滑） */}
+      {/* 出牌提示 + 显式「打出」 */}
       {isMyTurn && (
-        <div className="flex items-center gap-3 mt-1.5">
-          <div className={`text-sm sm:text-base font-bold ${tooFast ? 'text-amber-300' : 'text-emerald-200/90'}`}>
+        <div className="mt-1.5 flex items-center gap-3">
+          <div className={`text-xs font-medium ${tooFast ? 'text-rose-300' : 'text-white/75'}`}>
             {discardHint(selectedTileId, tooFast)}
           </div>
           {selectedTileId && (
             <button
               type="button"
               onClick={handleExplicitDiscard}
-              className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-sm font-black shadow-md border border-emerald-300/60 active:scale-95 transition-all"
+              className="rounded-full bg-white px-4 py-1 text-xs font-bold text-stone-900 shadow-md transition-transform active:scale-95"
               title="打出当前选中的这张牌（不会误打别的牌）"
             >
               打出

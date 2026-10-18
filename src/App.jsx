@@ -4,8 +4,7 @@ import {
   DEFAULT_CONFIG,
   generateDeck,
   compareTiles,
-  getTileKey,
-  isJiangTile
+  getTileKey
 } from './types/mahjong.js';
 import {
   checkStartingHu,
@@ -32,11 +31,10 @@ import {
 import { sound } from './utils/audio.js';
 import { network } from './utils/multiplayer.js';
 
-import MahjongTile from './components/MahjongTile.jsx';
 import TableCenter from './components/TableCenter.jsx';
 import PlayerHand from './components/PlayerHand.jsx';
 import OpponentHand from './components/OpponentHand.jsx';
-import DiscardPool, { PlayerDiscardTray } from './components/DiscardPool.jsx';
+import { PlayerDiscardTray } from './components/DiscardPool.jsx';
 import ActionControls from './components/ActionControls.jsx';
 import TileWall from './components/TileWall.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
@@ -45,8 +43,9 @@ import KongDrawModal from './components/KongDrawModal.jsx';
 import RoundResultModal from './components/RoundResultModal.jsx';
 import RulesGuideModal from './components/RulesGuideModal.jsx';
 import MultiplayerModal from './components/MultiplayerModal.jsx';
+import LobbyOverlay from './components/LobbyOverlay.jsx';
 
-import { Settings, BookOpen, Volume2, VolumeX, Sparkles, Play, RotateCcw, Users, Wifi, Globe } from 'lucide-react';
+import { Settings, BookOpen, Volume2, VolumeX, Users } from 'lucide-react';
 
 // (helper 已移入 src/utils/scoring.js：normalizeScoreParams / huEntryFromTypes —— 纯函数、可单测)
 
@@ -57,15 +56,23 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        const theme = ['mist', 'sand', 'ink'].includes(parsed.theme)
+          ? parsed.theme
+          : (parsed.theme === 'jade' ? 'ink' : 'mist');
+        const voice = ['f', 'm', 'off'].includes(parsed.voice)
+          ? parsed.voice
+          : (parsed.voiceEnabled === false ? 'off' : 'f');
         return {
           ...DEFAULT_CONFIG,
           ...parsed,
+          theme,
+          voice,
           startingHu: {
             ...DEFAULT_CONFIG.startingHu,
             ...(parsed.startingHu || {})
           }
         };
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
@@ -217,6 +224,7 @@ export default function App() {
     const next = rulesLocked ? { ...newConfig, ...pickMatchRules(config) } : newConfig;
     setConfig(next);
     sound.enabled = next.soundEnabled;
+    sound.setVoice(next.voice || 'f');
     localStorage.setItem('cs_mahjong_config', JSON.stringify(next));
   };
 
@@ -240,6 +248,12 @@ export default function App() {
     network.setOnConnectionState(setNetConn);
     network.setOnLatency((avg) => setNetLatency(avg));
   }, []);
+
+  // 真人语音音色（本机偏好，不参与联机规则同步）
+  useEffect(() => {
+    sound.enabled = config.soundEnabled !== false;
+    sound.setVoice(config.voice || 'f');
+  }, [config.soundEnabled, config.voice]);
 
   const showBubble = (playerId, text, duration = 1200) => {
     setActionBubbles(prev => {
@@ -340,7 +354,7 @@ export default function App() {
             return next;
           });
         } else if (data.type === 'TILE_DISCARDED') {
-          sound.playDiscard();
+          sound.playDiscard(data.tile);
           setLastDiscard({ tile: data.tile, fromPlayer: data.playerId, isKongDiscard: data.isKongDiscard });
           stateRef.current.lastDiscard = { tile: data.tile, fromPlayer: data.playerId, isKongDiscard: data.isKongDiscard };
           // 更新弃牌池
@@ -544,6 +558,7 @@ export default function App() {
     setRoundNumber(roundNoRef.current);
     sound.init();
     sound.playDice();
+    sound.playDeal();
 
     setIsRollingDice(true);
     setGameState('DEALING');
@@ -819,7 +834,7 @@ export default function App() {
   const executeDiscard = (playerId, tile) => {
     if (!tile) return;
 
-    sound.playDiscard();
+    sound.playDiscard(tile);
     setTurnTimer(15);
     setAvailableActions({ hu: false, gang: false, peng: false, chi: false, pass: false });
     setDrawnTile(null);
@@ -1723,7 +1738,7 @@ export default function App() {
 
   // 中途四喜结算与执行
   const executeMidGameSiXi = (playerId, siXiOption) => {
-    sound.playHu();
+    sound.playHu({ zimo: true, huTypes: ['四喜'] });
     declaredSiXiRef.current[playerId].add(siXiOption.key);
 
     // 规格 §七.3/§八.11：按「小胡自摸」结算（触发者即该次结算的庄），摇骰子抓鸟；
@@ -1919,115 +1934,111 @@ export default function App() {
 
   return (
     <div
-      className="relative w-screen h-screen overflow-hidden flex flex-col bg-panel text-slate-100 select-none safe-pad"
-      data-theme={config.theme === 'jade' ? 'jade' : undefined} /* P0-8 双主题：jade 时覆盖 --color-* token */
+      className="relative flex h-screen w-screen select-none flex-col overflow-hidden bg-page text-stone-800 safe-pad"
+      data-theme={config.theme || 'mist'} /* 只换毛毡色：mist / sand / ink */
       data-layout={isPortrait ? 'portrait' : 'landscape'} /* P0-7 竖屏专用布局：竖屏时走 [data-layout="portrait"] 样式 */
     >
-      {/* 顶部黄金岛经典 HUD 导航栏 (红木描金古典风) */}
-      <header className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-amber-500/30 bg-gradient-to-r from-shell-800 via-shell-500 to-shell-800 shadow-lg z-30 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-700 flex items-center justify-center font-black text-slate-950 text-base shadow-md border border-amber-300">
-            岛
+      {/* 顶部：一块轻薄的纸面导航，不抢牌桌 */}
+      <header className="relative z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-stone-200/80 bg-[rgba(251,249,244,0.92)] px-3 backdrop-blur-md sm:px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-white shadow-sm">
+            <span className="font-serif text-lg font-semibold leading-none text-stone-800">长</span>
+            <span className="absolute bottom-1 right-1 h-1 w-1 rounded-full bg-rose-500" />
           </div>
-          <div>
-            <h1 className="hdr-title text-base sm:text-lg font-black tracking-wide text-amber-200 flex items-center gap-2 drop-shadow">
-              <span>黄金岛 · 长沙麻将</span>
-              <span className="hdr-badge text-[10px] sm:text-xs bg-amber-950/80 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/40">
-                经典正版复刻
+          <div className="min-w-0">
+            <h1 className="hdr-title flex items-center gap-2 truncate font-serif text-[17px] font-semibold tracking-tight text-stone-900">
+              <span>长沙麻将</span>
+              <span className="hdr-badge rounded-full bg-[var(--color-jade-200)]/45 px-2 py-0.5 text-[10px] font-medium text-[var(--color-jade-600)]">
+                青瓷
               </span>
             </h1>
-            <div className="hdr-sub text-[11px] text-amber-300/70 flex items-center gap-1.5 mt-0.2">
-              <span>开杠摸 {config.kongDrawCount} 只</span>
-              <span>·</span>
+            <div className="hdr-sub mt-0.5 flex items-center gap-1.5 text-[10px] text-stone-400">
+              <span>开杠 {config.kongDrawCount} 只</span>
+              <span className="text-stone-300">·</span>
               <span>{config.kongRequiresJiang ? '需将' : '免将'}</span>
-              <span>·</span>
+              <span className="text-stone-300">·</span>
               <span>{config.birdCount > 0 ? `抓 ${config.birdCount} 鸟` : '不抓鸟'}</span>
             </div>
           </div>
         </div>
 
-        {/* 顶部中央：对局模式与房间状态 */}
-        <div className="hidden lg:flex items-center gap-3 bg-black/60 px-5 py-1.5 rounded-full border border-amber-500/30 text-xs sm:text-sm">
+        {/* 对局模式 */}
+        <div className="hidden items-center gap-2 rounded-full border border-stone-200 bg-white/55 px-3.5 py-1.5 text-[11px] text-stone-500 lg:flex">
           {multiplayerState.isMultiplayer ? (
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-              <span className="font-bold text-amber-300">房号: {multiplayerState.roomCode}</span>
-              <span className="text-amber-200/70">
-                ({multiplayerState.isHost ? '房主' : '已入座'})
-              </span>
-            </div>
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-jade-600)]" />
+              <span className="font-semibold text-stone-700">房间 {multiplayerState.roomCode}</span>
+              <span className="text-stone-300">·</span>
+              <span>{multiplayerState.isHost ? '房主' : '已入座'}</span>
+            </>
           ) : (
-            <div className="flex items-center gap-2 text-amber-200 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>标准单机练习 (AI电脑对战)</span>
-            </div>
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-jade-600)]" />
+              <span>单机练习 · 三位电脑</span>
+            </>
           )}
         </div>
 
-        {/* 右侧工具按钮 (黄金岛金质圆形快捷功能组) */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* P2-3：联机时的网络状况（延迟 + 连接状态） */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {multiplayerState.isMultiplayer && (
             <div
               data-testid="net-status"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/50 border border-emerald-500/30 text-[11px] font-bold text-slate-200"
+              className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white/60 px-2.5 py-1.5 text-[10px] font-medium text-stone-600"
               title={`联机网络：${networkStatusText({ latency: netLatency, connection: netConn })}（延迟取最近 5 次往返平均）`}
             >
               <span
-                className={`inline-block w-1.5 h-1.5 rounded-full ${
-                  { ok: 'bg-emerald-400', warn: 'bg-amber-400', bad: 'bg-red-500' }[
+                className={`inline-block h-1.5 w-1.5 rounded-full ${
+                  { ok: 'bg-[var(--color-jade-500)]', warn: 'bg-amber-400', bad: 'bg-rose-500' }[
                     statusTone({ latency: netLatency, connection: netConn })
-                  ] || 'bg-slate-500'
+                  ] || 'bg-stone-400'
                 }`}
               />
-              <span className="font-mono whitespace-nowrap">
+              <span className="whitespace-nowrap font-mono">
                 {networkStatusText({ latency: netLatency, connection: netConn })}
               </span>
             </div>
           )}
 
-          {/* 多人联机 */}
           <button
             onClick={() => setIsMultiplayerOpen(true)}
-            className="hdr-multi flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-700 via-yellow-600 to-amber-700 hover:from-amber-600 hover:to-yellow-500 text-slate-950 text-xs font-black border border-amber-300 shadow-md transition-all active:scale-95"
+            className="hdr-multi btn-secondary h-9 px-3 text-[11px] font-semibold"
           >
-            <Users className="w-3.5 h-3.5" />
-            <span>{multiplayerState.isMultiplayer ? `房间 ${multiplayerState.roomCode}` : '多人对战'}</span>
+            <Users className="h-3.5 w-3.5" />
+            <span>{multiplayerState.isMultiplayer ? `房间 ${multiplayerState.roomCode}` : '多人联机'}</span>
           </button>
 
-          {/* 音效开关 */}
           <button
             onClick={() => handleUpdateConfig({ ...config, soundEnabled: !config.soundEnabled })}
-            className="relative w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm after:absolute after:-inset-1.5 after:content-['']"
+            className="icon-btn"
             title="音效开关"
+            aria-label="音效开关"
           >
-            {config.soundEnabled ? <Volume2 className="w-4 h-4 text-amber-300" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+            {config.soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
 
-          {/* 规则指南 */}
           <button
             onClick={() => setIsRulesOpen(true)}
-            className="relative w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm after:absolute after:-inset-1.5 after:content-['']"
-            title="玩法规则"
+            className="icon-btn"
+            title="玩法说明"
+            aria-label="玩法说明"
           >
-            <BookOpen className="w-4 h-4 text-amber-300" />
+            <BookOpen className="h-4 w-4" />
           </button>
 
-          {/* 规则设置 */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="relative w-8 h-8 rounded-full bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 border border-amber-500/40 flex items-center justify-center transition-colors shadow-sm after:absolute after:-inset-1.5 after:content-['']"
+            className="icon-btn"
             title="规则设置"
+            aria-label="规则设置"
           >
-            <Settings className="w-4 h-4 text-amber-300" />
+            <Settings className="h-4 w-4" />
           </button>
         </div>
       </header>
 
-      {/* 牌桌主体核心区 (红木包边 + 金色内嵌线 + 皇家红丝绒桌面) */}
-      <div className="relative flex-1 w-full h-[calc(100vh-3.5rem)] p-2 sm:p-3 bg-gradient-to-b from-shell-700 via-shell-500 to-shell-300 overflow-hidden flex flex-col">
-        {/* 皇家红丝绒圆角牌桌主面板 */}
-        <main className="relative flex-1 w-full h-full rounded-2xl sm:rounded-3xl border-2 sm:border-[3px] border-amber-400/80 shadow-[inset_0_0_60px_rgba(0,0,0,0.85),0_10px_35px_rgba(0,0,0,0.9)] mahjong-table overflow-hidden">
+      {/* 牌桌：青瓷毛毡 + 一圈很轻的亮边 */}
+      <div className="relative flex h-[calc(100vh-3.5rem)] w-full flex-1 flex-col overflow-hidden bg-page p-2 sm:p-3">
+        <main className="mahjong-table table-rim relative h-full w-full flex-1 overflow-hidden rounded-[24px] border border-white/25 sm:rounded-[30px]">
           {/* 1. 顶部：对家区域 (手牌在上，副露在右) */}
           <div className="absolute top-1.5 sm:top-2.5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
             <OpponentHand
@@ -2073,28 +2084,28 @@ export default function App() {
             />
           </div>
 
-          {/* 4. 黄金岛标志性四方 3D 双层黄金牌墙 (环绕中央对局出牌区) */}
+          {/* 4. 四方牌墙：数量随真实余牌缩短，不再固定 12 垛 */}
           {/* 上牌墙 */}
-          <div className="absolute top-[20%] sm:top-[22%] left-1/2 -translate-x-1/2 z-0 pointer-events-none opacity-90">
-            <TileWall position="top" count={12} />
+          <div className="pointer-events-none absolute left-1/2 top-[19%] z-0 -translate-x-1/2 opacity-90 sm:top-[21%]">
+            <TileWall position="top" count={Math.max(4, Math.min(14, Math.ceil((wall.length || wallTotal) / 8)))} />
           </div>
           {/* 下牌墙 */}
-          <div className="absolute bottom-[28%] sm:bottom-[31%] left-1/2 -translate-x-1/2 z-0 pointer-events-none opacity-90">
-            <TileWall position="bottom" count={12} />
+          <div className="pointer-events-none absolute bottom-[27%] left-1/2 z-0 -translate-x-1/2 opacity-90 sm:bottom-[30%]">
+            <TileWall position="bottom" count={Math.max(4, Math.min(14, Math.ceil((wall.length || wallTotal) / 8)))} />
           </div>
           {/* 左牌墙 */}
-          <div className="absolute left-[16%] sm:left-[19%] lg:left-[22%] top-1/2 -translate-y-1/2 z-0 pointer-events-none opacity-90">
-            <TileWall position="left" count={10} />
+          <div className="pointer-events-none absolute left-[15%] top-1/2 z-0 -translate-y-1/2 opacity-90 sm:left-[18%] lg:left-[21%]">
+            <TileWall position="left" count={Math.max(4, Math.min(12, Math.ceil((wall.length || wallTotal) / 10)))} />
           </div>
           {/* 右牌墙 */}
-          <div className="absolute right-[16%] sm:right-[19%] lg:right-[22%] top-1/2 -translate-y-1/2 z-0 pointer-events-none opacity-90">
-            <TileWall position="right" count={10} />
+          <div className="pointer-events-none absolute right-[15%] top-1/2 z-0 -translate-y-1/2 opacity-90 sm:right-[18%] lg:right-[21%]">
+            <TileWall position="right" count={Math.max(4, Math.min(12, Math.ceil((wall.length || wallTotal) / 10)))} />
           </div>
 
-          {/* 5. 正中央核心对局区：四方紧凑出牌池围绕中央八角紫金罗盘 (高度复刻黄金岛原版) */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center">
-            {/* 对家出牌 (罗盘正上方：6张一行横排面对对家) */}
-            <div className="mb-0.5 sm:mb-1">
+          {/* 5. 正中央核心对局区：四方出牌池围着一枚瓷盘，行/列对齐罗盘中心 */}
+          <div className="absolute left-1/2 top-1/2 z-10 grid -translate-x-1/2 -translate-y-1/2 grid-cols-[auto_auto_auto] grid-rows-[auto_auto_auto] items-center justify-items-center gap-x-1.5 gap-y-0.5 sm:gap-x-2.5 sm:gap-y-1">
+            {/* 对家出牌（罗盘正上方） */}
+            <div className="col-start-2 row-start-1">
               <PlayerDiscardTray
                 playerId={topSeatId}
                 discards={playerDiscards[topSeatId] || []}
@@ -2104,9 +2115,8 @@ export default function App() {
               />
             </div>
 
-            {/* 中层：上家出牌 + 八角紫金罗盘 + 下家出牌 */}
-            <div className="flex items-center justify-center gap-1.5 sm:gap-2.5">
-              {/* 上家出牌 (罗盘正左方：6张一列竖排面对上家) */}
+            {/* 上家出牌（罗盘正左） */}
+            <div className="col-start-1 row-start-2">
               <PlayerDiscardTray
                 playerId={leftSeatId}
                 discards={playerDiscards[leftSeatId] || []}
@@ -2114,8 +2124,10 @@ export default function App() {
                 hoveredTile={hoveredTile}
                 position="left"
               />
+            </div>
 
-              {/* 中央罗盘与桌面金印横幅 */}
+            {/* 中央瓷盘 */}
+            <div className="col-start-2 row-start-2">
               <TableCenter
                 currentTurn={currentTurn}
                 dealerId={dealerId}
@@ -2129,8 +2141,10 @@ export default function App() {
                 roundNumber={roundNumber}
                 dealerName={multiplayerState.seats?.[dealerId]?.name || PLAYERS[dealerId]?.name || ''}
               />
+            </div>
 
-              {/* 下家出牌 (罗盘正右方：6张一列竖排面对下家) */}
+            {/* 下家出牌（罗盘正右） */}
+            <div className="col-start-3 row-start-2">
               <PlayerDiscardTray
                 playerId={rightSeatId}
                 discards={playerDiscards[rightSeatId] || []}
@@ -2140,8 +2154,8 @@ export default function App() {
               />
             </div>
 
-            {/* 我家出牌 (罗盘正下方：6张一行横排面对我) */}
-            <div className="mt-0.5 sm:mt-1">
+            {/* 我的出牌（罗盘正下） */}
+            <div className="col-start-2 row-start-3">
               <PlayerDiscardTray
                 playerId={bottomSeatId}
                 discards={playerDiscards[bottomSeatId] || []}
@@ -2150,56 +2164,35 @@ export default function App() {
                 position="bottom"
               />
             </div>
-
-            {/* 未开局时的居中开始对局按钮 */}
-            {gameState === 'IDLE' && (
-              <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/70 backdrop-blur-xs rounded-3xl gap-2.5 p-3">
-                <button
-                  onClick={() => startNewRound()}
-                  className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all border-2 border-amber-200"
-                >
-                  <Play className="w-5 h-5 fill-current" />
-                  <span>开始对局</span>
-                </button>
-
-                <button
-                  onClick={() => setIsMultiplayerOpen(true)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-amber-950/80 hover:bg-amber-900 text-amber-300 font-bold text-xs border border-amber-500/40 transition-all hover:scale-105"
-                >
-                  <Users className="w-4 h-4" />
-                  <span>多人联机对战</span>
-                </button>
-              </div>
-            )}
           </div>
 
-          {/* 6. 左下角：我方玩家信息胶囊牌（P2-6：占位符改为本机真实标识与昵称） */}
-          <div className="my-capsule absolute bottom-2 sm:bottom-3 left-2 sm:left-4 z-40 flex items-center gap-1.5 bg-gradient-to-b from-panel-800 via-panel-700 to-panel-600 border-[1.5px] border-amber-400/90 rounded-full px-3 py-1 shadow-2xl">
+          {/* 6. 左下角：我方信息 */}
+          <div className="my-capsule glass-pill absolute left-3 top-3 z-40 flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 sm:left-4">
             {dealerId === bottomSeatId && (
-              <span className="w-4 h-4 rounded-full bg-gradient-to-tr from-red-700 to-red-500 border border-amber-300 text-white text-[10px] font-black flex items-center justify-center shadow-md">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-bold text-white">
                 庄
               </span>
             )}
-            <div className="flex items-center gap-1 text-red-500">
-              <span className="text-xs">♥</span>
-              <span className="text-xs font-mono font-black text-yellow-300 tracking-tight">{myDisplayId}</span>
-            </div>
-            <span className="text-xs font-black text-amber-100 ml-1">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-jade-600)] text-[11px] font-bold text-white">
+              {['东', '南', '西', '北'][bottomSeatId] || '东'}
+            </span>
+            <span className="max-w-[7rem] truncate text-xs font-semibold text-stone-800">
               {myDisplayName}
             </span>
-            {/* 本机战绩（裁定：只有 4 真人满座、全程无托管的对局才计入；刷电脑不涨） */}
+            <span className="hidden font-mono text-[10px] text-stone-400 sm:inline">
+              #{myDisplayId}
+            </span>
             <span
-              className="capsule-record text-[10px] font-black text-amber-200 bg-amber-950/80 px-1.5 py-0.2 rounded border border-amber-500/40 whitespace-nowrap"
+              className="capsule-record whitespace-nowrap rounded-full bg-white/60 px-1.5 py-0.5 text-[10px] font-medium text-stone-500"
               title="本机记录：只统计 4 个真人满座、全程无 AI 托管的对局；打电脑不计入"
             >
               净胜 {myRecord.netScore > 0 ? '+' : ''}{myRecord.netScore} · {myRecord.matches} 局
             </span>
           </div>
 
-          {/* 7. 底部：我的操作控制栏与立手牌 (巨幅超清，布满下方屏幕的三分之二) */}
-          <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center w-full max-w-[1400px] px-2 pointer-events-none safe-pad-bottom" style={{ paddingBottom: 'var(--safe-bottom)' }}>
-            {/* 人类操作按钮栏 (胡/四喜/杠/碰/吃/过) - 允许交互 */}
-            <div className="pointer-events-auto mb-1">
+          {/* 7. 底部：操作栏 + 手牌 */}
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 flex w-full max-w-[1400px] -translate-x-1/2 flex-col items-center px-2 safe-pad-bottom sm:bottom-6" style={{ paddingBottom: 'var(--safe-bottom)' }}>
+            <div className="pointer-events-auto mb-2">
               <ActionControls
                 availableActions={availableActions}
                 chiOptions={chiOptions}
@@ -2213,9 +2206,9 @@ export default function App() {
               />
             </div>
 
-            {/* 我的手牌 (副露居左，立牌居右，允许交互) */}
             <div className="pointer-events-auto w-full">
               <PlayerHand
+                key={roundNumber}
                 handTiles={playerHands[bottomSeatId] || []}
                 melds={playerMelds[bottomSeatId] || []}
                 drawnTile={currentTurn === bottomSeatId ? drawnTile : null}
@@ -2227,6 +2220,17 @@ export default function App() {
               />
             </div>
           </div>
+
+          {gameState === 'IDLE' && (
+            <LobbyOverlay
+              config={config}
+              record={myRecord}
+              onStart={() => startNewRound()}
+              onMultiplayer={() => setIsMultiplayerOpen(true)}
+              onSettings={() => setIsSettingsOpen(true)}
+              onRules={() => setIsRulesOpen(true)}
+            />
+          )}
         </main>
       </div>
 

@@ -30,28 +30,28 @@ function eq(actual, expected, message) {
 
 /** 期望的 token 表（改这里必须同步改 docs/DESIGN.md §3） */
 const EXPECTED_TOKENS = {
-  page: '#03140e',
-  panel: '#1f0604',
-  'shell-800': '#3b0e08',
-  'shell-700': '#380e08',
-  'shell-500': '#240804',
-  'shell-300': '#140302',
-  'panel-800': '#4a180e',
-  'panel-700': '#2b0c07',
-  'panel-600': '#140503',
-  'felt-300': '#a01c22',
-  'felt-400': '#560a0d',
-  'felt-500': '#821318',
-  'felt-700': '#280406',
-  'jade-600': '#15803d',
-  'jade-500': '#22c55e',
-  'jade-300': '#86efac',
-  'jade-200': '#bbf7d0',
-  'violet-800': '#4c1d73',
-  'violet-600': '#2d0e45',
-  'violet-400': '#1a082b',
-  'gold-200': '#fde047',
-  body: '#f1f5f9'
+  page: '#f1efe7',
+  panel: '#fbf9f4',
+  'shell-800': '#ffffff',
+  'shell-700': '#f8f5ee',
+  'shell-500': '#f1ede3',
+  'shell-300': '#e5dfd2',
+  'panel-800': '#ffffff',
+  'panel-700': '#f7f4ec',
+  'panel-600': '#eeeae0',
+  'felt-300': '#6aa08c',
+  'felt-500': '#4a7f6b',
+  'felt-400': '#356355',
+  'felt-700': '#21453b',
+  'jade-600': '#2f7d63',
+  'jade-500': '#3f9a7a',
+  'jade-300': '#93cbb4',
+  'jade-200': '#cfe8dc',
+  'violet-800': '#5f8578',
+  'violet-600': '#486b60',
+  'violet-400': '#33534a',
+  'gold-200': '#d9a441',
+  body: '#22302b'
 };
 
 /** 牌面艺术色：D1b 已全部 token 化（改动历史：MahjongTile 101 处、TileWall 30 处 → 0）。
@@ -281,30 +281,33 @@ console.log('\n=== 测试 8: 牌面艺术色 token（D1b）===');
   }
 }
 
-console.log('\n=== 测试 9: 双主题（P0-8 / D8）===');
+console.log('\n=== 测试 9: 三套牌桌毛毡（P0-8 / D8 改版）===');
 {
-  // 翡翠主题：只换值、不换 token 名；覆盖块必须在 @theme 之外（测试 1 只认第一个 @theme 块）
-  const jadeBlock = css.match(/\[data-theme="jade"\]\s*\{([\s\S]*?)\n\}/);
-  assert(!!jadeBlock, 'index.css 里有 [data-theme="jade"] 覆盖块');
-  const jadeTokens = {};
-  for (const m of (jadeBlock ? jadeBlock[1] : '').matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g)) {
-    jadeTokens[m[1]] = m[2].toLowerCase();
-  }
-  const EXPECTED_JADE = {
-    page: '#04120c', panel: '#0d1f14',
-    'shell-800': '#123626', 'shell-700': '#0f2e20', 'shell-500': '#0a2115', 'shell-300': '#06130c',
-    'panel-800': '#16402e', 'panel-700': '#0f2c1f', 'panel-600': '#071711',
-    'felt-300': '#319e64', 'felt-500': '#1e7a49', 'felt-400': '#145c38', 'felt-700': '#0a2c1b',
-    'violet-800': '#14503a', 'violet-600': '#0d3a29', 'violet-400': '#07231a'
+  // 只换毛毡色、不动纸张与正文：三套主题都覆盖同一组 felt token
+  const readTheme = (name) => {
+    const block = css.match(new RegExp(`\\[data-theme="${name}"\\]\\s*\\{([\\s\\S]*?)\\n\\}`));
+    assert(!!block, `index.css 里有 [data-theme="${name}"] 覆盖块`);
+    const tokens = {};
+    for (const m of (block ? block[1] : '').matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g)) {
+      tokens[m[1]] = m[2].toLowerCase();
+    }
+    return tokens;
   };
-  eq(jadeTokens, EXPECTED_JADE, '翡翠主题覆盖的 token 名单与取值与规范一致（只换暖色系，翡翠/金色/正文共用）');
+
+  eq(readTheme('sand'), {
+    'felt-300': '#b48a67', 'felt-500': '#8f6b52', 'felt-400': '#6f523f', 'felt-700': '#4b3628'
+  }, '暖砂主题只覆盖四档毛毡色');
+  eq(readTheme('ink'), {
+    'felt-300': '#557b80', 'felt-500': '#3a6066', 'felt-400': '#2b4b50', 'felt-700': '#182f33'
+  }, '夜潭主题只覆盖四档毛毡色');
 
   const appSrc = readFileSync(join(ROOT, 'src/App.jsx'), 'utf8');
   assert(/data-theme=\{[^}]*config\.theme/.test(appSrc), 'App.jsx 根容器按 config.theme 设置 data-theme');
   const settingsSrc = readFileSync(join(ROOT, 'src/components/SettingsModal.jsx'), 'utf8');
-  assert(/theme: 'red'/.test(settingsSrc) && /theme: 'jade'/.test(settingsSrc), '设置面板有红绒/翡翠两个主题切换按钮');
+  assert(/value: 'mist'/.test(settingsSrc) && /value: 'sand'/.test(settingsSrc) && /value: 'ink'/.test(settingsSrc),
+    '设置面板有雾青/暖砂/夜潭三个主题按钮');
   const typesSrc = readFileSync(join(ROOT, 'src/types/mahjong.js'), 'utf8');
-  assert(/theme: 'red'/.test(typesSrc), "DEFAULT_CONFIG 默认 theme: 'red'（老用户无感）");
+  assert(/theme: 'mist'/.test(typesSrc), "DEFAULT_CONFIG 默认 theme: 'mist'（雾青）");
   const rulesSrc = readFileSync(join(ROOT, 'src/game/rules.js'), 'utf8');
   assert(!/theme/.test(rulesSrc.match(/export function pickMatchRules[\s\S]*?\n\}/)[0]),
     'pickMatchRules 不含 theme（主题是本机显示偏好，不随联机同步）');

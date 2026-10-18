@@ -2,267 +2,195 @@ import React from 'react';
 import { SUITS, NUMBER_NAMES, isJiangTile } from '../types/mahjong.js';
 
 // -------------------------------------------------------------
-// 1. 万字牌纯矢量 SVG 渲染 (一万 ~ 九万) - 黄金岛经典：宝蓝楷书数字 + 朱砂红楷书“万”
+// 1. 万字牌：墨色数字 + 朱砂「万」，只保留一点点传统印刷的味道
 // -------------------------------------------------------------
 function SvgWan({ value }) {
   const numChar = NUMBER_NAMES[value];
-  const hjdFont = '"STKaiti", "KaiTi", "SimKai", "KaiTi_GB2312", "Microsoft YaHei", serif';
+  const brushFont = '"Noto Serif SC", "Songti SC", "STSong", "SimSun", serif';
 
   return (
     <g transform="translate(0, 0)">
-      {/* 上方数字：黄金岛正统宝蓝色楷体大字 */}
       <text
         x="36"
-        y="37"
+        y="35"
         textAnchor="middle"
         dominantBaseline="central"
-        fill="var(--art-tong-800)"
-        fontSize="37"
-        fontWeight="bold"
-        fontFamily={hjdFont}
-        style={{ letterSpacing: '0px' }}
+        fill="var(--art-ink)"
+        fontSize="34"
+        fontWeight="700"
+        fontFamily={brushFont}
       >
         {numChar}
       </text>
-
-      {/* 下方“万”字：黄金岛正统朱砂红简体楷书“万”字 */}
       <text
         x="36"
-        y="73"
+        y="72"
         textAnchor="middle"
         dominantBaseline="central"
         fill="var(--art-wan-500)"
-        fontSize="36"
-        fontWeight="bold"
-        fontFamily={hjdFont}
+        fontSize="34"
+        fontWeight="700"
+        fontFamily={brushFont}
       >
         万
       </text>
+      <line x1="22" y1="53" x2="50" y2="53" stroke="var(--art-wan-300)" strokeWidth="1" strokeLinecap="round" opacity="0.55" />
     </g>
   );
 }
 
 // -------------------------------------------------------------
-// 2. 条子牌纯矢量 SVG 渲染 - 黄金岛经典饱满粗节竹节 + 正统国标幺鸡
+// 2. 条子牌：细竹节，不用金属高光；保留 1 条的小鸟与 8 条的 M 形
 // -------------------------------------------------------------
-function SvgBamboo({ x, y, width = 11.5, height = 26, color = 'var(--art-tiao-600)', hasRedJoint = false, isAngled = 0 }) {
+function SvgBamboo({ x, y, width = 10, height = 24, color = 'var(--art-tiao-600)', redJoint = false }) {
   const rx = width / 2;
-  const gradId = color === 'var(--art-wan-500)' ? 'bambooRedGrad' : color === 'var(--art-tong-600)' || color === 'var(--art-tong-500)' ? 'bambooBlueGrad' : 'bambooGreenGrad';
-
   return (
-    <g transform={isAngled ? `rotate(${isAngled}, ${x}, ${y + height/2})` : undefined}>
-      {/* 饱满粗壮竹节主体 (非细签) */}
-      <rect
-        x={x - rx}
-        y={y}
-        width={width}
-        height={height}
-        rx={rx}
-        fill={`url(#${gradId})`}
-        stroke="rgba(0,0,0,0.3)"
-        strokeWidth="1"
-      />
-      {/* 两端微弧 */}
-      <ellipse cx={x} cy={y + 3} rx={rx - 1.5} ry="1.5" fill="rgba(255,255,255,0.45)" />
-      <ellipse cx={x} cy={y + height - 3} rx={rx - 1.5} ry="1.5" fill="rgba(0,0,0,0.3)" />
-
-      {/* 黄金岛经典三段式竹节凸环 */}
-      <rect
-        x={x - rx - 1}
-        y={y + height * 0.33 - 1.2}
-        width={width + 2}
-        height={2.4}
-        rx="1"
-        fill={hasRedJoint ? 'var(--art-wan-500)' : 'var(--art-gold-200)'}
-        stroke="rgba(0,0,0,0.35)"
-        strokeWidth="0.6"
-      />
-      <rect
-        x={x - rx - 1}
-        y={y + height * 0.67 - 1.2}
-        width={width + 2}
-        height={2.4}
-        rx="1"
-        fill={hasRedJoint ? 'var(--art-wan-500)' : 'var(--art-gold-200)'}
-        stroke="rgba(0,0,0,0.35)"
-        strokeWidth="0.6"
-      />
-
-      {/* 中轴雕刻凹槽反光条 (黄金岛标志性细节) */}
-      <line
-        x1={x}
-        y1={y + 4}
-        x2={x}
-        y2={y + height - 4}
-        stroke="rgba(255,255,255,0.6)"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
+    <g>
+      <rect x={x - rx} y={y} width={width} height={height} rx={rx} fill={color} />
+      <rect x={x - rx + width * 0.22} y={y + 3} width={width * 0.2} height={height - 6} rx={rx * 0.4} fill="var(--art-white)" opacity="0.25" />
+      <rect x={x - rx - 0.8} y={y + height * 0.34} width={width + 1.6} height="1.5" rx="0.75" fill={redJoint ? 'var(--art-wan-500)' : 'var(--art-tiao-800)'} opacity="0.7" />
+      <rect x={x - rx - 0.8} y={y + height * 0.66} width={width + 1.6} height="1.5" rx="0.75" fill={redJoint ? 'var(--art-wan-500)' : 'var(--art-tiao-800)'} opacity="0.7" />
     </g>
   );
 }
 
 function SvgTiao({ value }) {
-  // 1条：黄金岛正统吉祥“幺鸡” (昂首雄鸡立竹竿，绝非孔雀)
   if (value === 1) {
     return (
-      <g transform="translate(36, 48) scale(0.92)">
-        {/* 底部竹栖木 (绿竹竿与红节) */}
-        <rect x="-24" y="27" width="48" height="8.5" rx="4.25" fill="url(#bambooGreenGrad)" stroke="var(--art-tiao-900)" strokeWidth="0.8" />
-        <rect x="-3" y="26" width="6" height="10.5" rx="1.2" fill="var(--art-wan-500)" />
-        
-        {/* 鸡爪 (金爪双抓稳立) */}
-        <path d="M-9 20 L-9 27 M-13 27 L-5 27" stroke="var(--art-gold-600)" strokeWidth="2.2" strokeLinecap="round" />
-        <path d="M8 20 L8 27 M4 27 L12 27" stroke="var(--art-gold-600)" strokeWidth="2.2" strokeLinecap="round" />
+      <g transform="translate(36, 48) scale(0.9)">
+        {/* 栖枝 */}
+        <rect x="-25" y="26" width="50" height="6" rx="3" fill="var(--art-tiao-700)" />
+        <rect x="-3" y="24" width="6" height="10" rx="1.5" fill="var(--art-wan-500)" />
 
-        {/* 饱满翡翠鸡身 */}
-        <ellipse cx="-1" cy="5" rx="17" ry="19" fill="url(#bambooGreenGrad)" stroke="var(--art-tiao-700)" strokeWidth="1" />
-        <ellipse cx="2" cy="7" rx="11" ry="13" fill="var(--art-gold-100)" opacity="0.9" />
+        {/* 双爪 */}
+        <path d="M-8 19 L-8 26 M-12 26 L-4 26" stroke="var(--art-wan-500)" strokeWidth="2" strokeLinecap="round" />
+        <path d="M7 19 L7 26 M3 26 L11 26" stroke="var(--art-wan-500)" strokeWidth="2" strokeLinecap="round" />
 
-        {/* 鸡胸羽纹 */}
-        <path d="M-6 0 C-4 8 4 8 6 0" stroke="var(--art-tiao-700)" strokeWidth="1.2" fill="none" opacity="0.6" />
-        <path d="M-5 6 C-3 12 3 12 5 6" stroke="var(--art-tiao-700)" strokeWidth="1.2" fill="none" opacity="0.6" />
+        {/* 身体 */}
+        <ellipse cx="-1" cy="4" rx="16" ry="18" fill="var(--art-tiao-600)" />
+        <ellipse cx="2" cy="6" rx="10" ry="12" fill="var(--art-white)" opacity="0.45" />
 
-        {/* 展翘五彩翠绿赤红尾羽 */}
-        <path d="M-14 3 C-26 -4 -30 -18 -24 -26 C-22 -14 -12 -7 -8 -3 Z" fill="var(--art-tiao-600)" stroke="var(--art-tiao-800)" strokeWidth="0.8" />
-        <path d="M-12 9 C-22 7 -28 -3 -24 -13 C-20 -5 -10 1 -6 5 Z" fill="var(--art-wan-500)" />
-        <path d="M-10 13 C-18 15 -24 7 -20 -1 C-16 3 -8 7 -4 9 Z" fill="var(--art-tong-500)" />
+        {/* 尾羽 */}
+        <path d="M-13 2 C-24 -4 -27 -16 -22 -23 C-20 -13 -11 -7 -7 -3 Z" fill="var(--art-tiao-800)" />
+        <path d="M-12 9 C-21 7 -26 -2 -22 -11 C-18 -4 -9 1 -5 4 Z" fill="var(--art-wan-500)" opacity="0.9" />
+        <path d="M-10 13 C-17 15 -22 8 -19 0 C-15 4 -8 7 -4 9 Z" fill="var(--art-tong-600)" opacity="0.9" />
 
-        {/* 鸡翅膀 (层叠分色羽) */}
-        <ellipse cx="-1" cy="3" rx="8" ry="11" fill="var(--art-tiao-600)" stroke="var(--art-tiao-900)" strokeWidth="0.8" />
-        <path d="M-7 3 C-3 13 5 11 7 1" fill="var(--art-wan-500)" opacity="0.9" />
+        {/* 颈与头 */}
+        <path d="M3 -9 C6 -18 10 -22 16 -22 C23 -22 25 -14 19 -6 C14 -1 9 1 5 3 Z" fill="var(--art-tiao-600)" />
+        <circle cx="15" cy="-16" r="9" fill="var(--art-tiao-600)" />
 
-        {/* 鸡颈与头 (昂首向右) */}
-        <path d="M3 -9 C6 -19 10 -23 17 -23 C24 -23 26 -15 20 -7 C15 -1 9 1 5 3 Z" fill="url(#bambooGreenGrad)" stroke="var(--art-tiao-700)" strokeWidth="0.8" />
-        <circle cx="16" cy="-17" r="9.2" fill="url(#bambooGreenGrad)" stroke="var(--art-tiao-700)" strokeWidth="0.8" />
+        {/* 眼睛与喙 */}
+        <circle cx="18" cy="-18" r="3" fill="var(--art-white)" />
+        <circle cx="18.8" cy="-18" r="1.4" fill="var(--art-ink)" />
+        <path d="M23 -18 L32 -16 L23 -13 Z" fill="var(--art-wan-500)" />
 
-        {/* 灵动黑白眼 */}
-        <circle cx="19" cy="-19" r="3.2" fill="var(--art-white)" />
-        <circle cx="19.8" cy="-19" r="1.6" fill="var(--art-ink)" />
-        <circle cx="20.4" cy="-19.6" r="0.6" fill="var(--art-white)" />
-
-        {/* 金色利喙 */}
-        <polygon points="23,-18 32,-16 23,-13" fill="var(--art-gold-500)" stroke="var(--art-gold-600)" strokeWidth="0.8" />
-
-        {/* 鲜红三叠大鸡冠 (黄金岛幺鸡标志特征) */}
-        <path d="M12 -24 C11 -33 16 -33 17 -26 C18 -33 23 -32 22 -24 C24 -29 28 -27 26 -21 Z" fill="var(--art-wan-500)" stroke="var(--art-wan-600)" strokeWidth="0.8" />
-
-        {/* 鲜红下颚肉垂 */}
-        <ellipse cx="20" cy="-11" rx="2.5" ry="4" fill="var(--art-wan-500)" />
+        {/* 鸡冠与肉垂 */}
+        <path d="M11 -23 C10 -31 15 -31 16 -25 C17 -31 22 -30 21 -23 C23 -27 27 -25 25 -19 Z" fill="var(--art-wan-500)" />
+        <ellipse cx="20" cy="-10" rx="2.2" ry="3.6" fill="var(--art-wan-500)" />
       </g>
     );
   }
 
   const green = 'var(--art-tiao-600)';
   const red = 'var(--art-wan-500)';
-  const blue = 'var(--art-tong-500)';
+  const blue = 'var(--art-tong-600)';
 
   switch (value) {
-    // 2条：上下两根粗绿竹
     case 2:
       return (
         <g>
-          <SvgBamboo x={36} y={14} width={12} height={28} color={green} />
-          <SvgBamboo x={36} y={52} width={12} height={28} color={green} />
+          <SvgBamboo x={36} y={14} width={11} height={28} color={green} />
+          <SvgBamboo x={36} y={52} width={11} height={28} color={green} />
         </g>
       );
-    // 3条：上1蓝，下2绿
     case 3:
       return (
         <g>
-          <SvgBamboo x={36} y={14} width={11.5} height={27} color={blue} />
-          <SvgBamboo x={24} y={51} width={11.5} height={29} color={green} />
-          <SvgBamboo x={48} y={51} width={11.5} height={29} color={green} />
+          <SvgBamboo x={36} y={14} width={10.5} height={27} color={blue} />
+          <SvgBamboo x={24} y={51} width={10.5} height={29} color={green} />
+          <SvgBamboo x={48} y={51} width={10.5} height={29} color={green} />
         </g>
       );
-    // 4条：2绿2红错位排列
     case 4:
       return (
         <g>
-          <SvgBamboo x={23} y={15} width={11.5} height={28} color={green} />
-          <SvgBamboo x={49} y={15} width={11.5} height={28} color={red} />
-          <SvgBamboo x={23} y={51} width={11.5} height={28} color={red} />
-          <SvgBamboo x={49} y={51} width={11.5} height={28} color={green} />
+          <SvgBamboo x={23} y={15} width={10.5} height={28} color={green} />
+          <SvgBamboo x={49} y={15} width={10.5} height={28} color={red} />
+          <SvgBamboo x={23} y={51} width={10.5} height={28} color={red} />
+          <SvgBamboo x={49} y={51} width={10.5} height={28} color={green} />
         </g>
       );
-    // 5条：4角绿/蓝 + 中间1根鲜红竹节
     case 5:
       return (
         <g>
-          <SvgBamboo x={21} y={15} width={11} height={26} color={green} />
-          <SvgBamboo x={51} y={15} width={11} height={26} color={blue} />
-          <SvgBamboo x={36} y={34} width={11.5} height={26} color={red} hasRedJoint={true} />
-          <SvgBamboo x={21} y={53} width={11} height={26} color={blue} />
-          <SvgBamboo x={51} y={53} width={11} height={26} color={green} />
+          <SvgBamboo x={21} y={15} width={10} height={26} color={green} />
+          <SvgBamboo x={51} y={15} width={10} height={26} color={blue} />
+          <SvgBamboo x={36} y={34} width={10.5} height={26} color={red} redJoint />
+          <SvgBamboo x={21} y={53} width={10} height={26} color={blue} />
+          <SvgBamboo x={51} y={53} width={10} height={26} color={green} />
         </g>
       );
-    // 6条：上3绿，下3蓝
     case 6:
       return (
         <g>
-          <SvgBamboo x={20} y={15} width={11} height={27} color={green} />
-          <SvgBamboo x={36} y={15} width={11} height={27} color={green} />
-          <SvgBamboo x={52} y={15} width={11} height={27} color={green} />
-          <SvgBamboo x={20} y={52} width={11} height={27} color={blue} />
-          <SvgBamboo x={36} y={52} width={11} height={27} color={blue} />
-          <SvgBamboo x={52} y={52} width={11} height={27} color={blue} />
+          <SvgBamboo x={20} y={15} width={10} height={27} color={green} />
+          <SvgBamboo x={36} y={15} width={10} height={27} color={green} />
+          <SvgBamboo x={52} y={15} width={10} height={27} color={green} />
+          <SvgBamboo x={20} y={52} width={10} height={27} color={blue} />
+          <SvgBamboo x={36} y={52} width={10} height={27} color={blue} />
+          <SvgBamboo x={52} y={52} width={10} height={27} color={blue} />
         </g>
       );
-    // 7条：顶中1红，中3绿，底3绿
     case 7:
       return (
         <g>
-          <SvgBamboo x={36} y={11} width={11.5} height={24} color={red} hasRedJoint={true} />
-          <SvgBamboo x={20} y={40} width={10.5} height={21} color={green} />
-          <SvgBamboo x={36} y={40} width={10.5} height={21} color={green} />
-          <SvgBamboo x={52} y={40} width={10.5} height={21} color={green} />
-          <SvgBamboo x={20} y={67} width={10.5} height={21} color={green} />
-          <SvgBamboo x={36} y={67} width={10.5} height={21} color={green} />
-          <SvgBamboo x={52} y={67} width={10.5} height={21} color={green} />
+          <SvgBamboo x={36} y={11} width={10.5} height={24} color={red} redJoint />
+          <SvgBamboo x={20} y={40} width={9.5} height={21} color={green} />
+          <SvgBamboo x={36} y={40} width={9.5} height={21} color={green} />
+          <SvgBamboo x={52} y={40} width={9.5} height={21} color={green} />
+          <SvgBamboo x={20} y={67} width={9.5} height={21} color={green} />
+          <SvgBamboo x={36} y={67} width={9.5} height={21} color={green} />
+          <SvgBamboo x={52} y={67} width={9.5} height={21} color={green} />
         </g>
       );
-    // 8条：黄金岛正统八条 (上下两组对称绿M节 + 居中红竖轴)
     case 8:
       return (
         <g>
-          {/* 上半部分 M形竹节 (4根绿斜竹) */}
           <path
             d="M 18 38 L 27 15 L 36 29 L 45 15 L 54 38"
-            stroke="url(#bambooGreenGrad)"
-            strokeWidth="5.5"
+            stroke={green}
+            strokeWidth="5"
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
           />
-          {/* 下半部分 W形竹节 (4根绿斜竹) */}
           <path
             d="M 18 81 L 27 58 L 36 72 L 45 58 L 54 81"
-            stroke="url(#bambooGreenGrad)"
-            strokeWidth="5.5"
+            stroke={green}
+            strokeWidth="5"
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
           />
-          {/* 中轴朱红竖线 */}
-          <line x1="36" y1="28" x2="36" y2="72" stroke="var(--art-wan-500)" strokeWidth="3" strokeLinecap="round" />
-          <circle cx="36" cy="50" r="3" fill="var(--art-wan-500)" stroke="var(--art-wan-700)" strokeWidth="0.8" />
+          <line x1="36" y1="30" x2="36" y2="70" stroke={red} strokeWidth="2.4" strokeLinecap="round" />
+          <circle cx="36" cy="50" r="2.6" fill={red} />
         </g>
       );
-    // 9条：3排3列 (上3红，中3蓝，下3绿)
     case 9:
       return (
         <g>
-          <SvgBamboo x={20} y={13} width={10.5} height={22} color={red} />
-          <SvgBamboo x={36} y={13} width={10.5} height={22} color={red} />
-          <SvgBamboo x={52} y={13} width={10.5} height={22} color={red} />
-
-          <SvgBamboo x={20} y={39} width={10.5} height={22} color={blue} />
-          <SvgBamboo x={36} y={39} width={10.5} height={22} color={blue} />
-          <SvgBamboo x={52} y={39} width={10.5} height={22} color={blue} />
-
-          <SvgBamboo x={20} y={65} width={10.5} height={22} color={green} />
-          <SvgBamboo x={36} y={65} width={10.5} height={22} color={green} />
-          <SvgBamboo x={52} y={65} width={10.5} height={22} color={green} />
+          {[13, 39, 65].map((y, row) =>
+            [20, 36, 52].map((x) => (
+              <SvgBamboo
+                key={`${x}-${y}`}
+                x={x}
+                y={y}
+                width={9.5}
+                height={21}
+                color={row === 0 ? red : row === 1 ? blue : green}
+              />
+            ))
+          )}
         </g>
       );
     default:
@@ -271,22 +199,18 @@ function SvgTiao({ value }) {
 }
 
 // -------------------------------------------------------------
-// 3. 筒子牌纯矢量 SVG 渲染 - 黄金岛同心大铜钱与饱满梅花圆盘
+// 3. 筒子牌：温和的双环圆饼，保留 1 筒的花心
 // -------------------------------------------------------------
-function SvgDot({ cx, cy, r = 9.5, color = 'var(--art-tong-600)' }) {
+function SvgDot({ cx, cy, r = 9, color = 'var(--art-tong-600)' }) {
   const isRed = color === 'var(--art-wan-500)';
   const isGreen = color === 'var(--art-tiao-600)';
-  const fillGrad = isRed ? 'url(#dotRedGrad)' : isGreen ? 'url(#dotGreenGrad)' : 'url(#dotBlueGrad)';
 
   return (
     <g>
-      <circle cx={cx} cy={cy} r={r} fill={fillGrad} stroke="rgba(0,0,0,0.35)" strokeWidth="1" />
-      <circle cx={cx} cy={cy} r={r * 0.72} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1" strokeDasharray="2,1.5" />
-      <circle cx={cx - r * 0.3} cy={cy} r={r * 0.22} fill="var(--art-white)" opacity="0.9" />
-      <circle cx={cx + r * 0.3} cy={cy} r={r * 0.22} fill="var(--art-white)" opacity="0.9" />
-      <circle cx={cx} cy={cy - r * 0.3} r={r * 0.22} fill="var(--art-white)" opacity="0.9" />
-      <circle cx={cx} cy={cy + r * 0.3} r={r * 0.22} fill="var(--art-white)" opacity="0.9" />
-      <circle cx={cx} cy={cy} r={r * 0.24} fill={isRed ? 'var(--art-gold-200)' : 'var(--art-wan-500)'} stroke="rgba(0,0,0,0.2)" strokeWidth="0.5" />
+      <circle cx={cx} cy={cy} r={r} fill={color} />
+      <circle cx={cx} cy={cy} r={r * 0.68} fill="none" stroke="var(--art-white)" strokeWidth="1.1" opacity="0.75" />
+      <circle cx={cx} cy={cy} r={r * 0.26} fill={isGreen ? 'var(--art-tiao-900)' : isRed ? 'var(--art-wan-700)' : 'var(--art-tong-900)'} />
+      <circle cx={cx - r * 0.2} cy={cy - r * 0.2} r={r * 0.16} fill="var(--art-white)" opacity="0.65" />
     </g>
   );
 }
@@ -296,23 +220,25 @@ function SvgTong({ value }) {
   const green = 'var(--art-tiao-600)';
   const red = 'var(--art-wan-500)';
 
-  // 1筒：黄金岛传世大花轮 (大饼)
   if (value === 1) {
     return (
       <g transform="translate(36, 48)">
-        <circle cx="0" cy="0" r="31" fill="var(--art-wan-500)" stroke="var(--art-wan-700)" strokeWidth="1.2" />
-        <circle cx="0" cy="0" r="25" fill="var(--art-gold-100)" stroke="var(--art-gold-700)" strokeWidth="0.8" />
-
-        {[...Array(12)].map((_, i) => {
-          const angle = (i * Math.PI) / 6;
-          const px = Math.cos(angle) * 17.5;
-          const py = Math.sin(angle) * 17.5;
-          return <circle key={i} cx={px} cy={py} r="4.2" fill="var(--art-tiao-600)" stroke="var(--art-tiao-800)" strokeWidth="0.6" />;
+        <circle cx="0" cy="0" r="30" fill="var(--art-white)" stroke="var(--art-wan-500)" strokeWidth="3" />
+        <circle cx="0" cy="0" r="23" fill="none" stroke="var(--art-wan-300)" strokeWidth="1" />
+        {[...Array(8)].map((_, i) => {
+          const angle = (i * Math.PI) / 4;
+          return (
+            <circle
+              key={i}
+              cx={Math.cos(angle) * 16}
+              cy={Math.sin(angle) * 16}
+              r="4"
+              fill={i % 2 === 0 ? green : blue}
+            />
+          );
         })}
-
-        <circle cx="0" cy="0" r="12" fill="var(--art-tong-600)" stroke="var(--art-tong-800)" strokeWidth="1.2" />
-        <circle cx="0" cy="0" r="5" fill="var(--art-gold-500)" />
-        <circle cx="0" cy="0" r="2.2" fill="var(--art-wan-500)" />
+        <circle cx="0" cy="0" r="9" fill="var(--art-wan-500)" />
+        <circle cx="0" cy="0" r="3.4" fill="var(--art-white)" />
       </g>
     );
   }
@@ -321,87 +247,81 @@ function SvgTong({ value }) {
     case 2:
       return (
         <g>
-          <SvgDot cx={36} cy={27} r={12.5} color={green} />
-          <SvgDot cx={36} cy={69} r={12.5} color={blue} />
+          <SvgDot cx={36} cy={27} r={12} color={green} />
+          <SvgDot cx={36} cy={69} r={12} color={blue} />
         </g>
       );
     case 3:
       return (
         <g>
-          <SvgDot cx={20} cy={22} r={10.5} color={blue} />
-          <SvgDot cx={36} cy={48} r={10.5} color={red} />
-          <SvgDot cx={52} cy={74} r={10.5} color={green} />
+          <SvgDot cx={20} cy={22} r={10} color={blue} />
+          <SvgDot cx={36} cy={48} r={10} color={red} />
+          <SvgDot cx={52} cy={74} r={10} color={green} />
         </g>
       );
     case 4:
       return (
         <g>
-          <SvgDot cx={22} cy={26} r={11} color={blue} />
-          <SvgDot cx={50} cy={26} r={11} color={green} />
-          <SvgDot cx={22} cy={70} r={11} color={green} />
-          <SvgDot cx={50} cy={70} r={11} color={blue} />
+          <SvgDot cx={22} cy={26} r={10.5} color={blue} />
+          <SvgDot cx={50} cy={26} r={10.5} color={green} />
+          <SvgDot cx={22} cy={70} r={10.5} color={green} />
+          <SvgDot cx={50} cy={70} r={10.5} color={blue} />
         </g>
       );
     case 5:
       return (
         <g>
-          <SvgDot cx={20} cy={23} r={10} color={blue} />
-          <SvgDot cx={52} cy={23} r={10} color={green} />
-          <SvgDot cx={36} cy={48} r={11.5} color={red} />
-          <SvgDot cx={20} cy={73} r={10} color={green} />
-          <SvgDot cx={52} cy={73} r={10} color={blue} />
+          <SvgDot cx={20} cy={23} r={9.5} color={blue} />
+          <SvgDot cx={52} cy={23} r={9.5} color={green} />
+          <SvgDot cx={36} cy={48} r={11} color={red} />
+          <SvgDot cx={20} cy={73} r={9.5} color={green} />
+          <SvgDot cx={52} cy={73} r={9.5} color={blue} />
         </g>
       );
     case 6:
       return (
         <g>
-          <SvgDot cx={23} cy={22} r={9.5} color={green} />
-          <SvgDot cx={49} cy={22} r={9.5} color={green} />
-          <SvgDot cx={23} cy={48} r={9.5} color={red} />
-          <SvgDot cx={49} cy={48} r={9.5} color={red} />
-          <SvgDot cx={23} cy={74} r={9.5} color={red} />
-          <SvgDot cx={49} cy={74} r={9.5} color={red} />
+          {[22, 48, 74].map((y, row) => (
+            <React.Fragment key={y}>
+              <SvgDot cx={23} cy={y} r={9} color={row === 0 ? green : red} />
+              <SvgDot cx={49} cy={y} r={9} color={row === 0 ? green : red} />
+            </React.Fragment>
+          ))}
         </g>
       );
     case 7:
       return (
         <g>
-          <SvgDot cx={18} cy={20} r={8} color={green} />
-          <SvgDot cx={36} cy={25} r={8} color={green} />
-          <SvgDot cx={54} cy={30} r={8} color={green} />
-          <SvgDot cx={23} cy={54} r={9} color={red} />
-          <SvgDot cx={49} cy={54} r={9} color={red} />
-          <SvgDot cx={23} cy={75} r={9} color={red} />
-          <SvgDot cx={49} cy={75} r={9} color={red} />
+          <SvgDot cx={18} cy={20} r={7.5} color={green} />
+          <SvgDot cx={36} cy={25} r={7.5} color={green} />
+          <SvgDot cx={54} cy={30} r={7.5} color={green} />
+          <SvgDot cx={23} cy={54} r={8.5} color={red} />
+          <SvgDot cx={49} cy={54} r={8.5} color={red} />
+          <SvgDot cx={23} cy={75} r={8.5} color={red} />
+          <SvgDot cx={49} cy={75} r={8.5} color={red} />
         </g>
       );
     case 8:
       return (
         <g>
-          <SvgDot cx={23} cy={18} r={8.5} color={blue} />
-          <SvgDot cx={49} cy={18} r={8.5} color={blue} />
-          <SvgDot cx={23} cy={38} r={8.5} color={blue} />
-          <SvgDot cx={49} cy={38} r={8.5} color={blue} />
-          <SvgDot cx={23} cy={58} r={8.5} color={blue} />
-          <SvgDot cx={49} cy={58} r={8.5} color={blue} />
-          <SvgDot cx={23} cy={78} r={8.5} color={blue} />
-          <SvgDot cx={49} cy={78} r={8.5} color={blue} />
+          {[18, 38, 58, 78].map((y) => (
+            <React.Fragment key={y}>
+              <SvgDot cx={23} cy={y} r={8} color={blue} />
+              <SvgDot cx={49} cy={y} r={8} color={blue} />
+            </React.Fragment>
+          ))}
         </g>
       );
     case 9:
       return (
         <g>
-          <SvgDot cx={19} cy={22} r={8.5} color={blue} />
-          <SvgDot cx={36} cy={22} r={8.5} color={blue} />
-          <SvgDot cx={53} cy={22} r={8.5} color={blue} />
-
-          <SvgDot cx={19} cy={48} r={8.5} color={red} />
-          <SvgDot cx={36} cy={48} r={8.5} color={red} />
-          <SvgDot cx={53} cy={48} r={8.5} color={red} />
-
-          <SvgDot cx={19} cy={74} r={8.5} color={green} />
-          <SvgDot cx={36} cy={74} r={8.5} color={green} />
-          <SvgDot cx={53} cy={74} r={8.5} color={green} />
+          {[22, 48, 74].map((y, row) => (
+            <React.Fragment key={y}>
+              <SvgDot cx={19} cy={y} r={8} color={row === 0 ? blue : row === 1 ? red : green} />
+              <SvgDot cx={36} cy={y} r={8} color={row === 0 ? blue : row === 1 ? red : green} />
+              <SvgDot cx={53} cy={y} r={8} color={row === 0 ? blue : row === 1 ? red : green} />
+            </React.Fragment>
+          ))}
         </g>
       );
     default:
@@ -410,7 +330,7 @@ function SvgTong({ value }) {
 }
 
 // -------------------------------------------------------------
-// 4. 麻将牌统一封装组件 (自适应高清矢量渲染，尺寸大幅升级)
+// 4. 牌张统一封装：象牙白面板 + 极浅的侧边，不用金属/流金
 // -------------------------------------------------------------
 export default function MahjongTile({
   tile = null,
@@ -421,7 +341,7 @@ export default function MahjongTile({
   isTing = false,
   tingCount = null,
   showJiangBadge = false,
-  rotation = 0, // 0 | 90 | 180 | 270 (其它三家牌朝向自身)
+  rotation = 0,
   onClick = null,
   onMouseEnter = null,
   onMouseLeave = null,
@@ -430,162 +350,107 @@ export default function MahjongTile({
 }) {
   const isJiang = tile ? isJiangTile(tile) : false;
 
-  // 牌张物理尺寸精确适配（P2-2 / D2）
-  // 只用**宽度断点**缩放：本应用是强制横屏（竖屏显示「请横置手机」遮罩），
-  // 而 Tailwind 的 `landscape:` 媒体查询在生成的 CSS 里排在断点工具类之后 —— 只要横屏就压过
-  // sm/md/lg/xl，导致桌面大屏也一直用小尺寸（实测 1440×900 手牌只有 60×82，本该 88×120）。
-  // 见 docs/DESIGN.md §2.3 / 差距清单 D2。
+  // 尺寸表：保留四个宽度断点，桌面大屏与手机都能看清。
   const sizeMap = {
-    // 玩家手牌 (巨幅超清，布满下方屏幕的三分之二)
-    hand: 'w-[48px] h-[66px] sm:w-[60px] sm:h-[82px] md:w-[70px] md:h-[96px] lg:w-[80px] lg:h-[110px] xl:w-[88px] xl:h-[120px] 2xl:w-[94px] 2xl:h-[128px]',
-    // 碰吃杠面子牌 (比手牌略小)
-    meld: 'w-[40px] h-[55px] sm:w-[46px] sm:h-[64px] md:w-[54px] md:h-[74px] lg:w-[60px] lg:h-[82px] xl:w-[66px] xl:h-[90px]',
-    // 弃牌池牌张 (对家与自己出牌，一行12张) — 手牌的2/3大小
-    discard: 'w-[32px] h-[44px] sm:w-[38px] sm:h-[52px] md:w-[44px] md:h-[60px] lg:w-[48px] lg:h-[66px] xl:w-[52px] xl:h-[72px]',
-    // 侧边出牌 (用于上家与下家竖排纵向成列出牌)
-    'discard-side': 'w-[28px] h-[38px] sm:w-[32px] sm:h-[44px] md:w-[34px] md:h-[46px] lg:w-[36px] lg:h-[50px] xl:w-[38px] xl:h-[52px]',
-    // 对家手牌背面
-    'opp-top': 'w-[34px] h-[46px] sm:w-[40px] sm:h-[54px] md:w-[42px] md:h-[58px] lg:w-[44px] lg:h-[60px] xl:w-[46px] xl:h-[64px]',
-    // 侧边手牌背面 (上家与下家，紧凑叠放避免撑爆屏幕高度)
-    'opp-side': 'w-[24px] h-[32px] sm:w-[26px] sm:h-[34px] md:w-[28px] md:h-[38px] lg:w-[30px] lg:h-[40px] xl:w-[32px] xl:h-[42px]',
-    // 兼容原尺寸代码
-    lg: 'w-[80px] h-[110px]',
-    md: 'w-[60px] h-[82px]',
-    sm: 'w-[40px] h-[56px]',
-    mini: 'w-[30px] h-[42px]'
+    hand: 'w-[46px] h-[62px] sm:w-[58px] sm:h-[78px] md:w-[68px] md:h-[92px] lg:w-[78px] lg:h-[106px] xl:w-[86px] xl:h-[116px] 2xl:w-[92px] 2xl:h-[124px]',
+    meld: 'w-[38px] h-[52px] sm:w-[44px] sm:h-[60px] md:w-[52px] md:h-[70px] lg:w-[58px] lg:h-[78px] xl:w-[64px] xl:h-[86px]',
+    discard: 'w-[30px] h-[41px] sm:w-[36px] sm:h-[49px] md:w-[42px] md:h-[57px] lg:w-[46px] lg:h-[62px] xl:w-[50px] xl:h-[68px]',
+    'discard-side': 'w-[26px] h-[36px] sm:w-[30px] sm:h-[41px] md:w-[32px] md:h-[44px] lg:w-[34px] lg:h-[47px] xl:w-[36px] xl:h-[49px]',
+    'opp-top': 'w-[32px] h-[44px] sm:w-[38px] sm:h-[52px] md:w-[40px] md:h-[55px] lg:w-[42px] lg:h-[57px] xl:w-[44px] xl:h-[60px]',
+    'opp-side': 'w-[22px] h-[30px] sm:w-[24px] sm:h-[33px] md:w-[26px] md:h-[35px] lg:w-[28px] lg:h-[38px] xl:w-[30px] xl:h-[40px]',
+    lg: 'w-[78px] h-[106px]',
+    md: 'w-[58px] h-[78px]',
+    sm: 'w-[38px] h-[52px]',
+    mini: 'w-[28px] h-[39px]'
   };
 
   const currentSizeClass = sizeMap[size] || sizeMap.md;
 
-  // 牌背渲染 (黄金岛标志性琥珀流金微晶质感)
+  // 牌背：青瓷色 + 细白线，安静但能看出是「牌」
   if (isBack || !tile) {
     return (
       <div
-        className={`relative inline-block select-none cursor-default shrink-0 transition-transform ${currentSizeClass} ${className}`}
+        className={`relative inline-block shrink-0 select-none cursor-default ${currentSizeClass} ${className}`}
         style={style}
+        aria-hidden="true"
       >
-        <svg viewBox="0 0 72 96" className="w-full h-full drop-shadow-md">
+        <svg viewBox="0 0 72 96" className="w-full h-full overflow-visible">
           <defs>
-            <linearGradient id="goldBackGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="var(--art-gold-200)" />
-              <stop offset="25%" stopColor="var(--art-gold-500)" />
-              <stop offset="70%" stopColor="var(--art-gold-600)" />
-              <stop offset="100%" stopColor="var(--art-brown-900)" />
-            </linearGradient>
-            <linearGradient id="goldEdgeGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--art-brown-900)" />
-              <stop offset="100%" stopColor="var(--art-brown-950)" />
+            <linearGradient id="tileBackGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="var(--color-jade-300)" />
+              <stop offset="55%" stopColor="var(--color-jade-500)" />
+              <stop offset="100%" stopColor="var(--color-jade-600)" />
             </linearGradient>
           </defs>
-          {/* 3D牌身厚底边 */}
-          <rect x="2" y="8" width="68" height="86" rx="8" fill="url(#goldEdgeGrad)" />
-          {/* 牌背流金主面板 */}
-          <rect x="2" y="2" width="68" height="86" rx="8" fill="url(#goldBackGrad)" stroke="var(--art-gold-200)" strokeWidth="1.2" strokeOpacity="0.8" />
-          <rect x="8" y="8" width="56" height="74" rx="6" fill="none" stroke="var(--art-gold-200)" strokeWidth="1" strokeOpacity="0.45" />
-          <polygon points="36,36 44,48 36,60 28,48" fill="var(--art-white)" fillOpacity="0.3" />
+          <rect x="2" y="8" width="68" height="86" rx="10" fill="var(--color-jade-600)" opacity="0.55" />
+          <rect x="2" y="2" width="68" height="86" rx="10" fill="url(#tileBackGrad)" stroke="var(--color-jade-200)" strokeWidth="1" strokeOpacity="0.7" />
+          <rect x="8" y="8" width="56" height="74" rx="7" fill="none" stroke="var(--art-white)" strokeWidth="1" strokeOpacity="0.4" />
+          <path d="M36 34 L46 48 L36 62 L26 48 Z" fill="var(--art-white)" fillOpacity="0.24" />
+          <circle cx="36" cy="48" r="3" fill="var(--art-white)" fillOpacity="0.55" />
         </svg>
       </div>
     );
   }
 
-  // 牌面渲染 (象牙白温润微晶 + 100% 矢量图形)
   return (
     <div
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`relative inline-block select-none cursor-pointer shrink-0 transition-all duration-150 ${currentSizeClass} ${
-        selected ? '-translate-y-6 filter drop-shadow-2xl ring-4 ring-amber-400 rounded-xl' : ''
+      data-suit={tile.suit}
+      data-value={tile.value}
+      className={`relative inline-block shrink-0 select-none transition-[transform,box-shadow] duration-150 ease-out ${currentSizeClass} ${
+        onClick ? 'cursor-pointer' : 'cursor-default'
       } ${
-        highlight ? 'filter drop-shadow-xl ring-2 ring-emerald-400 brightness-110 rounded-lg' : ''
+        selected
+          ? '-translate-y-4 drop-shadow-[0_16px_18px_rgba(20,42,34,0.28)] ring-2 ring-jade-600 ring-offset-2 ring-offset-transparent rounded-[10px]'
+          : 'hover:-translate-y-0.5'
+      } ${
+        highlight ? 'ring-2 ring-white/90 ring-offset-1 ring-offset-transparent brightness-105 rounded-[10px]' : ''
       } ${className}`}
       style={style}
     >
-      <svg viewBox="0 0 72 96" className="w-full h-full drop-shadow-md overflow-visible">
+      <svg viewBox="0 0 72 96" className="w-full h-full overflow-visible">
         <defs>
           <linearGradient id="ivoryGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--art-white)" />
-            <stop offset="70%" stopColor="var(--art-face)" />
+            <stop offset="72%" stopColor="var(--art-face)" />
             <stop offset="100%" stopColor="var(--art-face-shade)" />
           </linearGradient>
-          <linearGradient id="tileBaseGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--art-gold-600)" />
-            <stop offset="100%" stopColor="var(--art-brown-900)" />
+          <linearGradient id="tileSideGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--art-face-edge)" />
+            <stop offset="100%" stopColor="var(--art-steel-400)" />
           </linearGradient>
-
-          <linearGradient id="bambooGreenGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--art-tiao-800)" />
-            <stop offset="35%" stopColor="var(--art-tiao-500)" />
-            <stop offset="70%" stopColor="var(--art-tiao-600)" />
-            <stop offset="100%" stopColor="var(--art-tiao-800)" />
-          </linearGradient>
-          <linearGradient id="bambooRedGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--art-wan-700)" />
-            <stop offset="35%" stopColor="var(--art-wan-400)" />
-            <stop offset="70%" stopColor="var(--art-wan-500)" />
-            <stop offset="100%" stopColor="var(--art-wan-700)" />
-          </linearGradient>
-          <linearGradient id="bambooBlueGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--art-tong-900)" />
-            <stop offset="35%" stopColor="var(--art-tong-400)" />
-            <stop offset="70%" stopColor="var(--art-tong-600)" />
-            <stop offset="100%" stopColor="var(--art-tong-900)" />
-          </linearGradient>
-
-          <radialGradient id="dotRedGrad" cx="35%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="var(--art-wan-300)" />
-            <stop offset="40%" stopColor="var(--art-wan-500)" />
-            <stop offset="100%" stopColor="var(--art-wan-700)" />
-          </radialGradient>
-          <radialGradient id="dotGreenGrad" cx="35%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="var(--art-tiao-300)" />
-            <stop offset="40%" stopColor="var(--art-tiao-600)" />
-            <stop offset="100%" stopColor="var(--art-tiao-800)" />
-          </radialGradient>
-          <radialGradient id="dotBlueGrad" cx="35%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="var(--art-tong-300)" />
-            <stop offset="40%" stopColor="var(--art-tong-600)" />
-            <stop offset="100%" stopColor="var(--art-tong-900)" />
-          </radialGradient>
         </defs>
 
         <g transform={rotation ? `rotate(${rotation}, 36, 48)` : undefined}>
-          <rect x="2" y="8" width="68" height="86" rx="8" fill="url(#tileBaseGrad)" />
+          {/* 牌身侧边：只留一道很浅的厚度，不再用金色底座 */}
+          <rect x="2" y="8" width="68" height="86" rx="10" fill="url(#tileSideGrad)" />
           <rect
             x="2"
             y="2"
             width="68"
             height="86"
-            rx="7"
+            rx="9"
             fill="url(#ivoryGrad)"
             stroke="var(--art-face-edge)"
-            strokeWidth="1.2"
-          />
-          <rect
-            x="4"
-            y="4"
-            width="64"
-            height="82"
-            rx="5"
-            fill="none"
-            stroke="rgba(255,255,255,0.85)"
             strokeWidth="1"
           />
+          <rect x="4.5" y="4.5" width="63" height="81" rx="7" fill="none" stroke="var(--art-white)" strokeWidth="1.2" strokeOpacity="0.9" />
 
           {tile.suit === SUITS.WAN && <SvgWan value={tile.value} />}
           {tile.suit === SUITS.TIAO && <SvgTiao value={tile.value} />}
           {tile.suit === SUITS.TONG && <SvgTong value={tile.value} />}
 
           {showJiangBadge && isJiang && (
-            <circle cx="12" cy="12" r="5" fill="var(--art-gold-500)" stroke="var(--art-white)" strokeWidth="1.2" />
+            <circle cx="11" cy="11" r="4" fill="var(--color-jade-500)" stroke="var(--art-white)" strokeWidth="1.2" />
           )}
         </g>
       </svg>
 
-      {/* 听牌大号显目勋章角标 */}
       {isTing && (
-        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-red-600 to-amber-500 text-white font-black text-xs sm:text-sm leading-tight px-2.5 py-0.5 rounded-full shadow-xl border border-white/80 pointer-events-none z-30 animate-pulse">
-          听{tingCount !== null ? ` ${tingCount}张` : ''}
+        <div className="pointer-events-none absolute -right-1.5 -top-2 z-30 rounded-full bg-rose-600 px-1.5 py-[1px] text-[9px] font-bold leading-tight text-white shadow-sm">
+          听{tingCount !== null ? ` ${tingCount}` : ''}
         </div>
       )}
     </div>
