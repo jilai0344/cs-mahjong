@@ -80,7 +80,10 @@ export default function PlayerHand({
   const totalTiles = melds.reduce((n, m) => n + m.tiles.length, 0) + regularTiles.length + (drawnTile ? 1 : 0);
 
   return (
-    <div className="player-hand flex w-full select-none flex-col items-center justify-end px-2">
+    <div
+      className="player-hand flex w-full select-none flex-col items-center justify-end px-2"
+      style={{ '--deal-x': '0px', '--deal-y': '-240px', '--deal-rx': '10deg' }}
+    >
       {startingHu && (
         <div className="mb-1.5 flex w-full justify-start pl-1">
           <StartingHuBadge event={startingHu} />
@@ -111,7 +114,7 @@ export default function PlayerHand({
             {melds.map((meld, mIdx) => (
               <div
                 key={mIdx}
-                className="ph-meld-group flex items-end gap-1 rounded-lg border border-white/15 bg-white/10 p-1"
+                className="ph-meld-group animate-meld-snap flex items-end gap-1 rounded-lg border border-white/15 bg-white/10 p-1"
               >
                 {meld.tiles.map((tile, tIdx) => (
                   <MahjongTile
@@ -155,7 +158,7 @@ export default function PlayerHand({
                 onMouseEnter={() => handleMouseEnter(tile)}
                 onMouseLeave={handleMouseLeave}
                 className="ph-tile animate-deal-in"
-                style={{ animationDelay: `${Math.min(idx, 10) * 12}ms` }}
+                style={{ animationDelay: `${Math.min(idx, 10) * 18}ms` }}
               />
             );
           })}

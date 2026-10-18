@@ -75,18 +75,46 @@
 }
 
 @keyframes tileDraw {
-  from { opacity: 0; transform: translate(16px, -26px) scale(0.96); }
-  to { opacity: 1; transform: translate(0, 0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translate(10px, -38px) perspective(620px) rotateY(68deg) scale(0.92);
+  }
+  58% { opacity: 1; }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) perspective(620px) rotateY(0deg) scale(1);
+  }
 }
 
 @keyframes tileDiscard {
-  from { opacity: 0.35; transform: translate(var(--throw-x, 0px), var(--throw-y, -8px)) scale(1.12); }
-  to { opacity: 1; transform: translate(0, 0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translate(var(--throw-x, 0px), var(--throw-y, -10px)) perspective(620px) rotateX(-32deg) scale(1.1);
+  }
+  55% { opacity: 1; }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) perspective(620px) rotateX(0deg) scale(1);
+  }
 }
 
 @keyframes dealIn {
-  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--deal-x, 0px), var(--deal-y, -18px), 0)
+      rotateX(var(--deal-rx, 0deg)) rotateY(var(--deal-ry, 0deg)) scale(0.7);
+  }
+  62% { opacity: 1; }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) scale(1);
+  }
+}
+
+@keyframes meldSnap {
+  0% { opacity: 0; transform: scale(0.82) rotate(-2.5deg); }
+  62% { opacity: 1; transform: scale(1.03) rotate(0.5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
 }
 
 @keyframes calloutIn {
@@ -135,6 +163,10 @@
 
 .animate-deal-in {
   animation: dealIn var(--motion-base) var(--motion-ease-out) backwards;
+}
+
+.animate-meld-snap {
+  animation: meldSnap var(--motion-base) var(--motion-ease-out) backwards;
 }
 
 .animate-callout {

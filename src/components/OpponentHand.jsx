@@ -26,13 +26,21 @@ export default function OpponentHand({
   const finalPos = visualPosition || player?.position || 'top';
   const isTop = finalPos === 'top';
   const wind = WINDS[(player?.id ?? 0) % 4];
+  const dealStyle = finalPos === 'top'
+    ? { '--deal-x': '0px', '--deal-y': '240px', '--deal-rx': '-10deg' }
+    : finalPos === 'left'
+      ? { '--deal-x': '240px', '--deal-y': '0px', '--deal-ry': '-14deg' }
+      : { '--deal-x': '-240px', '--deal-y': '0px', '--deal-ry': '14deg' };
 
   return (
-    <div className={`z-10 flex select-none items-center ${isTop ? 'flex-col gap-1.5' : 'flex-col items-center gap-1.5'}`}>
+    <div
+      className={`z-10 flex select-none items-center ${isTop ? 'flex-col gap-1.5' : 'flex-col items-center gap-1.5'}`}
+      style={dealStyle}
+    >
       {/* 玩家信息：纸片胶囊 */}
       <div
-        className={`glass-pill relative flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 transition-shadow ${
-          isCurrentTurn ? 'ring-2 ring-white/80' : ''
+        className={`glass-pill relative flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 transition-[transform,box-shadow] duration-150 ${
+          isCurrentTurn ? 'scale-[1.03] ring-2 ring-white/80' : ''
         }`}
       >
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-jade-600)] text-[11px] font-bold text-white">
@@ -97,7 +105,7 @@ export default function OpponentHand({
                 {melds.map((meld, mIdx) => (
                   <div
                     key={mIdx}
-                    className={`opp-meld-group flex rounded-lg border border-white/15 bg-white/10 p-0.5 ${
+                    className={`opp-meld-group animate-meld-snap flex rounded-lg border border-white/15 bg-white/10 p-0.5 ${
                       isTop ? 'flex-row items-center gap-0.5' : 'flex-col items-center gap-0.5'
                     }`}
                   >
@@ -156,6 +164,7 @@ export default function OpponentHand({
                   isBack
                   size={isTop ? 'opp-top' : 'opp-side'}
                   className={isTop ? 'ph-tile animate-deal-in' : 'animate-deal-in'}
+                  style={{ animationDelay: `${Math.min(idx, 10) * 14}ms` }}
                 />
               ))}
             </div>

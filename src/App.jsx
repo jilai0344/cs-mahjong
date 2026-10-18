@@ -2179,6 +2179,7 @@ export default function App() {
           {/* 1. 顶部：对家区域 (手牌在上，副露在右) */}
           <div className="absolute top-1.5 sm:top-2.5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
             <OpponentHand
+              key={`top-${roundNumber}`}
               player={currentSeatPlayers[topSeatId]}
               handCount={playerHands[topSeatId]?.length || 0}
               melds={playerMelds[topSeatId] || []}
@@ -2194,6 +2195,7 @@ export default function App() {
           {/* 2. 左侧：上家区域 (紧靠左侧桌面边框，副露在上方) */}
           <div className="absolute left-1.5 sm:left-3 top-1/2 -translate-y-1/2 z-20 flex items-center">
             <OpponentHand
+              key={`left-${roundNumber}`}
               player={currentSeatPlayers[leftSeatId]}
               handCount={playerHands[leftSeatId]?.length || 0}
               melds={playerMelds[leftSeatId] || []}
@@ -2209,6 +2211,7 @@ export default function App() {
           {/* 3. 右侧：下家区域 (紧靠右侧桌面边框，副露在右侧) */}
           <div className="absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 z-20 flex items-center">
             <OpponentHand
+              key={`right-${roundNumber}`}
               player={currentSeatPlayers[rightSeatId]}
               handCount={playerHands[rightSeatId]?.length || 0}
               melds={playerMelds[rightSeatId] || []}
