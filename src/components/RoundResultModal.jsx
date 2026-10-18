@@ -65,7 +65,7 @@ export default function RoundResultModal({
   const cap = scoring?.cap ?? 42 * B;
   const details = scoring?.details || [];
   const winners = scoring?.winners || [];
-  const totalGain = winners.reduce((sum, w) => sum + (Number(scoreChanges?.[w.seat]) || 0), 0);
+  const totalGain = winners.reduce((sum, w) => sum + (Number(w.receives) || 0), 0);
   const birdDetail = scoring?.birdDetail || [];
   const isDice = scoring?.method === 'qishou' || scoring?.method === 'siji';
   const winnerNames = winners.map((w) => nameOf(w.seat)).join('、');
@@ -291,14 +291,17 @@ export default function RoundResultModal({
             </div>
           )}
 
-          {/* 四家得失 */}
+          {/* 四家得失固定在底部，避免被起手胡/成牌内容顶出首屏 */}
+        </div>
+
+        <div className="shrink-0 border-t border-stone-200/70 bg-[var(--ui-paper)] px-5 py-2">
           <div className="grid grid-cols-4 gap-2">
             {players.map((p, idx) => {
               const change = scoreChanges[idx] || 0;
               return (
-                <div key={p.id} className="flex flex-col items-center rounded-xl border border-stone-200 bg-white px-1.5 py-2">
+                <div key={p.id} className="flex flex-col items-center rounded-xl border border-stone-200 bg-white px-1.5 py-1.5">
                   <span className="w-full truncate text-center text-[10px] text-stone-400">{p.name.slice(0, 5)}</span>
-                  <span className={`mt-1 font-mono text-[13px] font-semibold ${
+                  <span className={`mt-0.5 font-mono text-[13px] font-semibold ${
                     change > 0 ? 'text-[var(--color-jade-600)]' : change < 0 ? 'text-rose-600' : 'text-stone-400'
                   }`}>
                     {change > 0 ? `+${change}` : change}
