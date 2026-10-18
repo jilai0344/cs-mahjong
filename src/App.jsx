@@ -1041,7 +1041,8 @@ export default function App() {
         const locked = s === 0 && kongLockedRef.current[s];
         want = {
           hu: huRes.canHu,
-          gang: !locked && kOptions.length > 0 && isTingHand(hand, melds, config),
+          // 锁牌期间仍可明杠/暗杠，但不能吃碰
+          gang: locked ? kOptions.length > 0 : (kOptions.length > 0 && isTingHand(hand, melds, config)),
           peng: !locked && pAllowed,
           chi: !locked && cOptions.length > 0
         };
@@ -1704,7 +1705,7 @@ export default function App() {
     if (nextPlayerId === 0) {
       sound.playTileTouch();
 
-      // 开杠后手牌锁定：之后摸什么打什么；只有自摸胡需要本家点一下。
+      // 开杠后手牌锁定：之后摸什么打什么；自摸胡、以及明杠/暗杠仍然可以操作。
       if (kongLockedRef.current[0]) {
         const huRes = checkHu(
           stateRef.current.playerHands[0],
@@ -1713,8 +1714,18 @@ export default function App() {
           true,
           { isLastTile: stateRef.current.wall.length === 0 }
         );
+        const lockedKongOptions = getKongOptions(
+          stateRef.current.playerHands[0],
+          stateRef.current.playerMelds[0],
+          null,
+          config
+        );
         if (huRes.canHu) {
-          setAvailableActions({ hu: true, siXi: false, gang: false, bu: false, peng: false, chi: false, pass: false });
+          setAvailableActions({ hu: true, siXi: false, gang: false, bu: false, peng: false, chi: false, pass: true });
+          setKongOptions([]);
+        } else if (lockedKongOptions.length > 0) {
+          setAvailableActions({ hu: false, siXi: false, gang: true, bu: false, peng: false, chi: false, pass: true });
+          setKongOptions(lockedKongOptions);
         } else {
           setAvailableActions({ hu: false, siXi: false, gang: false, bu: false, peng: false, chi: false, pass: false });
           setTimeout(() => {
@@ -1723,7 +1734,6 @@ export default function App() {
             }
           }, 280);
         }
-        setKongOptions([]);
         setBuOptions([]);
         setMidGameSiXiOptions([]);
 
@@ -2085,8 +2095,17 @@ export default function App() {
 
   const handleHumanPass = () => {
     if (stateRef.current.gameState !== 'PLAYING') return;
-    setAvailableActions({ hu: false, siXi: false, gang: false, peng: false, chi: false, pass: false });
+    setAvailableActions({ hu: false, siXi: false, gang: false, bu: false, peng: false, chi: false, pass: false });
     setMidGameSiXiOptions([]);
+
+    // 开杠锁牌后的自家回合：不杠/不胡就直接打摸到的牌，不能改手牌
+    if (kongLockedRef.current[0] && stateRef.current.currentTurn === 0) {
+      const hand = stateRef.current.playerHands[0];
+      const drawn = hand[hand.length - 1];
+      if (drawn) executeDiscard(0, drawn);
+      return;
+    }
+
     const mp = multiplayerRef.current;
     if (mp.isMultiplayer && !mp.isHost) {
       network.sendToHost({ type: 'RESPOND_ACTION', action: 'pass' });
