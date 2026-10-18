@@ -1,41 +1,44 @@
 import React from 'react';
-import { SUITS, NUMBER_NAMES, isJiangTile } from '../types/mahjong.js';
+import { SUITS, isJiangTile } from '../types/mahjong.js';
+
+import wan1 from '../assets/hjd/wan/wan-1.png';
+import wan2 from '../assets/hjd/wan/wan-2.png';
+import wan3 from '../assets/hjd/wan/wan-3.png';
+import wan4 from '../assets/hjd/wan/wan-4.png';
+import wan5 from '../assets/hjd/wan/wan-5.png';
+import wan6 from '../assets/hjd/wan/wan-6.png';
+import wan7 from '../assets/hjd/wan/wan-7.png';
+import wan8 from '../assets/hjd/wan/wan-8.png';
+import wan9 from '../assets/hjd/wan/wan-9.png';
+
+const WAN_FACE = {
+  1: wan1,
+  2: wan2,
+  3: wan3,
+  4: wan4,
+  5: wan5,
+  6: wan6,
+  7: wan7,
+  8: wan8,
+  9: wan9
+};
 
 // -------------------------------------------------------------
-// 1. 万字牌：墨色数字 + 朱砂「万」，只保留一点点传统印刷的味道
+// 1. 万字牌：直接使用《3D 黄金岛》牌面图集里的毛笔字块（一~九 + 繁体「萬」），
+//    蓝墨数字、朱砂萬，和原版牌面文字一致；只把牌身换成本项目的象牙白样式。
 // -------------------------------------------------------------
 function SvgWan({ value }) {
-  const numChar = NUMBER_NAMES[value];
-  const brushFont = '"Noto Serif SC", "Songti SC", "STSong", "SimSun", serif';
-
+  const src = WAN_FACE[value];
+  if (!src) return null;
   return (
-    <g transform="translate(0, 0)">
-      <text
-        x="36"
-        y="35"
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill="var(--art-ink)"
-        fontSize="34"
-        fontWeight="700"
-        fontFamily={brushFont}
-      >
-        {numChar}
-      </text>
-      <text
-        x="36"
-        y="72"
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill="var(--art-wan-500)"
-        fontSize="34"
-        fontWeight="700"
-        fontFamily={brushFont}
-      >
-        万
-      </text>
-      <line x1="22" y1="53" x2="50" y2="53" stroke="var(--art-wan-300)" strokeWidth="1" strokeLinecap="round" opacity="0.55" />
-    </g>
+    <image
+      href={src}
+      x="9"
+      y="4"
+      width="54"
+      height="84"
+      preserveAspectRatio="xMidYMid meet"
+    />
   );
 }
 
@@ -443,7 +446,7 @@ export default function MahjongTile({
           {tile.suit === SUITS.TONG && <SvgTong value={tile.value} />}
 
           {showJiangBadge && isJiang && (
-            <circle cx="11" cy="11" r="4" fill="var(--color-jade-500)" stroke="var(--art-white)" strokeWidth="1.2" />
+            <circle cx="5.5" cy="6" r="2.2" fill="var(--color-jade-500)" stroke="var(--art-white)" strokeWidth="0.9" />
           )}
         </g>
       </svg>
