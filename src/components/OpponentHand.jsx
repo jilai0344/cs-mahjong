@@ -105,9 +105,7 @@ export default function OpponentHand({
                 {melds.map((meld, mIdx) => (
                   <div
                     key={mIdx}
-                    className={`opp-meld-group animate-meld-snap flex rounded-lg border border-white/15 bg-white/10 p-0.5 ${
-                      isTop ? 'flex-row items-center gap-0.5' : 'flex-col items-center gap-0.5'
-                    }`}
+                    className="opp-meld-group animate-meld-snap flex flex-row items-center gap-0.5 rounded-lg border border-white/15 bg-white/10 p-0.5"
                   >
                     {meld.tiles.map((tile, tIdx) => {
                       const isEatenTile = meld.type === 'chi' && tIdx === 1;
@@ -134,17 +132,27 @@ export default function OpponentHand({
                       return (
                         <div
                           key={tIdx}
-                          className={`relative flex h-[26px] w-[36px] shrink-0 items-center justify-center rounded-sm sm:h-[30px] sm:w-[42px] ${
+                          className={`relative flex h-[28px] w-[39px] shrink-0 items-center justify-center rounded-sm ${
                             isEatenTile ? 'ring-1 ring-white/80' : ''
                           }`}
                         >
-                          <MahjongTile
-                            tile={tile}
-                            size="discard-side"
-                            isBack={meld.type === 'an_gang'}
-                            lying
-                            className="animate-deal-in"
-                          />
+                          {/* 侧家副露：整张牌转 90° 平躺，牌面朝向该家，而不是竖着插在桌边 */}
+                          <div
+                            className="absolute left-1/2 top-1/2"
+                            style={{
+                              width: '28px',
+                              height: '39px',
+                              transform: `translate(-50%, -50%) rotate(${finalPos === 'left' ? 90 : -90}deg)`
+                            }}
+                          >
+                            <MahjongTile
+                              tile={tile}
+                              size="mini"
+                              isBack={meld.type === 'an_gang'}
+                              lying
+                              className="animate-deal-in"
+                            />
+                          </div>
                         </div>
                       );
                     })}
