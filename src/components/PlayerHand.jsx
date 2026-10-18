@@ -158,7 +158,7 @@ export default function PlayerHand({
                 onMouseEnter={() => handleMouseEnter(tile)}
                 onMouseLeave={handleMouseLeave}
                 className="ph-tile animate-deal-in"
-                style={{ animationDelay: `${Math.min(idx, 10) * 18}ms` }}
+                style={{ animationDelay: `${Math.min(idx, 13) * 28}ms` }}
               />
             );
           })}

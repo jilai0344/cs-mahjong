@@ -164,7 +164,7 @@ export default function OpponentHand({
                   isBack
                   size={isTop ? 'opp-top' : 'opp-side'}
                   className={isTop ? 'ph-tile animate-deal-in' : 'animate-deal-in'}
-                  style={{ animationDelay: `${Math.min(idx, 10) * 14}ms` }}
+                  style={{ animationDelay: `${Math.min(idx, 13) * 20}ms` }}
                 />
               ))}
             </div>
