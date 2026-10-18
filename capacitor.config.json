@@ -1,0 +1,12 @@
+{
+  "appId": "com.jilai.csmahjong",
+  "appName": "长沙麻将",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#FBF9F4",
+    "allowMixedContent": false
+  }
+}

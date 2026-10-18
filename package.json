@@ -11,9 +11,14 @@
     "lint:baseline": "node scripts/check-lint.mjs --update",
     "secrets:check": "node scripts/check-secrets.mjs",
     "preview": "vite preview",
+    "cap:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:apk": "npm run cap:sync && cd android && gradlew.bat assembleDebug",
     "test": "node test/mahjongLogic.test.js && node test/scoring.test.js && node test/simulation.test.js && node test/actions.test.js && node test/crypto.test.js && node test/dedupe.test.js && node test/invite.test.js && node test/priority.test.js && node test/lintgate.test.js && node test/modalA11y.test.js && node test/designTokens.test.js && node test/record.test.js && node test/rules.test.js && node test/latency.test.js && node test/discardGuard.test.js && node test/motion.test.js && node test/secrets.test.js"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@tailwindcss/vite": "^4.3.3",
     "canvas-confetti": "^1.9.4",
     "lucide-react": "^1.52.0",
@@ -23,6 +28,8 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",

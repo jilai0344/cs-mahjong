@@ -5,7 +5,8 @@
 
 > 设计基线、色板、字号、动效与竖屏约束见 [`docs/DESIGN.md`](docs/DESIGN.md)；
 > 计分公式与验算示例见 [`docs/SCORING-RULES.md`](docs/SCORING-RULES.md)；
-> 2026-10-18 自测与 BUG 修复记录见 [`docs/BUGFIX-2026-10-18.md`](docs/BUGFIX-2026-10-18.md)。
+> 2026-10-18 自测与 BUG 修复记录见 [`docs/BUGFIX-2026-10-18.md`](docs/BUGFIX-2026-10-18.md)；
+> 自用 APK / GitHub Pages 见 [`docs/ANDROID.md`](docs/ANDROID.md)。
 
 ---
 
