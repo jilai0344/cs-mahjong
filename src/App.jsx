@@ -1143,7 +1143,9 @@ export default function App() {
   const processAiResponses = (discardEvent) => {
     const { tile, fromPlayer } = discardEvent;
     const mp = multiplayerRef.current;
-    const otherPlayers = [1, 2, 3].map(offset => (fromPlayer + offset) % 4).filter(id => id !== 0 || fromPlayer !== 0);
+    const otherPlayers = [1, 2, 3]
+      .map(offset => (fromPlayer + offset) % 4)
+      .filter(id => id !== 0);
 
     // A. 评估是否有人点炮胡牌
     for (const pId of otherPlayers) {
