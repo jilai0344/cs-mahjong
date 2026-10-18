@@ -8,9 +8,11 @@
 - 网页预览（GitHub Pages）：<https://jilai0344.github.io/cs-mahjong/>（已部署成功）
 - APK 构建：GitHub 仓库 → **Actions** → **Build Android APK** → 最近一次运行 → **Artifacts** →
   下载 `cs-mahjong-debug-apk.zip`，解压得到 `cs-mahjong.apk`。
-  当前一次构建：<https://github.com/jilai0344/cs-mahjong/actions/runs/39131402455>
+  当前一次构建：<https://github.com/jilai0344/cs-mahjong/actions/runs/39132705617>
+- 直链（latest release，发给朋友用这个）：
+  <https://github.com/jilai0344/cs-mahjong/releases/latest/download/cs-mahjong.apk>
 - 当前 APK：约 11.6 MB；带自定义「一萬」桌面图标与青瓷启动页
-- APK SHA-256：`7DC8ADFCE400D43FFF95A09AAE7F7F71EE85D6FE6F2677CC8E81419E8C4BBA1C`
+- APK SHA-256：`BBE83A7B223CB4AE34CFFE71F1C3BF447E4D0BDD8A3FC28AFA3D561AD638A4A6`
 - 应用 ID：`com.jilai.csmahjong`
 - 最低 Android：7.0（API 24）
 - 目标 Android：API 36
@@ -37,7 +39,7 @@
 ## 安装
 
 1. 手机允许「安装未知来源应用」。
-2. 把 `app-debug.apk` 传到手机并安装。
+2. 把 `cs-mahjong.apk` 传到手机并安装；也可以直接把 latest release 直链发给朋友。
 3. 以后覆盖安装必须使用**同一个签名**；仓库里的 `android/keystore/personal.p12` 已固定，
    所以新 APK 可以直接覆盖旧版本。
 4. 如果遇到签名冲突，先卸载旧版再安装（会清掉本机设置与战绩）。
