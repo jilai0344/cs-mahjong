@@ -99,13 +99,15 @@ export default function OpponentHand({
             {melds.length > 0 && (
               <div
                 className={`opp-melds-box flex shrink-0 gap-1 rounded-xl border border-white/20 bg-white/10 p-1 ${
-                  isTop ? 'flex-row' : 'flex-col items-center justify-center'
+                  isTop ? 'flex-row' : 'flex-row items-center justify-center'
                 }`}
               >
                 {melds.map((meld, mIdx) => (
                   <div
                     key={mIdx}
-                    className="opp-meld-group animate-meld-snap flex flex-row items-center gap-0.5 rounded-lg border border-white/15 bg-white/10 p-0.5"
+                    className={`opp-meld-group animate-meld-snap flex rounded-lg border border-white/15 bg-white/10 p-0.5 ${
+                      isTop ? 'flex-row items-center gap-0.5' : 'flex-col items-center gap-0.5'
+                    }`}
                   >
                     {meld.tiles.map((tile, tIdx) => {
                       const isEatenTile = meld.type === 'chi' && tIdx === 1;
