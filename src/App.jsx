@@ -1525,16 +1525,23 @@ export default function App() {
     });
 
     if (playerId === 0) {
-      setKongDrawState({
-        isOpen: true,
-        kongPlayer: PLAYERS[0],
-        drawnTiles: drawnKongCards,
-        count: drawCount,
-        canSelfHu: canSelfKongHu,
-        kongOption,
-        kongFlowerHuTypes,
-        kongFlowerWinTile
-      });
+      if (!canSelfKongHu) {
+        // 杠牌没中：不再弹「打出/放弃」二选一，直接把补牌打进牌池并检查杠上炮
+        setTimeout(() => {
+          discardKongTilesToPool(0, drawnKongCards);
+        }, 220);
+      } else {
+        setKongDrawState({
+          isOpen: true,
+          kongPlayer: PLAYERS[0],
+          drawnTiles: drawnKongCards,
+          count: drawCount,
+          canSelfHu: true,
+          kongOption,
+          kongFlowerHuTypes,
+          kongFlowerWinTile
+        });
+      }
     } else {
       if (canSelfKongHu) {
         showBubble(playerId, '杠上开花！');
