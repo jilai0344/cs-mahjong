@@ -173,14 +173,18 @@ export default function App() {
     drawnTiles: [],
     count: 2,
     canSelfHu: false,
-    kongOption: null
+    kongOption: null,
+    kongFlowerHuTypes: [],
+    kongFlowerWinTile: null
   });
   const [roundResult, setRoundResult] = useState(null);
   const [isPortrait, setIsPortrait] = useState(false);
+  const kongDrawOpenRef = useRef(false);
 
   // 定时器引用
   const timerRef = useRef(null);
   const aiTurnRef = useRef(null); // 指向 triggerAiTurn（掉线托管时从网络回调里调用，避免闭包过期）
+  const aiTurnTokenRef = useRef(0); // 取消过期的 AI 定时器，避免结束后/换手后补刀
   // P1-2：桌上还有真人能胡时，全部胡家（含 AI）先挂起等待真人决定，决定后再一次性结算
   const pendingHuRef = useRef(null);
   // 战绩裁定（2026-10）：只有「4 个真人满座且全程无托管」的对局才计入本机记录；刷 AI 不计
@@ -232,6 +236,24 @@ export default function App() {
     lastDrawerId: null,
     gameState: 'IDLE'
   });
+
+  useEffect(() => {
+    kongDrawOpenRef.current = kongDrawState.isOpen;
+  }, [kongDrawState.isOpen]);
+
+  // 联机访客的权威引用同步：访客只收到广播，不会走本地的 stateRef 赋值；
+  // 若不镜像，访客的自动出牌/海底判断会一直读到空的牌墙与手牌。
+  useEffect(() => {
+    const s = stateRef.current;
+    s.playerHands = playerHands;
+    s.playerMelds = playerMelds;
+    s.playerDiscards = playerDiscards;
+    s.wall = wall;
+    s.currentTurn = currentTurn;
+    s.dealerId = dealerId;
+    s.lastDiscard = lastDiscard;
+    s.gameState = gameState;
+  }, [playerHands, playerMelds, playerDiscards, wall, currentTurn, dealerId, lastDiscard, gameState]);
 
   const handleUpdateConfig = (newConfig) => {
     // 规格 §一：联机且开局后锁定 → 房间规则字段一律以房主的为准，本机只能改偏好（理牌/音效/AI 速度）
@@ -348,6 +370,8 @@ export default function App() {
           setMultiplayerState(nextMp);
           setIsMultiplayerOpen(false);
           hostRulesRef.current?.(data.rules);
+          if (typeof data.roundNumber === 'number') setRoundNumber(data.roundNumber);
+          rankedRoundRef.current = isRankedMatch({ seats: data.seats || network.seats || [], tookOver: false });
           setGameState('DEALING');
           setIsRollingDice(true);
           sound.playDice();
@@ -360,6 +384,7 @@ export default function App() {
           setDealerId(data.dealerId);
           stateRef.current.dealerId = data.dealerId;
           setWall(new Array(data.wallRemaining).fill({}));
+          stateRef.current.wall = new Array(data.wallRemaining).fill({});
           setPlayerDiscards([[], [], [], []]);
           setPlayerMelds([[], [], [], []]);
 
@@ -380,14 +405,17 @@ export default function App() {
           sound.playDiscard(data.tile);
           setLastDiscard({ tile: data.tile, fromPlayer: data.playerId, isKongDiscard: data.isKongDiscard });
           stateRef.current.lastDiscard = { tile: data.tile, fromPlayer: data.playerId, isKongDiscard: data.isKongDiscard };
+          if (typeof data.wallRemaining === 'number') {
+            setWall(new Array(data.wallRemaining).fill({}));
+          }
           // 更新弃牌池
           setPlayerDiscards(prev => {
             const next = [...prev];
             next[data.playerId] = [...(next[data.playerId] || []), data.tile];
             return next;
           });
-          // 减少该对手的手牌数
-          if (data.playerId !== network.mySeatId) {
+          // 减少该对手的手牌数（开杠补牌进入牌池的牌不是手牌，不能扣）
+          if (data.playerId !== network.mySeatId && !data.isKongDiscard) {
             setPlayerHands(prev => {
               const next = [...prev];
               const cur = [...(next[data.playerId] || [])];
@@ -404,6 +432,9 @@ export default function App() {
           setCurrentTurn(data.currentTurn);
           stateRef.current.currentTurn = data.currentTurn;
           setTurnTimer(data.turnTimer || 15);
+          if (typeof data.wallRemaining === 'number') {
+            setWall(new Array(data.wallRemaining).fill({}));
+          }
           const mySeat = network.mySeatId;
           if (data.currentTurn === mySeat) {
             if (data.drawnTile) {
@@ -459,39 +490,60 @@ export default function App() {
             next[data.playerId] = [...(next[data.playerId] || []), data.meldGroup];
             return next;
           });
-          // 吃碰杠从弃牌池拿牌
-          if (lastDiscard && lastDiscard.fromPlayer !== undefined) {
+          // 吃/碰/明杠从弃牌池拿牌；暗杠/补杠不经过弃牌池
+          const claimFromDiscard = data.fromDiscard !== undefined
+            ? data.fromDiscard
+            : !['an_gang', 'bu_gang'].includes(data.meldType);
+          const claimFromPlayer = data.fromPlayer ?? lastDiscard?.fromPlayer;
+          if (claimFromDiscard && claimFromPlayer !== undefined) {
             setPlayerDiscards(prev => {
               const next = [...prev];
-              const cur = [...(next[lastDiscard.fromPlayer] || [])];
+              const cur = [...(next[claimFromPlayer] || [])];
               if (cur.length > 0) cur.pop();
-              next[lastDiscard.fromPlayer] = cur;
+              next[claimFromPlayer] = cur;
               return next;
             });
           }
-          if (data.playerId === network.mySeatId) {
-            setPlayerHands(prev => {
-              const next = [...prev];
-              let cur = [...(next[network.mySeatId] || [])];
-              const deductTiles = data.meldGroup.tiles.filter(t => t.id !== data.meldGroup.tile?.id);
-              deductTiles.forEach(d => {
-                const idx = cur.findIndex(t => t.suit === d.suit && t.value === d.value);
-                if (idx !== -1) cur.splice(idx, 1);
-              });
+          const handDelta = Number.isInteger(data.handDelta)
+            ? data.handDelta
+            : data.meldType === 'an_gang'
+              ? 4
+              : data.meldType === 'bu_gang'
+                ? 1
+                : data.meldType === 'gang'
+                  ? 3
+                  : 2;
+          setPlayerHands(prev => {
+            const next = [...prev];
+            let cur = [...(next[data.playerId] || [])];
+
+            if (data.playerId === network.mySeatId) {
+              if (data.meldType === 'chi') {
+                // 吃：从手牌里扣掉除「被吃的那张」之外的两张
+                const claimedId = data.meldGroup?.tile?.id;
+                (data.meldGroup?.tiles || []).forEach(t => {
+                  if (t.id === claimedId) return;
+                  let idx = cur.findIndex(x => x.id === t.id);
+                  if (idx === -1) idx = cur.findIndex(x => x.suit === t.suit && x.value === t.value);
+                  if (idx !== -1) cur.splice(idx, 1);
+                });
+              } else {
+                // 碰 / 明杠 / 暗杠 / 补杠：按 handDelta 扣同点数的牌
+                const key = data.meldGroup?.tile ? getTileKey(data.meldGroup.tile) : null;
+                for (let i = 0; i < handDelta; i++) {
+                  const idx = key ? cur.findIndex(t => getTileKey(t) === key) : -1;
+                  if (idx === -1) break;
+                  cur.splice(idx, 1);
+                }
+              }
               if (config.autoSort) cur.sort(compareTiles);
-              next[network.mySeatId] = cur;
-              return next;
-            });
-          } else {
-            setPlayerHands(prev => {
-              const next = [...prev];
-              const cur = [...(next[data.playerId] || [])];
-              const countToRemove = data.meldType === 'gang' ? 3 : 2;
-              for (let i = 0; i < countToRemove && cur.length > 0; i++) cur.pop();
-              next[data.playerId] = cur;
-              return next;
-            });
-          }
+            } else {
+              for (let i = 0; i < handDelta && cur.length > 0; i++) cur.pop();
+            }
+
+            next[data.playerId] = cur;
+            return next;
+          });
         } else if (data.type === 'STARTING_HU_BROADCAST') {
           setStartingHuEvents(data.events);
           setGameState('STARTING_HU');
@@ -518,6 +570,12 @@ export default function App() {
           stateRef.current.gameState = 'ROUND_OVER';
           if (data.result.scoreChanges) {
             setPlayerScores(prev => prev.map((s, idx) => s + (data.result.scoreChanges[idx] || 0)));
+            if (rankedRoundRef.current) {
+              setMyRecord(recordRound(
+                typeof localStorage !== 'undefined' ? localStorage : null,
+                { scoreDelta: data.result.scoreChanges[network.mySeatId] || 0 }
+              ));
+            }
           }
         } else if (data.type === 'BUBBLE_BROADCAST') {
           showBubble(data.playerId, data.text);
@@ -572,6 +630,7 @@ export default function App() {
   // 开局发牌与起手胡流程
   // -------------------------------------------------------------------------
   const startNewRound = useCallback((overrideMp = null) => {
+    aiTurnTokenRef.current += 1;
     const mp = overrideMp || multiplayerRef.current;
     // 战绩裁定：开局的四个座位必须全是真人（有 AI 补位/单机练习 → 本局不计入本机记录）。
     // 本局一旦出现托管（掉线/看门狗接管），下面会在接管回调里把它置回 false。
@@ -610,7 +669,7 @@ export default function App() {
 
     // 若是联机房主，向所有人广播开局
     if (mp.isMultiplayer && mp.isHost) {
-      network.broadcast({ type: 'GAME_STARTED', seats: mp.seats });
+      network.broadcast({ type: 'GAME_STARTED', seats: mp.seats, roundNumber: roundNoRef.current });
     }
 
     setTimeout(() => {
@@ -752,6 +811,7 @@ export default function App() {
           type: 'TURN_UPDATE',
           currentTurn: activeDealerId,
           turnTimer: 15,
+          wallRemaining: currentWall.length,
           drawnTile: initialDrawn
         });
       } else {
@@ -764,7 +824,7 @@ export default function App() {
   // 倒计时
   // -------------------------------------------------------------------------
   useEffect(() => {
-    if (gameState !== 'PLAYING') return;
+    if (gameState !== 'PLAYING' || kongDrawState.isOpen) return;
 
     timerRef.current = setInterval(() => {
       setTurnTimer(prev => {
@@ -788,7 +848,7 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [gameState, mySeatId]);
+  }, [gameState, mySeatId, kongDrawState.isOpen]);
 
   // 监听屏幕方向变化 (双重检测：matchMedia + 窗口尺寸)
   useEffect(() => {
@@ -841,6 +901,7 @@ export default function App() {
   }, []);
 
   const handleTimeoutAutoDiscard = () => {
+    if (stateRef.current.gameState !== 'PLAYING' || kongDrawOpenRef.current) return;
     // Use stateRef for current game state, not stale closure variables
     const curHand = stateRef.current.playerHands[mySeatId];
     if (!curHand || curHand.length === 0) return;
@@ -858,6 +919,7 @@ export default function App() {
   // -------------------------------------------------------------------------
   const executeDiscard = (playerId, tile) => {
     if (!tile) return;
+    if (stateRef.current.gameState !== 'PLAYING') return;
 
     sound.playDiscard(tile);
     setTurnTimer(15);
@@ -923,7 +985,8 @@ export default function App() {
         type: 'TILE_DISCARDED',
         playerId,
         tile,
-        isKongDiscard: false
+        isKongDiscard: false,
+        wallRemaining: stateRef.current.wall.length
       });
     }
 
@@ -1169,6 +1232,7 @@ export default function App() {
   // 吃 / 碰 / 杠 执行
   // -------------------------------------------------------------------------
   const executePeng = (playerId, tile, fromPlayer) => {
+    if (stateRef.current.gameState !== 'PLAYING') return;
     sound.playMeld('peng');
     showBubble(playerId, '碰！');
 
@@ -1215,12 +1279,16 @@ export default function App() {
         type: 'MELD_BROADCAST',
         playerId,
         meldType: 'peng',
+        handDelta: 2,
+        fromDiscard: true,
+        fromPlayer,
         meldGroup
       });
       network.broadcast({
         type: 'TURN_UPDATE',
         currentTurn: playerId,
-        turnTimer: 15
+        turnTimer: 15,
+        wallRemaining: stateRef.current.wall.length
       });
     }
 
@@ -1231,7 +1299,8 @@ export default function App() {
         network.sendToSeat(playerId, {
           type: 'TURN_UPDATE',
           currentTurn: playerId,
-          turnTimer: 15
+          turnTimer: 15,
+          wallRemaining: stateRef.current.wall.length
         });
       } else {
         setTimeout(() => {
@@ -1245,6 +1314,7 @@ export default function App() {
   };
 
   const executeChi = (playerId, sequenceTiles, discardedTile, fromPlayer) => {
+    if (stateRef.current.gameState !== 'PLAYING') return;
     sound.playMeld('chi');
     showBubble(playerId, '吃！');
 
@@ -1306,12 +1376,16 @@ export default function App() {
         type: 'MELD_BROADCAST',
         playerId,
         meldType: 'chi',
+        handDelta: 2,
+        fromDiscard: true,
+        fromPlayer,
         meldGroup
       });
       network.broadcast({
         type: 'TURN_UPDATE',
         currentTurn: playerId,
-        turnTimer: 15
+        turnTimer: 15,
+        wallRemaining: stateRef.current.wall.length
       });
     }
 
@@ -1322,7 +1396,8 @@ export default function App() {
         network.sendToSeat(playerId, {
           type: 'TURN_UPDATE',
           currentTurn: playerId,
-          turnTimer: 15
+          turnTimer: 15,
+          wallRemaining: stateRef.current.wall.length
         });
       } else {
         setTimeout(() => {
@@ -1336,6 +1411,7 @@ export default function App() {
   };
 
   const executeKong = (playerId, kongOption, targetTile = null) => {
+    if (stateRef.current.gameState !== 'PLAYING') return;
     sound.playMeld('gang');
     showBubble(playerId, '杠！');
 
@@ -1421,8 +1497,11 @@ export default function App() {
       network.broadcast({
         type: 'MELD_BROADCAST',
         playerId,
-        meldType: type === 'an' ? 'an_gang' : 'gang',
-        meldGroup: { type: type === 'an' ? 'an_gang' : 'gang', tile, tiles: kongTiles }
+        meldType: type === 'an' ? 'an_gang' : type === 'bu' ? 'bu_gang' : 'gang',
+        handDelta: type === 'an' ? 4 : type === 'bu' ? 1 : 3,
+        fromDiscard: type === 'ming' && !!targetTile,
+        fromPlayer: type === 'ming' ? (stateRef.current.lastDiscard?.fromPlayer ?? null) : null,
+        meldGroup: { type: type === 'an' ? 'an_gang' : type === 'bu' ? 'bu_gang' : 'gang', tile, tiles: kongTiles }
       });
     }
 
@@ -1440,6 +1519,7 @@ export default function App() {
 
     let canSelfKongHu = false;
     let kongFlowerWinTile = null;
+    let kongFlowerHuTypes = [];
     drawnKongCards.forEach(drawnCard => {
       const huRes = checkHu(curHand, stateRef.current.playerMelds[playerId], drawnCard, true, {
         isKongFlower: true,
@@ -1450,6 +1530,7 @@ export default function App() {
       if (huRes.canHu && !canSelfKongHu) {
         canSelfKongHu = true;
         kongFlowerWinTile = drawnCard;
+        kongFlowerHuTypes = huRes.huTypes || [];
       }
     });
 
@@ -1460,12 +1541,15 @@ export default function App() {
         drawnTiles: drawnKongCards,
         count: drawCount,
         canSelfHu: canSelfKongHu,
-        kongOption
+        kongOption,
+        kongFlowerHuTypes,
+        kongFlowerWinTile
       });
     } else {
       if (canSelfKongHu) {
         showBubble(playerId, '杠上开花！');
-        handleRoundWin(playerId, playerId, kongFlowerWinTile, true, ['杠上开花']);
+        handleRoundWin(playerId, playerId, kongFlowerWinTile, true,
+          kongFlowerHuTypes.length > 0 ? kongFlowerHuTypes : ['杠上开花']);
       } else {
         setTimeout(() => {
           discardKongTilesToPool(playerId, drawnKongCards);
@@ -1475,6 +1559,7 @@ export default function App() {
   };
 
   const discardKongTilesToPool = (kongPlayerId, kongCards) => {
+    if (stateRef.current.gameState !== 'PLAYING') return;
     setKongDrawState({ isOpen: false, kongPlayer: null, drawnTiles: [], count: 2, canSelfHu: false });
     const mp = multiplayerRef.current;
 
@@ -1490,7 +1575,8 @@ export default function App() {
           type: 'TILE_DISCARDED',
           playerId: kongPlayerId,
           tile: card,
-          isKongDiscard: true
+          isKongDiscard: true,
+          wallRemaining: stateRef.current.wall.length
         });
       }
 
@@ -1512,10 +1598,15 @@ export default function App() {
         const winners = kongWinners.map(w =>
           huEntryFromTypes(w.id, ['杠上炮', ...w.huRes.huTypes.filter(t => t !== '平胡')])
         );
-        handleRoundWin(winners[0].seat, kongPlayerId, card, false, winners[0].huTypes, {
-          method: 'tongpao',
-          winners
-        });
+        if (winners.length === 1) {
+          // 单家杠上炮 = 普通点炮：庄位、抓鸟基准都按胡牌者，不能按通炮算
+          handleRoundWin(winners[0].seat, kongPlayerId, card, false, winners[0].huTypes);
+        } else {
+          handleRoundWin(winners[0].seat, kongPlayerId, card, false, winners[0].huTypes, {
+            method: 'tongpao',
+            winners
+          });
+        }
         return;
       }
     }
@@ -1573,7 +1664,8 @@ export default function App() {
         network.broadcast({
           type: 'TURN_UPDATE',
           currentTurn: 0,
-          turnTimer: 15
+          turnTimer: 15,
+          wallRemaining: curWall.length
         });
       }
     } else {
@@ -1583,6 +1675,7 @@ export default function App() {
           type: 'TURN_UPDATE',
           currentTurn: nextPlayerId,
           turnTimer: 15,
+          wallRemaining: curWall.length,
           drawnTile: drawn
         });
         // 告知其余玩家轮次变更
@@ -1591,7 +1684,8 @@ export default function App() {
             network.sendToSeat(s, {
               type: 'TURN_UPDATE',
               currentTurn: nextPlayerId,
-              turnTimer: 15
+              turnTimer: 15,
+              wallRemaining: curWall.length
             });
           }
         }
@@ -1600,7 +1694,8 @@ export default function App() {
           network.broadcast({
             type: 'TURN_UPDATE',
             currentTurn: nextPlayerId,
-            turnTimer: 15
+            turnTimer: 15,
+            wallRemaining: curWall.length
           });
         }
         triggerAiTurn(nextPlayerId);
@@ -1609,7 +1704,10 @@ export default function App() {
   };
 
   const triggerAiTurn = (botId) => {
+    const token = ++aiTurnTokenRef.current;
     setTimeout(() => {
+      if (token !== aiTurnTokenRef.current) return;
+      if (stateRef.current.gameState !== 'PLAYING' || stateRef.current.currentTurn !== botId) return;
       const hand = stateRef.current.playerHands[botId];
       const melds = stateRef.current.playerMelds[botId];
       const drawn = hand[hand.length - 1];
@@ -1639,6 +1737,9 @@ export default function App() {
   // -------------------------------------------------------------------------
   // 规格 §四/§六：番型 → 大胡标记与 k（k = 大胡番型个数）的换算见 scoring.js 的 huEntryFromTypes
   const handleRoundWin = (winnerId, loserId, winningTile, isSelfDrawn, huTypes, opts = {}) => {
+    if (stateRef.current.gameState === 'ROUND_OVER') return;
+    aiTurnTokenRef.current += 1;
+    const roundDealerId = stateRef.current.dealerId;
     const { B, F } = normalizeScoreParams(config);
     setGameState('ROUND_OVER');
     stateRef.current.gameState = 'ROUND_OVER';
@@ -1690,16 +1791,18 @@ export default function App() {
       isHuangZhuang: false,
       winner: { ...PLAYERS[winnerId], name: winnerName },
       loser: (isSelfDrawn && !isTongPao) ? null : { ...PLAYERS[loserId], name: loserName },
-      huTypes: (huTypes && huTypes.length > 0) ? huTypes : ['平胡'],
+      huTypes: [...new Set((huTypes && huTypes.length > 0) ? huTypes : ['平胡'])],
       score: scored.winners.reduce((sum, w) => sum + w.receives, 0),
       birdsResult: birdResult,
-      handTiles: stateRef.current.playerHands[winnerId],
+      handTiles: (isSelfDrawn && winningTile)
+        ? stateRef.current.playerHands[winnerId].filter(t => t.id !== winningTile.id)
+        : stateRef.current.playerHands[winnerId],
       melds: stateRef.current.playerMelds[winnerId],
       winningTile,
       isSelfDrawn: isSelfDrawn && !isTongPao,
       scoreChanges: changes,
       newDealerId: nextDealer,
-      roundDealerId: stateRef.current.dealerId, // P2-1：本局庄，用于结算页标注「连庄」
+      roundDealerId,
       seatNames,
       // 逐项明细（规格 §九.5）：番型与 k、B、F、每家 n 与乘数、封顶前后、应付、得失、骰子/鸟
       scoring: {
@@ -1726,6 +1829,9 @@ export default function App() {
   };
 
   const handleHuangZhuang = () => {
+    if (stateRef.current.gameState === 'ROUND_OVER') return;
+    aiTurnTokenRef.current += 1;
+    const roundDealerId = stateRef.current.dealerId;
     setGameState('ROUND_OVER');
     stateRef.current.gameState = 'ROUND_OVER';
     // 规格 §二.4：流局不计分；下一局庄 = 本局最后一张牌由谁摸走（正常摸牌与开杠补牌都算）。
@@ -1750,7 +1856,7 @@ export default function App() {
       scoreChanges: [0, 0, 0, 0],
       lastDrawerId: stateRef.current.lastDrawerId,
       newDealerId: nextDealer,
-      roundDealerId: stateRef.current.dealerId,
+      roundDealerId,
       seatNames
     };
     setRoundResult(finalResult);
@@ -1830,7 +1936,10 @@ export default function App() {
     // P1-2：这一手若是「多家能胡」挂起的（含电脑胡家），一次把全部胡家结算掉（通炮）
     if (!isSelfDrawn && resolvePendingHu(0, true)) return;
 
-    const huRes = checkHu(myHand, myMelds, winningTile, isSelfDrawn, { isLastTile: stateRef.current.wall.length === 0 });
+    const huRes = checkHu(myHand, myMelds, winningTile, isSelfDrawn, {
+      isLastTile: stateRef.current.wall.length === 0,
+      isKongDiscard: !isSelfDrawn && !!stateRef.current.lastDiscard?.isKongDiscard
+    });
     handleRoundWin(0, isSelfDrawn ? 0 : stateRef.current.lastDiscard.fromPlayer, winningTile, isSelfDrawn, huRes.huTypes);
   };
 
@@ -1869,6 +1978,7 @@ export default function App() {
   };
 
   const handleHumanPass = () => {
+    if (stateRef.current.gameState !== 'PLAYING') return;
     setAvailableActions({ hu: false, siXi: false, gang: false, peng: false, chi: false, pass: false });
     setMidGameSiXiOptions([]);
     const mp = multiplayerRef.current;
@@ -2309,14 +2419,17 @@ export default function App() {
         kongCount={kongDrawState.count}
         canSelfHu={kongDrawState.canSelfHu}
         onDeclareKongHu={() => {
-          handleRoundWin(0, 0, kongDrawState.drawnTiles[0], true, ['杠上开花']);
+          const kongTypes = kongDrawState.kongFlowerHuTypes?.length
+            ? kongDrawState.kongFlowerHuTypes
+            : ['杠上开花'];
+          handleRoundWin(0, 0, kongDrawState.kongFlowerWinTile || kongDrawState.drawnTiles[0], true, kongTypes);
         }}
         onDiscardKongTiles={() => {
+          // 开杠补牌未胡：所有补牌打入牌池（可能点炮/杠上炮），再按顺序走到下一家。
+          // 注意不要把补牌塞回手牌 —— 那会让手牌多出 2/4 张并卡住轮次。
+          const kongCards = kongDrawState.drawnTiles;
           setKongDrawState({ isOpen: false, kongPlayer: null, drawnTiles: [], count: 2, canSelfHu: false });
-          const updatedHand = [...stateRef.current.playerHands[0], ...kongDrawState.drawnTiles];
-          if (config.autoSort) updatedHand.sort(compareTiles);
-          stateRef.current.playerHands[0] = updatedHand;
-          setPlayerHands([...stateRef.current.playerHands]);
+          discardKongTilesToPool(0, kongCards);
         }}
       />
 
@@ -2328,6 +2441,7 @@ export default function App() {
         onNextRound={() => startNewRound()}
         isMultiplayer={multiplayerState.isMultiplayer}
         isHost={multiplayerState.isHost}
+        mySeatId={bottomSeatId}
       />
     </div>
   );

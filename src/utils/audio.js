@@ -179,9 +179,9 @@ class SoundEngine {
   playMeld(type = 'peng') {
     if (!this.enabled) return;
     this.init();
-    const voiceKey = type === 'gang' ? 'gang' : type === 'chi' ? 'chi' : 'peng';
+    const voiceKey = type.includes('gang') ? 'gang' : type === 'chi' ? 'chi' : 'peng';
     const played = this._playSfx('claim', 0.6);
-    if (!played) this._synthMeld(type);
+    if (!played) this._synthMeld(voiceKey);
 
     if (type === 'chi' && Math.random() < 0.22) {
       this._playVoice('line-mojiang', { volume: 0.86 });

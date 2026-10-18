@@ -325,6 +325,7 @@ console.log('\n=== 测试 9: 房间规则 → 计分参数（B/F）与番型折�
   eq(huEntryFromTypes(2, ['平胡']), { seat: 2, isBigHu: false, k: 0, huTypes: ['平胡'] }, '平胡 → k=0');
   eq(huEntryFromTypes(0, ['清一色', '碰碰胡']).k, 2, '同时成立两个大胡番型 → k=2');
   eq(huEntryFromTypes(1, ['杠上炮', '清一色']).isBigHu, true, '杠上炮等特殊番种计入大胡');
+  eq(huEntryFromTypes(1, ['杠上炮', '杠上炮']).k, 1, '同一大胡番型重复出现只计一次 k（防止分数翻倍）');
   eq(huEntryFromTypes(0, []).k, 0, '空番型列表 → k=0（不抛错）');
 
   // 端到端：B=3、F=0，大胡 k=2 自摸，鸟 1 只落付分者（n=1）→ min(42×2, 126)=84

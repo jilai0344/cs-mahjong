@@ -4,7 +4,8 @@
 **暖白纸面 + 青瓷毛毡 + 象牙骨牌**的清新版本；牌局规则、番型与算分逻辑保持本地打法不变。
 
 > 设计基线、色板、字号、动效与竖屏约束见 [`docs/DESIGN.md`](docs/DESIGN.md)；
-> 计分公式与验算示例见 [`docs/SCORING-RULES.md`](docs/SCORING-RULES.md)。
+> 计分公式与验算示例见 [`docs/SCORING-RULES.md`](docs/SCORING-RULES.md)；
+> 2026-10-18 自测与 BUG 修复记录见 [`docs/BUGFIX-2026-10-18.md`](docs/BUGFIX-2026-10-18.md)。
 
 ---
 

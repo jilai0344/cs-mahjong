@@ -73,8 +73,11 @@ export function normalizeScoreParams(config = {}) {
  * @param {string[]} huTypes
  */
 export function huEntryFromTypes(seat, huTypes = []) {
-  const bigTypes = (huTypes || []).filter((t) => t !== '平胡');
-  return { seat, isBigHu: bigTypes.length > 0, k: bigTypes.length, huTypes };
+  // 同一番型可能由调用方前缀 + checkHu 内部同时写入（例如「杠上炮」「抢杠胡」）；
+  // 去重后再算 k，避免 k 被同一番型重复累加导致分数翻倍。
+  const uniqueTypes = [...new Set(huTypes || [])];
+  const bigTypes = uniqueTypes.filter((t) => t !== '平胡');
+  return { seat, isBigHu: bigTypes.length > 0, k: bigTypes.length, huTypes: uniqueTypes };
 }
 
 /** 小胡底分 */

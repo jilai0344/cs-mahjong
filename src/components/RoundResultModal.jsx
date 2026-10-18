@@ -18,10 +18,13 @@ export default function RoundResultModal({
   players = [],
   onNextRound,
   isMultiplayer = false,
-  isHost = true
+  isHost = true,
+  mySeatId = 0
 }) {
   useEffect(() => {
-    if (isOpen && result && !result.isHuangZhuang && result.winner?.id === 0) {
+    const localWon = (result?.scoring?.winners || []).some((w) => w.seat === mySeatId)
+      || result?.winner?.id === mySeatId;
+    if (isOpen && result && !result.isHuangZhuang && localWon) {
       sound.playHu({ zimo: !!result.isSelfDrawn, huTypes: result.huTypes || [] });
       confetti({
         particleCount: 55,
@@ -34,7 +37,7 @@ export default function RoundResultModal({
         colors: ['rgb(63,154,122)', 'rgb(180,83,74)', 'rgb(217,164,65)', 'rgb(255,253,247)']
       });
     }
-  }, [isOpen, result]);
+  }, [isOpen, result, mySeatId]);
 
   if (!isOpen || !result) return null;
 
@@ -228,18 +231,18 @@ export default function RoundResultModal({
                 {melds.map((meld, mIdx) => (
                   <div key={mIdx} className="flex gap-0.5 rounded-md bg-stone-50 p-0.5">
                     {meld.tiles.map((t, idx) => (
-                      <MahjongTile key={idx} tile={t} size="sm" />
+                      <MahjongTile key={idx} tile={t} size="mini" />
                     ))}
                   </div>
                 ))}
                 <div className="flex gap-0.5">
                   {handTiles.map((t, idx) => (
-                    <MahjongTile key={idx} tile={t} size="sm" />
+                    <MahjongTile key={idx} tile={t} size="mini" />
                   ))}
                 </div>
                 {winningTile && (
                   <div className="ml-1 flex flex-col items-center">
-                    <MahjongTile tile={winningTile} size="sm" className="ring-2 ring-[var(--color-jade-500)] rounded-[10px]" />
+                    <MahjongTile tile={winningTile} size="mini" className="ring-2 ring-[var(--color-jade-500)] rounded-[10px]" />
                     <span className="mt-0.5 text-[9px] text-[var(--color-jade-600)]">胡张</span>
                   </div>
                 )}
