@@ -125,7 +125,7 @@ export default function OpponentHand({
                               size="discard"
                               isBack={meld.type === 'an_gang'}
                               lying
-                              className="ph-tile animate-deal-in"
+                              className="animate-deal-in"
                             />
                           </div>
                         );
@@ -163,7 +163,7 @@ export default function OpponentHand({
                   key={idx}
                   isBack
                   size={isTop ? 'opp-top' : 'opp-side'}
-                  className={isTop ? 'ph-tile animate-deal-in' : 'animate-deal-in'}
+                  className="animate-deal-in"
                   style={{ animationDelay: `${Math.min(idx, 13) * 20}ms` }}
                 />
               ))}
