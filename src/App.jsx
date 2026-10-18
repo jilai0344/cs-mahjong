@@ -572,6 +572,8 @@ export default function App() {
         }
       }
     });
+    // 网络调度只注册一次，处理器从 ref/最新闭包读取；这是既有的单一长连接模式。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config, lastDiscard]);
 
   // 房主处理访客的胡碰吃过响应
