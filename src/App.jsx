@@ -1523,6 +1523,8 @@ export default function App() {
     ];
     setPlayerHands([...stateRef.current.playerHands]);
 
+    if (nextPlayerId !== 0) sound.playDraw();
+
     const mp = multiplayerRef.current;
     if (nextPlayerId === 0) {
       sound.playTileTouch();
@@ -2140,6 +2142,13 @@ export default function App() {
                 wallTotal={wallTotal}
                 roundNumber={roundNumber}
                 dealerName={multiplayerState.seats?.[dealerId]?.name || PLAYERS[dealerId]?.name || ''}
+                statusText={
+                  gameState === 'PLAYING'
+                    ? (currentTurn === bottomSeatId
+                      ? '轮到你出牌'
+                      : `${currentSeatPlayers[currentTurn]?.name || '对手'} 思考中`)
+                    : ''
+                }
               />
             </div>
 

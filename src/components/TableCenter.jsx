@@ -74,7 +74,8 @@ export default function TableCenter({
 
   const radius = 56;
   const circumference = 2 * Math.PI * radius;
-  const ratio = Math.max(0, Math.min(1, Number(wallRemaining) / Math.max(1, Number(wallTotal))));
+  const wallRatio = Math.max(0, Math.min(1, Number(wallRemaining) / Math.max(1, Number(wallTotal))));
+  const timeRatio = Math.max(0, Math.min(1, Number(turnTimer) / 15));
   const ringColor = turnTimer <= 5 ? 'var(--ui-accent)' : 'var(--color-jade-500)';
 
   return (
@@ -92,7 +93,7 @@ export default function TableCenter({
             strokeWidth="5"
             strokeLinecap="round"
             strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - ratio)}
+            strokeDashoffset={circumference * (1 - timeRatio)}
             className="transition-[stroke-dashoffset] duration-300 ease-out"
           />
         </svg>
@@ -173,7 +174,7 @@ export default function TableCenter({
         >
           <div
             className="h-full rounded-full bg-white/75 transition-[width] duration-300 ease-out"
-            style={{ width: `${Math.round(ratio * 100)}%` }}
+            style={{ width: `${Math.round(wallRatio * 100)}%` }}
           />
         </div>
 

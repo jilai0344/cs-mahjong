@@ -35,7 +35,7 @@ export default function OpponentHand({
       >
         {actionBubble && (
           <div
-            className={`animate-callout absolute -top-7 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-bold shadow-lg ${
+            className={`animate-callout absolute -top-8 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-xl px-3 py-1 text-[12px] font-bold tracking-wide shadow-lg ${
               actionBubble === '胡'
                 ? 'bg-rose-600 text-white'
                 : 'bg-stone-900 text-stone-50'
@@ -62,7 +62,7 @@ export default function OpponentHand({
           {name}
         </span>
 
-        <span className="ml-0.5 font-mono text-[11px] tabular-nums text-stone-500">
+        <span key={score} className="animate-callout ml-0.5 font-mono text-[11px] tabular-nums text-stone-500">
           {score}
         </span>
 
@@ -114,7 +114,7 @@ export default function OpponentHand({
                           tile={tile}
                           size="discard"
                           isBack={meld.type === 'an_gang'}
-                          className="ph-tile"
+                          className="ph-tile animate-deal-in"
                         />
                       </div>
                     );
@@ -131,6 +131,7 @@ export default function OpponentHand({
                         tile={tile}
                         size="discard-side"
                         isBack={meld.type === 'an_gang'}
+                        className="animate-deal-in"
                       />
                     </div>
                   );
@@ -150,7 +151,7 @@ export default function OpponentHand({
               key={idx}
               isBack
               size={isTop ? 'opp-top' : 'opp-side'}
-              className={isTop ? 'ph-tile' : ''}
+              className={isTop ? 'ph-tile animate-deal-in' : 'animate-deal-in'}
             />
           ))}
         </div>

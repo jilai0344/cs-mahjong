@@ -110,9 +110,13 @@ class SoundEngine {
     }
   }
 
+  // 对手摸牌：很轻的一声，给牌局节奏
+  playDraw() {
+    this._playSfx('soft-click', 0.16);
+  }
+
   // 摸牌 / 选牌：轻触
-  playTileTouch() {
-    if (!this.enabled) return;
+  playTileTouch() {    if (!this.enabled) return;
     if (this._playSfx('soft-click', 0.28)) return;
     this.init();
     if (!this.ctx) return;

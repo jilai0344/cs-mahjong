@@ -31,10 +31,18 @@ export function PlayerDiscardTray({
     const isLatest = lastDiscard && lastDiscard.tile?.id === tile.id;
     const isNewest = newestId !== null && tile.id === newestId;
     const isMatchHover = hoveredKey && getTileKey(tile) === hoveredKey;
+    const throwVars = position === 'top'
+      ? { '--throw-y': '-26px' }
+      : position === 'bottom'
+        ? { '--throw-y': '26px' }
+        : position === 'left'
+          ? { '--throw-x': '-26px' }
+          : { '--throw-x': '26px' };
 
     return (
       <div
         key={tile.id || idx}
+        style={throwVars}
         className={`relative flex shrink-0 items-center justify-center${isNewest ? ' animate-tile-discard' : ''} ${extraClass}`}
       >
         <MahjongTile

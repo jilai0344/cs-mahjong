@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import MahjongTile from './MahjongTile';
+import confetti from 'canvas-confetti';
 import { Trophy, Feather, RotateCcw, AlertTriangle, Dices, Crown } from 'lucide-react';
 import { sound } from '../utils/audio';
 
@@ -22,6 +23,16 @@ export default function RoundResultModal({
   useEffect(() => {
     if (isOpen && result && !result.isHuangZhuang && result.winner?.id === 0) {
       sound.playHu({ zimo: !!result.isSelfDrawn, huTypes: result.huTypes || [] });
+      confetti({
+        particleCount: 55,
+        spread: 68,
+        startVelocity: 26,
+        gravity: 0.9,
+        scalar: 0.9,
+        ticks: 120,
+        origin: { y: 0.62 },
+        colors: ['rgb(63,154,122)', 'rgb(180,83,74)', 'rgb(217,164,65)', 'rgb(255,253,247)']
+      });
     }
   }, [isOpen, result]);
 

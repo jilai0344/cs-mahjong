@@ -15,6 +15,7 @@ export default function PlayerHand({
 }) {
   const [selectedTileId, setSelectedTileId] = useState(null);
   const [tooFast, setTooFast] = useState(false);
+  const [isDraggingTile, setIsDraggingTile] = useState(false);
   // P2-1 防误触：第一次点击只选中；再点同一张必须间隔 ≥250ms（双击不会误打出）；
   // 也可以用显式「打出」按钮，点哪张打哪张。
   const [guard] = useState(() => createDiscardGuard());
@@ -87,7 +88,7 @@ export default function PlayerHand({
       )}
 
       <div
-        className="ph-row flex max-w-full items-end justify-center gap-3 overflow-x-auto pb-1"
+        className={`ph-row flex w-full max-w-full items-end justify-center gap-3 pb-1 ${isDraggingTile ? 'overflow-visible' : 'overflow-x-auto'}`}
         style={{ '--ph-n': Math.max(totalTiles, 1) }}
       >
         {/* 副露：一块很轻的纸片托住，不抢牌面 */}
@@ -134,6 +135,8 @@ export default function PlayerHand({
                 tingCount={tingOuts}
                 showJiangBadge={showJiangBadge}
                 onClick={() => handleTileClick(tile)}
+                onDragDiscard={isMyTurn ? doDiscard : null}
+                onDragStateChange={setIsDraggingTile}
                 onMouseEnter={() => handleMouseEnter(tile)}
                 onMouseLeave={handleMouseLeave}
                 className="ph-tile animate-deal-in"
@@ -154,6 +157,8 @@ export default function PlayerHand({
               tingCount={tingMap.get(drawnTile.id)?.reduce((sum, item) => sum + item.remaining, 0)}
               showJiangBadge={showJiangBadge}
               onClick={() => handleTileClick(drawnTile)}
+              onDragDiscard={isMyTurn ? doDiscard : null}
+              onDragStateChange={setIsDraggingTile}
               onMouseEnter={() => handleMouseEnter(drawnTile)}
               onMouseLeave={handleMouseLeave}
               className="ph-tile"
@@ -167,6 +172,9 @@ export default function PlayerHand({
         <div className="mt-1.5 flex items-center gap-3">
           <div className={`text-xs font-medium ${tooFast ? 'text-rose-300' : 'text-white/75'}`}>
             {discardHint(selectedTileId, tooFast)}
+            <span className="ml-1.5 hidden text-[10px] font-normal text-white/45 sm:inline">
+              · 向上拖动也可直接打出
+            </span>
           </div>
           {selectedTileId && (
             <button

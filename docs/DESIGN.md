@@ -190,9 +190,9 @@
 ## 5. 牌面规范
 
 - **比例 3:4**（`viewBox="0 0 72 96"`），圆角约 8%。
-- **万子文字与黄金岛一致**：直接裁自 HJD `MJFace2.0-High` 图集的毛笔字块（一~九 + 繁体「萬」，蓝墨数字 / 朱砂萬），
-  去白底后以透明 PNG 放在象牙牌面中央；不再用系统字体或简化「万」。图源与裁切见 `src/assets/hjd/wan/`。
-- 条子、筒子保留本项目矢量画法；1 条、8 条、1 筒的构图参考 HJD，但不逐像素复制。
+- **牌面与黄金岛一致**：27 张牌面（万/条/筒）全部裁自 HJD `MJFace2.0-High` 图集，去白底后以透明 PNG 放在
+  `x=6 y=6 width=60 height=80` 的同一内框里，`preserveAspectRatio="xMidYMid meet"` 保证水平+垂直居中；
+  万子是一~九 + 繁体「萬」的毛笔字块（蓝墨数字 / 朱砂萬），条/筒是原版竹节与圆饼。图源与裁切见 `src/assets/hjd/`。
 - 状态：默认（象牙面 + 青瓷背）/ 选中（抬起 + 玉色 ring）/ 高亮可操作（白 ring + `brightness-105`）/ 禁用（`opacity-40`）。
 - 牌面数字**必须可辨**：在最小弃牌尺寸下，万/条/筒的识别优先于装饰纹理。
 - 牌背：青瓷渐变 + 细白线 + 菱形暗记，不得出现可辨认的花色信息（防作弊属性）。
@@ -212,9 +212,12 @@
 
 | 场景 | 时长 | 曲线 | 现状 |
 |---|---|---|---|
-| 出牌/摸牌 | 150–200ms | ease-out | ✅ 已实现：`tileDraw`（摸牌滑入+淡入）/ `tileDiscard`（出牌落桌）两个 keyframes，时长与曲线取自 token `--motion-base`（180ms）+ `--motion-ease-out`；只动 `transform`/`opacity`，`.animate-tile-draw` 挂在以牌 id 为 key 的包裹层（每摸一张重播）、`.animate-tile-discard` 挂在出牌池「最新一张」；守卫测试 `test/motion.test.js` |
-| 弹窗出现 | 200–250ms | scale+fade | `fadeIn`/`scaleUp` |
-| 分数变动 | 300ms 数字滚动（可选） | ease-out | 未实现（**可选**体验项，不计入验收） |
+| 出牌/摸牌 | 150–200ms | ease-out | ✅ `tileDraw`（从牌墙方向滑入）/ `tileDiscard`（按 `--throw-x/--throw-y` 从本家方向落桌）；只动 `transform`/`opacity`，`.animate-tile-draw` 挂在以牌 id 为 key 的包裹层、`.animate-tile-discard` 挂在出牌池「最新一张」；守卫测试 `test/motion.test.js` |
+| 开局发牌 | 180ms + ≤120ms 级联 | ease-out | `.animate-deal-in`：手牌/对家牌背按索引延迟落位；`animation-fill-mode: backwards`，结束后不锁 transform，避免压住选中/拖拽 |
+| 出牌拖拽 | 跟手 | 无 | 按住手牌向上拖动，跟手位移 + 1.045 缩放；过 52px 松手即打出；`.ph-row` 在拖拽时临时 `overflow-visible`，避免抬起被裁切 |
+| 桌心倒计时 | 300ms | ease-out | 外圈进度环显示 `turnTimer/15`，≤5 秒转朱砂；牌墙余量仍由下方细进度条与 `role="progressbar"` 表达 |
+| 弹窗出现 | 180ms | scale+fade | `fadeIn` / `modalIn` |
+| 胡牌庆祝 | 一次性 | — | 仅本家胡牌时触发小范围纸屑（青/朱砂/暖金/象牙），不做全屏烟花 |
 
 **动效 token**（`src/index.css` 的 `@theme`）：`--motion-fast: 150ms`、`--motion-base: 180ms`、`--motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1)`。
 新增动效一律复用这三个 token，不要在组件或 CSS 里写裸毫秒 —— `test/motion.test.js` 会拦「裸毫秒」与「>300ms 的阻塞动效」，并断言两个节奏动效确实挂在了对应组件上。
