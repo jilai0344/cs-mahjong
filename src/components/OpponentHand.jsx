@@ -1,0 +1,164 @@
+import React from 'react';
+import MahjongTile from './MahjongTile.jsx';
+
+/**
+ * 黄金岛对手玩家手牌与信息牌组件
+ * - 黄金岛经典椭圆金边信息胶囊 (头像/VIP/庄家印记/积分)
+ * - 站立式琥珀流金牌背
+ * - 紧凑副露排布
+ */
+export default function OpponentHand({
+  player,
+  handCount = 13,
+  melds = [],
+  isCurrentTurn = false,
+  actionBubble = null,
+  score = 1000,
+  isDealer = false,
+  visualPosition = null,
+  isAi = false,      // P2-3：这个座位现在是电脑在打（AI 补位或掉线托管）
+  aiLabel = '电脑'   // 「电脑」（一开始就是补位）或「托管」（真人掉线被接管）
+}) {
+  const { name = '' } = player || {};
+
+  const finalPos = visualPosition || player?.position || 'top';
+  const isTop = finalPos === 'top';
+  const isLeft = finalPos === 'left';
+  const isRight = finalPos === 'right';
+
+  // 原先这里有个写死的虚拟 VIP 等级（V1/V5/V32）——P2-2 / D3 已删除：
+  // 没有服务端就没有可信等级，别人家的等级本机无从得知，展示假数据只会误导（裁定见 docs/DESIGN.md §10 D3）
+
+  return (
+    <div
+      className={`flex items-center select-none z-10 ${
+        isTop ? 'flex-col gap-1.5' : 'flex-col items-center gap-1.5'
+      }`}
+    >
+      {/* 玩家信息胶囊牌 (高度复刻黄金岛金框黑红椭圆胶囊) */}
+      <div className="relative flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-gradient-to-b from-panel-800 via-panel-700 to-panel-600 border-[1.5px] border-amber-400/90 shadow-[0_4px_12px_rgba(0,0,0,0.8)] shrink-0">
+        {/* 操作/思考气泡 */}
+        {actionBubble && (
+          <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-xs sm:text-sm px-3 py-0.5 rounded-full shadow-2xl animate-bounce z-40 border-2 border-amber-500 whitespace-nowrap">
+            {actionBubble}
+          </div>
+        )}
+
+        {/* 庄家标志 (红底金字圆章) */}
+        {isDealer && (
+          <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-tr from-red-700 to-red-500 border border-amber-300 text-white text-[10px] sm:text-xs font-black flex items-center justify-center shadow-md">
+            庄
+          </span>
+        )}
+
+        {/* 玩家昵称 */}
+        <span className="text-xs sm:text-sm font-black text-amber-100 tracking-wide drop-shadow-sm">
+          {name}
+        </span>
+
+        {/* 分数 */}
+        <span className="text-xs font-mono font-black text-yellow-300 ml-1">
+          {score}分
+        </span>
+
+        {/* P2-3：电脑/托管标识（联机时该座位已不是真人在打） */}
+        {isAi && (
+          <span
+            className="text-[10px] font-black text-slate-200 bg-slate-700/90 px-1.5 py-0.2 rounded border border-slate-400/40 whitespace-nowrap"
+            title={aiLabel === '托管' ? '该座位真人掉线，已由电脑接管' : '该座位由电脑补位'}
+          >
+            {aiLabel}
+          </span>
+        )}
+
+        {/* 思考光圈 */}
+        {isCurrentTurn && (
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping ml-0.5" title="思考中" />
+        )}
+      </div>
+
+      {/* 手牌与已亮面子区域 */}
+      <div
+        className={`${isTop ? 'opp-top-row' : ''} flex items-center gap-2 ${
+          isTop ? 'flex-row' : 'flex-col justify-center'
+        }`}
+      >
+        {/* 副露面子 (暗杠全盖，吃牌放中间且对着各家朝向摆放) */}
+        {melds.length > 0 && (
+          <div
+            className={`opp-melds-box flex gap-1.5 p-1 rounded-xl bg-black/60 border border-amber-500/30 shrink-0 ${
+              isTop ? 'flex-row' : 'flex-col items-center justify-center'
+            }`}
+          >
+            {melds.map((meld, mIdx) => (
+              <div
+                key={mIdx}
+                className={`opp-meld-group flex rounded-lg p-1 bg-black/50 border border-amber-500/20 shadow-xs ${
+                  isTop ? 'flex-row gap-0.5 items-center' : 'flex-col gap-0.5 items-center'
+                }`}
+              >
+                {meld.tiles.map((tile, tIdx) => {
+                  const isEatenTile = meld.type === 'chi' && tIdx === 1;
+
+                  if (isTop) {
+                    return (
+                      <div
+                        key={tIdx}
+                        className={`opp-tile-wrap relative flex items-center justify-center shrink-0 ${
+                          isEatenTile ? 'ring-1 ring-amber-400 rounded-sm' : ''
+                        }`}
+                      >
+                        <MahjongTile
+                          tile={tile}
+                          size="meld"
+                          rotation={180}
+                          isBack={meld.type === 'an_gang'}
+                          className="ph-tile"
+                        />
+                      </div>
+                    );
+                  }
+
+                  // 上家 (left, 90°) 与 下家 (right, 270°)：纵向成列，横卧牌面对着他们自己，吃的牌放中间
+                  return (
+                    <div
+                      key={tIdx}
+                      className={`w-[36px] h-[26px] sm:w-[42px] sm:h-[30px] flex items-center justify-center relative shrink-0 ${
+                        isEatenTile ? 'ring-1 ring-amber-400 rounded-xs' : ''
+                      }`}
+                    >
+                      <MahjongTile
+                        tile={tile}
+                        size="discard-side"
+                        rotation={isLeft ? 90 : 270}
+                        isBack={meld.type === 'an_gang'}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 黄金牌背立牌 */}
+        <div
+          className={`opp-backs flex shrink-0 ${
+            isTop
+              ? 'opp-backs-top flex-row gap-0.5'
+              : 'flex-col -space-y-1.5 sm:-space-y-2 justify-center'
+          }`}
+        >
+          {[...Array(Math.max(0, handCount))].map((_, idx) => (
+            <MahjongTile
+              key={idx}
+              isBack={true}
+              size={isTop ? 'opp-top' : 'opp-side'}
+              className={isTop ? 'ph-tile' : ''}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
