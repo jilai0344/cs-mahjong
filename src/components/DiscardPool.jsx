@@ -23,6 +23,14 @@ export function PlayerDiscardTray({
   const hoveredKey = hoveredTile ? getTileKey(hoveredTile) : null;
   const isHorizontal = position === 'top' || position === 'bottom';
   const isLeft = position === 'left';
+  // 中央弃牌也要让牌面朝向出牌的人：下家 0°、对家 180°、上家 +90°、下家 -90°。
+  const tileRotation = position === 'top'
+    ? 180
+    : position === 'left'
+      ? 90
+      : position === 'right'
+        ? -90
+        : 0;
 
   // P2-1 节奏动效：按「本家门前最新一张」判定，不能用 lastDiscard。
   const newestId = discards.length ? discards[discards.length - 1].id : null;
@@ -79,7 +87,6 @@ export function PlayerDiscardTray({
     }
 
     const rows = chunk(discards, 6);
-    const tileRotation = 0;
 
     return (
       <div className="z-10 flex select-none flex-col items-center justify-center gap-[2px]">
@@ -105,7 +112,6 @@ export function PlayerDiscardTray({
   }
 
   const cols = chunk(discards, 6);
-  const tileRotation = 0;
 
   return (
     <div className="z-10 flex select-none items-center justify-center gap-[2px]">
