@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import MahjongTile from './MahjongTile.jsx';
 import { useModalA11y } from '../hooks/useModalA11y.js';
 import { compareTiles } from '../types/mahjong.js';
@@ -25,6 +25,16 @@ function MeldBadge({ type }) {
  */
 export default function WinRevealOverlay({ result, isOpen, onContinue }) {
   const modalA11y = useModalA11y(onContinue);
+  const continueRef = useRef(onContinue);
+  useEffect(() => { continueRef.current = onContinue; });
+
+  // 只把牌摆出来给四家看一眼，不需要再点一次确认，随后自动进入结算。
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const timer = setTimeout(() => continueRef.current?.(), 1100);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
   if (!isOpen || !result || result.isHuangZhuang) return null;
 
   const winner = result.winner;
@@ -139,14 +149,8 @@ export default function WinRevealOverlay({ result, isOpen, onContinue }) {
           </div>
         </div>
 
-        <div className="border-t border-stone-200/70 px-5 py-3 sm:px-7">
-          <button
-            type="button"
-            onClick={onContinue}
-            className="btn-primary h-11 w-full text-[13px]"
-          >
-            看清楚了，查看结算
-          </button>
+        <div className="border-t border-stone-200/70 px-5 py-3 text-center text-[10px] font-medium tracking-[0.12em] text-stone-400 sm:px-7">
+          即将进入结算…
         </div>
       </div>
     </div>
