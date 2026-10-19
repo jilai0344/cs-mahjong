@@ -40,6 +40,7 @@ import ActionControls from './components/ActionControls.jsx';
 import TileWall from './components/TileWall.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import RoundResultModal from './components/RoundResultModal.jsx';
+import WinRevealOverlay from './components/WinRevealOverlay.jsx';
 import RulesGuideModal from './components/RulesGuideModal.jsx';
 import MultiplayerModal from './components/MultiplayerModal.jsx';
 import UpdatePrompt from './components/UpdatePrompt.jsx';
@@ -181,6 +182,7 @@ export default function App() {
     kongFlowerWinTile: null
   });
   const [roundResult, setRoundResult] = useState(null);
+  const [showWinReveal, setShowWinReveal] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
   const [appUpdate, setAppUpdate] = useState(null);
   const kongDrawOpenRef = useRef(false);
@@ -389,6 +391,12 @@ export default function App() {
           rankedRoundRef.current = isRankedMatch({ seats: data.seats || network.seats || [], tookOver: false });
           setGameState('DEALING');
           setIsRollingDice(true);
+          setDrawnTile(null);
+          setRoundResult(null);
+          setShowWinReveal(false);
+          setPlayerHands([[], [], [], []]);
+          setPlayerMelds([[], [], [], []]);
+          setPlayerDiscards([[], [], [], []]);
           sound.playDice();
         } else if (data.type === 'DEAL_HAND') {
           setIsRollingDice(false);
@@ -561,6 +569,7 @@ export default function App() {
           }
         } else if (data.type === 'ROUND_WIN_BROADCAST') {
           setRoundResult(data.result);
+          setShowWinReveal(!data.result?.isHuangZhuang);
           setGameState('ROUND_OVER');
           stateRef.current.gameState = 'ROUND_OVER';
           if (data.result.scoreChanges) {
@@ -648,6 +657,7 @@ export default function App() {
     stateRef.current.lastDiscard = null;
     setDrawnTile(null);
     setRoundResult(null);
+    setShowWinReveal(false);
     setStartingHuEvents([]);
     startingHuPendingRef.current = [];
     setMidGameSiXiOptions([]);
@@ -661,9 +671,12 @@ export default function App() {
 
     stateRef.current.playerDiscards = [[], [], [], []];
     stateRef.current.playerMelds = [[], [], [], []];
+    stateRef.current.playerHands = [[], [], [], []];
     stateRef.current.lastDrawerId = null;
     setPlayerDiscards([[], [], [], []]);
     setPlayerMelds([[], [], [], []]);
+    setPlayerHands([[], [], [], []]);
+    setWall([]);
 
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
@@ -1890,7 +1903,7 @@ export default function App() {
 
     const finalResult = {
       isHuangZhuang: false,
-      winner: { ...PLAYERS[winnerId], name: winnerName },
+      winner: { ...PLAYERS[winnerId], name: winnerName, seat: winnerId },
       loser: (isSelfDrawn && !isTongPao) ? null : { ...PLAYERS[loserId], name: loserName },
       huTypes: [...new Set((huTypes && huTypes.length > 0) ? huTypes : ['平胡'])],
       score: scored.winners.reduce((sum, w) => sum + w.receives, 0),
@@ -1922,6 +1935,7 @@ export default function App() {
     };
 
     setRoundResult(finalResult);
+    setShowWinReveal(true);
 
     if (mp.isMultiplayer && mp.isHost) {
       network.broadcast({
@@ -2545,13 +2559,19 @@ export default function App() {
 
       {/* 弹窗 6: 终局结算与抓鸟 */}
       <RoundResultModal
-        isOpen={gameState === 'ROUND_OVER'}
+        isOpen={gameState === 'ROUND_OVER' && !showWinReveal}
         result={roundResult}
         players={currentSeatPlayers}
         onNextRound={() => startNewRound()}
         isMultiplayer={multiplayerState.isMultiplayer}
         isHost={multiplayerState.isHost}
         mySeatId={bottomSeatId}
+      />
+
+      <WinRevealOverlay
+        result={roundResult}
+        isOpen={showWinReveal}
+        onContinue={() => setShowWinReveal(false)}
       />
 
       <UpdatePrompt update={appUpdate} onClose={() => setAppUpdate(null)} />
