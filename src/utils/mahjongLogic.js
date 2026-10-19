@@ -282,8 +282,12 @@ export function getKongOptions(handTiles, melds = [], targetTile = null, config 
   // 判断剩余手牌中是否含有将牌 (2、5、8)
   const satisfiesJiangRequirement = (remainingTiles) => {
     if (!requiresJiang) return true;
-    // 开杠需将：手牌中剩余牌必须持有至少一张或一对 2、5、8 将牌
-    return remainingTiles.some(t => isJiangTile(t));
+    // 开杠需将：手牌或已经亮出的副露里至少还要留有一张 2、5、8 将牌。
+    const jiangPool = [
+      ...remainingTiles,
+      ...melds.flatMap(m => (Array.isArray(m.tiles) ? m.tiles : []))
+    ];
+    return jiangPool.some(t => isJiangTile(t));
   };
 
   // 情况 1: 别人出牌 -> 检查能否直杠 (明杠)
