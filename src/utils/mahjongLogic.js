@@ -390,7 +390,7 @@ function canDecomposeToMelds(sortedValues) {
  * - 将将胡 (大胡): 全由 2, 5, 8 组成
  * - 清一色 (大胡): 同一花色，乱将
  * - 碰碰胡 (大胡): 全刻子，乱将
- * - 全求人 (大胡): 4副吃碰杠全亮，手中剩1张点炮
+ * - 全求人 (大胡): 4副吃碰杠全亮，手中剩1张，自摸/点炮成对即可胡
  * - 平胡: 4副牌 + 1对将，且【将牌必须为 2、5、8】
  * 
  * @param {Array} handTiles 手牌
@@ -532,8 +532,8 @@ export function checkHu(handTiles, melds = [], winningTile = null, isSelfDrawn =
     isBigHu = true;
   }
 
-  // 全求人：已亮4副吃碰杠，手牌仅剩1张点炮成胡，大胡乱将
-  if (melds.length === 4 && allTilesInHand.length === 2 && !isSelfDrawn) {
+  // 全求人：四副吃碰杠全亮，手中只剩一张；点炮或自摸摸成对子都可以胡（大胡乱将）
+  if (melds.length === 4 && allTilesInHand.length === 2) {
     if (canStandardDecompose) {
       huTypes.push('全求人');
       isBigHu = true;
