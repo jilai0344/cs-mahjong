@@ -405,6 +405,10 @@ export default function App() {
           setPlayerHands([[], [], [], []]);
           setPlayerMelds([[], [], [], []]);
           setPlayerDiscards([[], [], [], []]);
+          // 新一局先清掉上一局的起手胡，否则房主这局没有新起手胡时，客人会一直挂着旧徽标。
+          setStartingHuEvents([]);
+          startingHuPendingRef.current = [];
+          setSeatDraw(null);
           sound.playDice();
         } else if (data.type === 'DEAL_HAND') {
           setIsRollingDice(false);

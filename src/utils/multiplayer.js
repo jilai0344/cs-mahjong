@@ -493,7 +493,12 @@ export class NetworkManager {
               { qos: 1 },
               () => {
                 console.log('[CSMJ Network] 访客重连完成，申请恢复原座位', this.mySeatId);
-                this.sendToHost({ type: 'RECONNECT', playerName: this.playerName });
+                this.sendToHost({
+                  type: 'RECONNECT',
+                  guestTempId: this.guestTempId,
+                  seatId: this.mySeatId,
+                  playerName: this.playerName
+                });
               }
             );
           } else {
