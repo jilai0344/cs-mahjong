@@ -615,8 +615,10 @@ export default function App() {
     } else if (action === 'pass') {
       // P1-2：这位访客「过」了，其他人（含电脑）的胡照常结算；都放弃了才轮到下家
       if (resolvePendingHu(seatId, false)) return;
-      // 访客点“过”，继续让后续玩家评估
-      processAiResponses(stateRef.current.lastDiscard);
+      // 访客点“过”后重新按完整响应表计算，别家的胡/杠/碰/吃仍然成立
+      const evt = stateRef.current.lastDiscard;
+      evt.passedSeats = [...(evt.passedSeats || []), seatId];
+      processDiscardResponses(evt, { skipSeats: evt.passedSeats });
     }
   };
 
@@ -1027,15 +1029,16 @@ export default function App() {
 
   // P1-2：一张牌的响应判定 —— 先把四家的选项一次算清，再按「胡 > 杠 > 碰 > 吃」定谁响应。
   // 旧实现在这里「本地真人只要有选项就 return」，会让真人的碰/吃吞掉别家的胡（ROADMAP P1-2 ①③）。
-  const processDiscardResponses = (discardEvent) => {
+  const processDiscardResponses = (discardEvent, { skipSeats = [] } = {}) => {
     const { tile, fromPlayer } = discardEvent;
     const mp = multiplayerRef.current;
     const isLastTile = stateRef.current.wall.length === 0;
     const isHumanSeat = (s) => s === 0 || (mp.isMultiplayer && mp.seats[s]?.isHuman === true);
+    const skip = new Set(skipSeats);
 
     const candidates = [];
     for (let s = 0; s < 4; s++) {
-      if (s === fromPlayer) continue;
+      if (s === fromPlayer || skip.has(s)) continue;
       const hand = stateRef.current.playerHands[s];
       const melds = stateRef.current.playerMelds[s];
       if (!Array.isArray(hand) || hand.length === 0) continue;
@@ -1161,69 +1164,6 @@ export default function App() {
       executeChi(claim.seat, claim.aiDecision?.tiles || claim.cOptions[0], tile, fromPlayer);
       return;
     }
-    passToNextPlayer(fromPlayer);
-  };
-
-  const processAiResponses = (discardEvent) => {
-    const { tile, fromPlayer } = discardEvent;
-    const mp = multiplayerRef.current;
-    const otherPlayers = [1, 2, 3]
-      .map(offset => (fromPlayer + offset) % 4)
-      .filter(id => id !== 0);
-
-    // A. 评估是否有人点炮胡牌
-    for (const pId of otherPlayers) {
-      // 如果该座位是真人，跳过 AI
-      if (mp.isMultiplayer && mp.seats[pId]?.isHuman) continue;
-
-      const hand = stateRef.current.playerHands[pId];
-      const melds = stateRef.current.playerMelds[pId];
-      const decision = decideAiResponse(hand, melds, tile, false, config, {
-        isKongDiscard: discardEvent.isKongDiscard,
-        isLastTile: stateRef.current.wall.length === 0
-      });
-      if (decision.action === 'hu') {
-        showBubble(pId, '胡！');
-        handleRoundWin(pId, fromPlayer, tile, false, decision.huResult.huTypes);
-        return;
-      }
-    }
-
-    // B. 评估是否有人开杠或碰牌
-    for (const pId of otherPlayers) {
-      if (mp.isMultiplayer && mp.seats[pId]?.isHuman) continue;
-
-      const hand = stateRef.current.playerHands[pId];
-      const melds = stateRef.current.playerMelds[pId];
-      const isPrev = ((fromPlayer + 1) % 4 === pId);
-      const decision = decideAiResponse(hand, melds, tile, isPrev, config, { isLastTile: stateRef.current.wall.length === 0 });
-
-      if (decision.action === 'gang') {
-        showBubble(pId, '杠！');
-        executeKong(pId, decision.kongOption, tile);
-        return;
-      }
-      if (decision.action === 'peng') {
-        showBubble(pId, '碰！');
-        executePeng(pId, tile, fromPlayer);
-        return;
-      }
-    }
-
-    // C. 评估下家吃牌
-    const nextPlayerId = (fromPlayer + 1) % 4;
-    if (nextPlayerId !== 0 && (!mp.isMultiplayer || !mp.seats[nextPlayerId]?.isHuman)) {
-      const hand = stateRef.current.playerHands[nextPlayerId];
-      const melds = stateRef.current.playerMelds[nextPlayerId];
-      const decision = decideAiResponse(hand, melds, tile, true, config, { isLastTile: stateRef.current.wall.length === 0 });
-      if (decision.action === 'chi') {
-        showBubble(nextPlayerId, '吃！');
-        executeChi(nextPlayerId, decision.tiles, tile, fromPlayer);
-        return;
-      }
-    }
-
-    // 无人碰杠吃胡，轮到下家正常摸牌
     passToNextPlayer(fromPlayer);
   };
 
@@ -2128,7 +2068,10 @@ export default function App() {
     // P1-2：真人「过」不吞掉别家的胡 —— 挂起的胡家里除自己以外照常结算
     if (resolvePendingHu(0, false)) return;
     if (currentTurn !== 0 && stateRef.current.lastDiscard) {
-      processAiResponses(stateRef.current.lastDiscard);
+      // 真人过牌后重新按完整响应表计算，避免只让 AI 逐个试而吞掉别家的胡
+      const evt = stateRef.current.lastDiscard;
+      evt.passedSeats = [...(evt.passedSeats || []), 0];
+      processDiscardResponses(evt, { skipSeats: evt.passedSeats });
     }
   };
 
