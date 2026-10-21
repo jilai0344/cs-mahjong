@@ -69,6 +69,8 @@ export default function SeatDrawOverlay({ draw }) {
             const wind = winds[seat] ?? seat;
             const isLocal = seat === localSeat;
             const isEast = seat === eastSeat;
+            const windOffset = (winds[seat] - winds[localSeat] + 4) % 4;
+            const positionLabel = POSITION_LABELS[windOffset];
             return (
               <div
                 key={seat}
@@ -80,7 +82,7 @@ export default function SeatDrawOverlay({ draw }) {
               >
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] font-semibold tracking-[0.08em] text-stone-400">
-                    {POSITION_LABELS[seat]}
+                    {positionLabel}
                   </span>
                   {isLocal && (
                     <span className="rounded-full bg-[var(--color-jade-600)] px-1.5 py-0.5 text-[8px] font-bold text-white">

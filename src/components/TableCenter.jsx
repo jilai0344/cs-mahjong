@@ -69,7 +69,7 @@ export default function TableCenter({
   };
 
   const directions = [0, 1, 2, 3].map((id) => {
-    const relPos = (id - mySeatId + 4) % 4;
+    const relPos = (seatWinds[id] - seatWinds[mySeatId] + 4) % 4;
     return { id, label: DIR_LABELS[seatWinds[id] ?? id], relPos, posClass: directionPositions[relPos] };
   });
 
