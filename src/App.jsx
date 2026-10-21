@@ -47,8 +47,12 @@ import UpdatePrompt from './components/UpdatePrompt.jsx';
 import { checkForAppUpdate } from './utils/appUpdate.js';
 import LobbyOverlay from './components/LobbyOverlay.jsx';
 import ActionCallout from './components/ActionCallout.jsx';
+import SeatDrawOverlay from './components/SeatDrawOverlay.jsx';
 
 import { Settings, BookOpen, Volume2, VolumeX, Users } from 'lucide-react';
+
+const WIND_LABELS = ['东', '南', '西', '北'];
+const BASE_SEAT_NAMES = ['我', '下家', '对家', '上家'];
 
 // 把座位气泡文案映射成桌心大字印章：吃/碰/杠/胡/喜
 function calloutForBubble(text) {
@@ -141,6 +145,10 @@ export default function App() {
   const [wall, setWall] = useState([]);
   const [diceValues, setDiceValues] = useState([3, 4]);
   const [isRollingDice, setIsRollingDice] = useState(false);
+  const [seatWinds, setSeatWinds] = useState([0, 1, 2, 3]);
+  const [seatDraw, setSeatDraw] = useState(null);
+  const seatWindsRef = useRef([0, 1, 2, 3]);
+  const seatDrawDoneRef = useRef(false);
 
   const [playerHands, setPlayerHands] = useState([[], [], [], []]);
   const [playerMelds, setPlayerMelds] = useState([[], [], [], []]);
@@ -639,6 +647,29 @@ export default function App() {
   // -------------------------------------------------------------------------
   // 开局发牌与起手胡流程
   // -------------------------------------------------------------------------
+  const drawSeatWinds = () => {
+    let dice;
+    do {
+      dice = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1);
+    } while (new Set(dice).size < 4);
+
+    const sorted = [...dice].sort((a, b) => b - a);
+    const localWind = sorted.indexOf(dice[0]);
+    // 本家永远在屏幕下方；其余三家的风位按东南西北顺序排到右/上/左。
+    const winds = [0, 1, 2, 3].map(offset => (localWind + offset) % 4);
+    const eastSeat = winds.indexOf(0);
+    return {
+      values: winds.map(wind => sorted[wind]),
+      winds,
+      localWind,
+      localSeat: 0,
+      eastSeat
+    };
+  };
+
+  const getSeatDisplayName = (seat) =>
+    `${BASE_SEAT_NAMES[seat] || '玩家'} (${WIND_LABELS[seatWindsRef.current[seat]] || '东'}家)`;
+
   const startNewRound = useCallback((overrideMp = null) => {
     aiTurnTokenRef.current += 1;
     const mp = overrideMp || multiplayerRef.current;
@@ -648,6 +679,29 @@ export default function App() {
     // D6 局数：结算后再开一局 → 递增；从大厅重新开一场 → 归 1
     roundNoRef.current = stateRef.current.gameState === 'ROUND_OVER' ? roundNoRef.current + 1 : 1;
     setRoundNumber(roundNoRef.current);
+
+    // 单机一场开始时四家各掷一粒骰子定方位；后续局保留方位，不再重摇。
+    if (mp.isMultiplayer) {
+      seatWindsRef.current = [0, 1, 2, 3];
+      setSeatWinds([0, 1, 2, 3]);
+      seatDrawDoneRef.current = false;
+      setSeatDraw(null);
+    }
+    const shouldDrawSeats = !mp.isMultiplayer
+      && (stateRef.current.gameState === 'IDLE' || !seatDrawDoneRef.current);
+    const seatRoll = shouldDrawSeats ? drawSeatWinds() : null;
+    let activeDealerId = dealerId;
+    if (seatRoll) {
+      seatWindsRef.current = seatRoll.winds;
+      setSeatWinds(seatRoll.winds);
+      activeDealerId = seatRoll.eastSeat;
+      setDealerId(seatRoll.eastSeat);
+      stateRef.current.dealerId = seatRoll.eastSeat;
+      seatDrawDoneRef.current = true;
+      setDiceValues([seatRoll.values[0], seatRoll.values[1]]);
+    }
+    setSeatDraw(seatRoll);
+
     sound.init();
     sound.playDice();
     sound.playDeal();
@@ -680,9 +734,11 @@ export default function App() {
     setPlayerHands([[], [], [], []]);
     setWall([]);
 
-    const d1 = Math.floor(Math.random() * 6) + 1;
-    const d2 = Math.floor(Math.random() * 6) + 1;
-    setDiceValues([d1, d2]);
+    if (!seatRoll) {
+      const d1 = Math.floor(Math.random() * 6) + 1;
+      const d2 = Math.floor(Math.random() * 6) + 1;
+      setDiceValues([d1, d2]);
+    }
 
     // 若是联机房主，向所有人广播开局
     if (mp.isMultiplayer && mp.isHost) {
@@ -691,24 +747,25 @@ export default function App() {
 
     setTimeout(() => {
       setIsRollingDice(false);
+      setSeatDraw(null);
 
       const newDeck = generateDeck();
       setWallTotal(newDeck.length);
       const hands = [[], [], [], []];
       for (let i = 0; i < 4; i++) {
-        const count = i === dealerId ? 14 : 13;
+        const count = i === activeDealerId ? 14 : 13;
         hands[i] = newDeck.splice(0, count);
         hands[i].sort(compareTiles);
       }
 
       stateRef.current.playerHands = hands;
       stateRef.current.wall = newDeck;
-      stateRef.current.currentTurn = dealerId;
-      stateRef.current.dealerId = dealerId;
+      stateRef.current.currentTurn = activeDealerId;
+      stateRef.current.dealerId = activeDealerId;
 
       setWall(newDeck);
       setPlayerHands([...hands]);
-      setCurrentTurn(dealerId);
+      setCurrentTurn(activeDealerId);
 
       // 若联机，房主向每个真人座位安全发送各自手牌
       if (mp.isMultiplayer && mp.isHost) {
@@ -717,7 +774,7 @@ export default function App() {
             network.sendToSeat(s, {
               type: 'DEAL_HAND',
               myHand: hands[s],
-              dealerId,
+              dealerId: activeDealerId,
               wallRemaining: newDeck.length,
               rules: pickMatchRules(config)
             });
@@ -735,7 +792,7 @@ export default function App() {
           }
         });
         if (huList.length > 0) {
-          const playerName = mp.isMultiplayer ? mp.seats[pIdx]?.name : PLAYERS[pIdx].name;
+          const playerName = mp.isMultiplayer ? mp.seats[pIdx]?.name : getSeatDisplayName(pIdx);
           startingEvents.push({
             player: { ...PLAYERS[pIdx], name: playerName },
             // 起手胡要摊牌给其余三家看；完整手牌由座位横幅直接展示
@@ -776,8 +833,8 @@ export default function App() {
       }
 
       // 起手胡不再阻塞开局：直接进入行牌，座位横幅一直提示到本局结束
-      enterPlayingState(dealerId, hands, newDeck, mp);
-    }, 900);
+      enterPlayingState(activeDealerId, hands, newDeck, mp);
+    }, seatRoll ? 1750 : 900);
   }, [dealerId, config]);
 
   const enterPlayingState = (activeDealerId, hands, currentWall, mp = multiplayerRef.current) => {
@@ -1836,10 +1893,10 @@ export default function App() {
     stateRef.current.dealerId = nextDealer;
 
     const mp = multiplayerRef.current;
-    const winnerName = mp.isMultiplayer ? mp.seats[winnerId]?.name : PLAYERS[winnerId].name;
-    const loserName = loserId !== null ? (mp.isMultiplayer ? mp.seats[loserId]?.name : PLAYERS[loserId].name) : '';
+    const winnerName = mp.isMultiplayer ? mp.seats[winnerId]?.name : getSeatDisplayName(winnerId);
+    const loserName = loserId !== null ? (mp.isMultiplayer ? mp.seats[loserId]?.name : getSeatDisplayName(loserId)) : '';
     // 结算页需要四位座位名逐项展示明细（规格 §九.5）
-    const seatNames = [0, 1, 2, 3].map(i => (mp.isMultiplayer ? (mp.seats[i]?.name || PLAYERS[i].name) : PLAYERS[i].name));
+    const seatNames = [0, 1, 2, 3].map(i => (mp.isMultiplayer ? (mp.seats[i]?.name || PLAYERS[i].name) : getSeatDisplayName(i)));
 
     const finalResult = {
       isHuangZhuang: false,
@@ -2140,16 +2197,22 @@ export default function App() {
 
   // 获得座位对应的展示信息 (单机或联机)
   const currentSeatPlayers = useMemo(() => {
-    if (multiplayerState.isMultiplayer && multiplayerState.seats) {
-      return multiplayerState.seats.map((s, idx) => ({
-        id: idx,
-        name: s.name,
-        isHuman: s.isHuman,
-        position: PLAYERS[idx].position
-      }));
-    }
-    return PLAYERS;
-  }, [multiplayerState]);
+    const base = (multiplayerState.isMultiplayer && multiplayerState.seats)
+      ? multiplayerState.seats.map((s, idx) => ({
+          id: idx,
+          name: s.name,
+          isHuman: s.isHuman,
+          position: PLAYERS[idx].position
+        }))
+      : PLAYERS.map((p, idx) => ({
+          ...p,
+          name: BASE_SEAT_NAMES[idx]
+        }));
+    return base.map((p, idx) => ({
+      ...p,
+      name: `${p.name} (${WIND_LABELS[seatWinds[idx]]}家)`
+    }));
+  }, [multiplayerState, seatWinds]);
 
   return (
     <div
@@ -2358,10 +2421,11 @@ export default function App() {
                 diceValues={diceValues}
                 isRollingDice={isRollingDice}
                 mySeatId={bottomSeatId}
+                seatWinds={seatWinds}
                 roomLabel={multiplayerState.isMultiplayer ? `房间 ${multiplayerState.roomCode}` : '单机练习（不计记录）'}
                 wallTotal={wallTotal}
                 roundNumber={roundNumber}
-                dealerName={multiplayerState.seats?.[dealerId]?.name || PLAYERS[dealerId]?.name || ''}
+                dealerName={currentSeatPlayers[dealerId]?.name || ''}
                 statusText={
                   gameState === 'PLAYING'
                     ? (currentTurn === bottomSeatId
@@ -2403,7 +2467,7 @@ export default function App() {
               </span>
             )}
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-jade-600)] text-[11px] font-bold text-white">
-              {['东', '南', '西', '北'][bottomSeatId] || '东'}
+              {WIND_LABELS[seatWinds[bottomSeatId]] || '东'}
             </span>
             <span className="max-w-[7rem] truncate text-xs font-semibold text-stone-800">
               {myDisplayName}
@@ -2518,6 +2582,8 @@ export default function App() {
       />
 
       <UpdatePrompt update={appUpdate} onClose={() => setAppUpdate(null)} />
+
+      <SeatDrawOverlay draw={seatDraw} />
     </div>
   );
 }

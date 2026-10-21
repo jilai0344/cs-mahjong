@@ -58,7 +58,8 @@ export default function TableCenter({
   diceValues = [3, 4],
   isRollingDice = false,
   statusText = '',
-  mySeatId = 0
+  mySeatId = 0,
+  seatWinds = [0, 1, 2, 3]
 }) {
   const directionPositions = {
     0: 'bottom-1 left-1/2 -translate-x-1/2',
@@ -69,7 +70,7 @@ export default function TableCenter({
 
   const directions = [0, 1, 2, 3].map((id) => {
     const relPos = (id - mySeatId + 4) % 4;
-    return { id, label: DIR_LABELS[id], relPos, posClass: directionPositions[relPos] };
+    return { id, label: DIR_LABELS[seatWinds[id] ?? id], relPos, posClass: directionPositions[relPos] };
   });
 
   const radius = 56;
