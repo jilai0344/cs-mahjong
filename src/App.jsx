@@ -868,6 +868,8 @@ export default function App() {
       // 起手胡不再阻塞开局：直接进入行牌，座位横幅一直提示到本局结束
       enterPlayingState(activeDealerId, hands, newDeck, mp);
     }, seatRoll ? 1750 : 900);
+    // 开局/下一局的入口只应在显式开始时调用；drawSeatWinds/enterPlayingState 每帧重建，不放进依赖避免重复起局
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dealerId, config]);
 
   const enterPlayingState = (activeDealerId, hands, currentWall, mp = multiplayerRef.current) => {
