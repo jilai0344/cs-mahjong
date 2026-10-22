@@ -665,6 +665,8 @@ export default function App() {
     };
     multiplayerRef.current = nextMp;
     setMultiplayerState(nextMp);
+    seatDrawDoneRef.current = false;
+    setSeatDraw(null);
     startNewRound(nextMp);
   };
 
@@ -712,8 +714,9 @@ export default function App() {
     roundNoRef.current = stateRef.current.gameState === 'ROUND_OVER' ? roundNoRef.current + 1 : 1;
     setRoundNumber(roundNoRef.current);
 
-    // 每一局开局都四家各掷一粒骰子定方位；房主掷，访客等房主广播。
-    const canDrawSeats = !mp.isMultiplayer || mp.isHost;
+    // 定方位只在第一次进入这间房/这场单机对局时掷一次；之后续局沿用方位。
+    const firstEntry = stateRef.current.gameState === 'IDLE' || !seatDrawDoneRef.current;
+    const canDrawSeats = (!mp.isMultiplayer || mp.isHost) && firstEntry;
     if (mp.isMultiplayer && !mp.isHost) setSeatDraw(null);
     const seatRoll = canDrawSeats ? drawSeatWinds() : null;
     let activeDealerId = dealerId;
