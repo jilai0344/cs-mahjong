@@ -49,7 +49,7 @@ import LobbyOverlay from './components/LobbyOverlay.jsx';
 import ActionCallout from './components/ActionCallout.jsx';
 import SeatDrawOverlay from './components/SeatDrawOverlay.jsx';
 
-import { Settings, BookOpen, Volume2, VolumeX, Users } from 'lucide-react';
+import { Settings, BookOpen, Volume2, VolumeX, Users, RotateCcw } from 'lucide-react';
 
 const WIND_LABELS = ['东', '南', '西', '北'];
 const BASE_SEAT_NAMES = ['我', '下家', '对家', '上家'];
@@ -143,6 +143,11 @@ export default function App() {
   const [isRollingDice, setIsRollingDice] = useState(false);
   const [seatWinds, setSeatWinds] = useState([0, 1, 2, 3]);
   const [seatDraw, setSeatDraw] = useState(null);
+  const [isStandalone] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia?.('(display-mode: standalone)').matches === true
+      || window.navigator.standalone === true;
+  });
   const seatWindsRef = useRef([0, 1, 2, 3]);
   const seatDrawDoneRef = useRef(false);
 
@@ -2634,6 +2639,18 @@ export default function App() {
       <UpdatePrompt update={appUpdate} onClose={() => setAppUpdate(null)} />
 
       <SeatDrawOverlay draw={seatDraw} />
+
+      {isStandalone && isPortrait && (
+        <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center gap-4 bg-[var(--color-felt-700)] px-8 text-center text-white">
+          <RotateCcw className="h-10 w-10 text-white/70" />
+          <div>
+            <p className="text-lg font-bold">请横屏游玩</p>
+            <p className="mt-2 text-xs leading-relaxed text-white/55">
+              iPhone 主屏网页不能强制锁定方向，请把手机横过来继续。
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
