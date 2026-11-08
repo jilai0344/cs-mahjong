@@ -1202,6 +1202,32 @@ export default function App() {
         return;
       }
 
+      // 只有这一家能胡时，允许他放弃胡，选择吃/碰/杠继续做牌（例如为了全求人）。
+      // 多家同时能胡时仍先按胡处理，避免一个人放弃胡把别家的胡吞掉。
+      if (winners.length === 1 && humanWinners.length === 1) {
+        const solo = humanWinners[0];
+        const actions = {
+          hu: true,
+          gang: solo.gang,
+          peng: solo.peng,
+          chi: solo.chi,
+          pass: true
+        };
+        if (solo.seat === 0) {
+          setAvailableActions(actions);
+          setChiOptions(solo.cOptions);
+          setKongOptions(solo.kOptions);
+        } else {
+          network.sendToSeat(solo.seat, {
+            type: 'PROMPT_ACTION',
+            availableActions: actions,
+            chiOptions: solo.cOptions,
+            kongOptions: solo.kOptions
+          });
+        }
+        return;
+      }
+
       // 有真人胡家：全部胡家（含电脑）先挂起，等真人决定；这期间不给任何人弹吃碰杠
       pendingHuRef.current = {
         discardEvent,
