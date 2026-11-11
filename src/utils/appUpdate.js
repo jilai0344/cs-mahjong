@@ -15,9 +15,10 @@ function normalizeBuild(value) {
  * 原生 APK 启动时检查 GitHub latest release。
  * 只有远端 versionCode（tag 末尾数字）大于本机 build 才返回更新信息。
  * 网页版永远返回 null。
+ * iOS 走 App Store / 侧载重签，不存在 APK 覆盖安装，直接返回 null。
  */
 export async function checkForAppUpdate() {
-  if (!Capacitor.isNativePlatform()) return null;
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') return null;
   try {
     const info = await App.getInfo();
     const currentBuild = normalizeBuild(info.build);
@@ -46,7 +47,7 @@ export async function checkForAppUpdate() {
 
 /** 下载 APK 并交给 Android 安装器；网页端仅作为 fallback 打开下载链接。 */
 export async function installAppUpdate(apkUrl = APK_URL) {
-  if (Capacitor.isNativePlatform()) {
+  if (Capacitor.getPlatform() === 'android') {
     await ApkUpdater.downloadAndInstall({ url: apkUrl });
     return;
   }

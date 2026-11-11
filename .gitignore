@@ -31,3 +31,6 @@ dist-ssr
 apk/
 cs-mahjong-debug-apk.zip
 
+
+# iOS 本地构建产物（scripts/build-ios.sh 输出）
+/build/

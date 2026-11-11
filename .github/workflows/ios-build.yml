@@ -1,0 +1,83 @@
+name: Build iOS IPA
+
+# 在 GitHub 的 macOS 机器上把 ios/ 工程编译一遍，产出**未签名**的 ipa。
+# 用途：
+#   1. 当 CI 编译门禁——代码改坏了这里会红；
+#   2. 没有 Mac 的人也能拿到 ipa，再用 Sideloadly / AltStore 配自己的 Apple ID 签名安装。
+# 有 Mac 的话不需要这个，直接 `npm run ios:open` 在 Xcode 里 Run 更省事（见 docs/IOS.md）。
+
+on:
+  push:
+    branches: [app, main, master]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.js'
+      - 'capacitor.config.json'
+      - 'ios/**'
+      - 'assets/**'
+      - '.github/workflows/ios-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-ios:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Sync into iOS project
+        run: npx cap sync ios
+
+      - name: Build unsigned .app
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/DerivedData/Build/Products/Release-iphoneos/App.app build/Payload/App.app
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent build/Payload build/cs-mahjong-unsigned.ipa
+          ls -lh build/cs-mahjong-unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: cs-mahjong-unsigned-ipa
+          path: build/cs-mahjong-unsigned.ipa
+          retention-days: 30

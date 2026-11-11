@@ -8,5 +8,12 @@
   "android": {
     "backgroundColor": "#FBF9F4",
     "allowMixedContent": false
+  },
+  "ios": {
+    "backgroundColor": "#21453b",
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false,
+    "preferredContentMode": "mobile",
+    "webContentsDebuggingEnabled": false
   }
 }
