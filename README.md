@@ -7,7 +7,7 @@
 > 计分公式与验算示例见 [`docs/SCORING-RULES.md`](docs/SCORING-RULES.md)；
 > 2026-10-18 自测与 BUG 修复记录见 [`docs/BUGFIX-2026-10-18.md`](docs/BUGFIX-2026-10-18.md)；
 > 自用 APK / GitHub Pages 见 [`docs/ANDROID.md`](docs/ANDROID.md)；
-> iPhone / iPad 安装（PWA 与原生 App 两条路）见 [`docs/IOS.md`](docs/IOS.md)。
+> iPhone / iPad 安装（PWA / 侧载 / Xcode 三条路）见 [`docs/IOS.md`](docs/IOS.md)。
 
 ---
 
@@ -81,6 +81,17 @@ npm run dev
 npm run build      # 输出到 dist/，base: './'，可部署到任意子路径
 npm run preview
 ```
+
+## 📱 装到手机上
+
+| 平台 | 方式 | 说明 |
+|---|---|---|
+| Android | 直接下 APK | <https://github.com/jilai0344/cs-mahjong/releases/latest/download/cs-mahjong.apk>，见 [`docs/ANDROID.md`](docs/ANDROID.md) |
+| iPhone（免编译） | Safari → 添加到主屏幕 | <https://jilai0344.github.io/cs-mahjong/> |
+| iPhone（原生 App） | 下 Actions 里的 ipa → Sideloadly 签名 | 不用装 Xcode，7 天续签一次 |
+| iPhone（自己编译） | `npm run ios:sync` → `npm run ios:open` | 需要 Xcode 15+ |
+
+iOS 的完整步骤、免费 Apple ID 的 7 天限制、常见报错都写在 [`docs/IOS.md`](docs/IOS.md)。
 
 ## ✅ 测试与门禁
 
